@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.version>1.3.70</kotlin.version>
         <dokka.version>0.9.16</dokka.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <antlr4.version>4.7</antlr4.version>
         <antlr4.visitor>true</antlr4.visitor>
         <antlr4.listener>true</antlr4.listener>
