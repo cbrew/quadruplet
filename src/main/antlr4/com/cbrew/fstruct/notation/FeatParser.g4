@@ -4,6 +4,8 @@ options { tokenVocab=FeatLexer; }
 /*
  This grammar is intentionally restrictive. Feature names may only be lower-case, syntactic categories
  must start with upper case.
+
+
 */
 
 cfg: (lexentry | cfgrule | mcfgrule)*;

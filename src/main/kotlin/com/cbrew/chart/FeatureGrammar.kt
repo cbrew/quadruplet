@@ -5,7 +5,8 @@ import com.cbrew.unify.*
 class FeatureGrammar : ChartGrammar {
 
     val grammar: Grammar
-    val leftCorner: MutableMap<String, MutableSet<Rule>> = mutableMapOf()
+
+    private val leftCorner: MutableMap<String, MutableSet<Rule>> = mutableMapOf()
 
     constructor(g: Grammar) {
         grammar = g

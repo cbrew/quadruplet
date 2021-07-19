@@ -1,5 +1,6 @@
 package com.cbrew.fstruct.notation
 
+import org.junit.Ignore
 import org.junit.Test
 
 class IntegratedParserTest {
@@ -37,6 +38,14 @@ class IntegratedParserTest {
     fun testCfgFromFile() {
         val fileContent = IntegratedParserTest::class.java.getResource("/tiny.cfg").readText()
         println(IntegratedParser.toGrammar(fileContent))
+    }
+
+
+    @Ignore
+    @Test
+    fun testCfgFromFile2() {
+        val fileContent = IntegratedParserTest::class.java.getResource("/tiny.fcfg").readText()
+        val grammar = IntegratedParser.toGrammar(fileContent)
     }
 
 

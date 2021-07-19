@@ -2,6 +2,7 @@ package com.cbrew.chart
 
 import com.cbrew.fstruct.notation.FeatureNotation
 import com.cbrew.fstruct.notation.FeatureNotation.toFs
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -60,4 +61,49 @@ class ChartTest {
         assertEquals(Complete(FeatureNotation.toFs("S[num=pl,sem=<like (∀ x. cat(x),∀ y. dog(y))>]"), 0, 3),
                 chart.solutions()[0])
     }
+
+    @Test
+    fun testReader2() {
+        val fileContent = Chart::class.java.getResource("/tiny.cfg").readText()
+        val g = FeatureGrammar(FeatureNotation.toGrammar(fileContent))
+        // N.B. Np[] is a feature map, whereas N is an atom, and the two
+        // do not unify
+
+
+        val chart = Chart(arrayOf("Chloe", "likes", "John"))
+        chart.parse(g)
+        assertEquals(1, chart.solutions().size)
+        assertEquals(Complete(FeatureNotation.toFs("S[num=sing,sem=<like(chloe,john)>]"), 0, 3),
+            chart.solutions()[0])
+    }
+
+    @Test
+    fun testDemoReader() {
+        val fileContent = Chart::class.java.getResource("/demo.fcfg").readText()
+        val g = FeatureGrammar(FeatureNotation.toGrammar(fileContent))
+
+
+
+        val chart = Chart(arrayOf("cat", "cat", "dog"))
+        chart.parse(g)
+        print(chart.solutions())
+
+
+    }
+
+
+
+    @Ignore
+    @Test
+    fun testKleiSem2() {
+        val fileContent = Chart::class.java.getResource("/sem2.fcfg").readText()
+        val g = FeatureGrammar(FeatureNotation.toGrammar(fileContent))
+        val chart = Chart(arrayOf("Susie", "barks"))
+        chart.parse(g)
+        print(chart.solutions())
+
+
+    }
+
+
 }

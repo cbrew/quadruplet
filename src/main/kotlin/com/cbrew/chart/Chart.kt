@@ -109,6 +109,7 @@ data class Chart(val completes: Array<MutableSet<Complete>>,
         completes[0].filter { c -> c.end == completes.size - 1 && (unify(c.category, target) != null) }
 
 
+
     object edgeComparator : Comparator<Edge> {
         override fun compare(o1: Edge?, o2: Edge?): Int =
                 if (o1!!.start != o2!!.start)

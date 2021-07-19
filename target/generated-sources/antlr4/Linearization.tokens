@@ -1,0 +1,9 @@
+LINE_COMMENT=1
+WS=2
+Number=3
+Lparen=4
+Rparen=5
+Comma=6
+'('=4
+')'=5
+','=6

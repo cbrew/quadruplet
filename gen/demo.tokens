@@ -1,0 +1,10 @@
+LINE_COMMENT=1
+WS=2
+Arrow=3
+Pipe=4
+Quoted=5
+Equals=6
+Category=7
+'->'=3
+'|'=4
+'='=6

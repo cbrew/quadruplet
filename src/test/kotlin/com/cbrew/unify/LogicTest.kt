@@ -59,6 +59,11 @@ class LogicTest {
                         setOf(Constant("world"),
                                 Or(setOf(Constant("world"),
                                         Constant("championship")))))))
+        // remove redundant conjunct
+        assertEquals(Or(setOf(Constant("hello"), Constant("world"))),
+            createOr(Constant("hello"),Constant("hello"),Constant("world")))
+
+
     }
 
 
