@@ -33,8 +33,10 @@ Forall=32
 Exists=33
 Dot=34
 Box=35
-FstructVariable2=36
-Constant=37
+Individual=36
+Predicate=37
+FstructVariable2=38
+Constant=39
 '='=3
 '['=9
 ']'=10

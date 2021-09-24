@@ -1,9 +1,16 @@
 package com.cbrew.fstruct.notation
 
+import com.cbrew.logic.notation.Leaf
+import com.cbrew.logic.notation.LogicTermsParser
+import com.cbrew.logic.notation.Node
 import com.cbrew.unify.*
+import com.cbrew.logic.notation.SemanticVisitor
+import java.util.*
+
 
 
 class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
+
 
 
     override fun visitCfg(ctx: FeatParser.CfgContext?): Unifiable {
@@ -98,7 +105,7 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
             else
                 throw Exception("unexpected form of fvalue")
 
-
+    // TODO delegete to LogicVisitor
     override fun visitSemantics(ctx: FeatParser.SemanticsContext?): Unifiable {
         val q = ctx?.expression()
         return visit(q)
@@ -108,7 +115,17 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         return Constant(ctx?.text ?: "??")
     }
 
+
+
     override fun visitConstant(ctx: FeatParser.ConstantContext?): Unifiable {
+        return Constant(ctx?.text ?: "??")
+    }
+
+    override fun visitPredicate(ctx: FeatParser.PredicateContext?): Unifiable {
+        return Constant(ctx?.text ?: "??")
+    }
+
+    override fun visitIndividual(ctx: FeatParser.IndividualContext?): Unifiable {
         return Constant(ctx?.text ?: "??")
     }
 
@@ -133,11 +150,10 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         return Exists(visit(ctx?.expression()) as Lambda)
     }
 
-    // check fixup for lambda x y . body
+
     override fun visitLambdaExpression(ctx: FeatParser.LambdaExpressionContext?): Unifiable {
         return Lam(visit(ctx?.expression()) as Lambda)
     }
-
 
 
 

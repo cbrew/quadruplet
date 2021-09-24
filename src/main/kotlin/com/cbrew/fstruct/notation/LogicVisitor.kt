@@ -1,11 +1,14 @@
-package com.cbrew.logic.notation
+package com.cbrew.fstruct.notation
+import com.cbrew.logic.notation.Leaf
+import com.cbrew.logic.notation.Node
+import com.cbrew.logic.notation.Tree
 
 import com.cbrew.unify.*
 import java.util.*
 
 
 
-class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
+class LogicVisitor : FeatParserBaseVisitor<Tree>() {
 
     private fun makeIndividual(text: String) = Leaf(text, "I")
     private fun makePredicate(text: String) = Leaf(text, "P")
@@ -20,7 +23,7 @@ class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
 
 
     fun Tree.isBindable(bindingStack: List<Pair<String, String>>): Boolean =
-            (this is Leaf) && bindingStack.any { label == it.first }
+        (this is Leaf) && bindingStack.any { label == it.first }
 
 
     /**
@@ -54,16 +57,16 @@ class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
 
 
     private fun orYield(item: Lambda): Set<Lambda> =
-            when (item) {
-                is Or -> flattenOr(item.disjuncts)
-                else -> setOf(item)
-            }
+        when (item) {
+            is Or -> flattenOr(item.disjuncts)
+            else -> setOf(item)
+        }
 
     private fun andYield(item: Lambda): Set<Lambda> =
-            when (item) {
-                is And -> flattenAnd(item.conjuncts)
-                else -> setOf(item)
-            }
+        when (item) {
+            is And -> flattenAnd(item.conjuncts)
+            else -> setOf(item)
+        }
 
 
     private fun flattenAnd(conjuncts: Set<Lambda>): Set<Lambda> = conjuncts.flatMap(::andYield).toSet()
@@ -144,7 +147,7 @@ class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
 
     private fun makeApp(children: List<Lambda>): Lambda {
         return makeApp(children[0],
-                children.subList(1, children.size))
+            children.subList(1, children.size))
     }
 
     private fun makeApp(pred: Lambda, args: List<Lambda>): Lambda {
@@ -153,54 +156,54 @@ class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
             result = createApp(result, arg)
         }
         return result
-}
-
-
-    override fun visitIndividual(ctx: LogicTermsParser.IndividualContext): Tree = makeIndividual(ctx.text)
-    override fun visitPredicate(ctx: LogicTermsParser.PredicateContext): Tree = makePredicate(ctx.text)
-    // ?x variables
-    override fun visitVariable(ctx: LogicTermsParser.VariableContext): Tree = makeVariable(ctx.text)
-
-    override fun visitConstantExpr(ctx: LogicTermsParser.ConstantExprContext): Tree = makeConstant(ctx.text)
-
-
-    override fun visitLambdaExpression(ctx: LogicTermsParser.LambdaExpressionContext?): Tree {
-        return makeBindingNode("lambda", ctx?.larg()?.map { it.text } ?: listOf(),
-                visit(ctx?.expression()))
     }
 
-    override fun visitApplication(ctx: LogicTermsParser.ApplicationContext?): Tree {
+
+    override fun visitIndividual(ctx: FeatParser.IndividualContext): Tree = makeIndividual(ctx.text)
+    override fun visitPredicate(ctx: FeatParser.PredicateContext): Tree = makePredicate(ctx.text)
+    // ?x variables
+    override fun visitVariable(ctx: FeatParser.VariableContext): Tree = makeVariable(ctx.text)
+
+    override fun visitConstantExpression(ctx: FeatParser.ConstantExpressionContext): Tree = makeConstant(ctx.text)
+
+
+    override fun visitLambdaExpression(ctx: FeatParser.LambdaExpressionContext?): Tree {
+        return makeBindingNode("lambda", ctx?.larg()?.map { it.text } ?: listOf(),
+            visit(ctx?.expression()))
+    }
+
+    override fun visitApplication(ctx: FeatParser.ApplicationContext?): Tree {
         val predList = listOf(visit(ctx?.expression()))
         val argList = ctx?.applicationTail()?.expression()?.map(::visit) ?: emptyList()
         return Node(label = "application", children = predList + argList)
     }
 
 
-    override fun visitForallExpression(ctx: LogicTermsParser.ForallExpressionContext?): Tree {
+    override fun visitForallExpression(ctx: FeatParser.ForallExpressionContext?): Tree {
         return makeBindingNode("forall", ctx?.argument()?.map { it.text } ?: listOf(),
-                visit(ctx?.expression()))
+            visit(ctx?.expression()))
     }
 
 
-    override fun visitExistsExpression(ctx: LogicTermsParser.ExistsExpressionContext?): Tree {
+    override fun visitExistsExpression(ctx: FeatParser.ExistsExpressionContext?): Tree {
         return makeBindingNode("exists", ctx?.argument()?.map { it.text } ?: listOf(),
-                visit(ctx?.expression()))
+            visit(ctx?.expression()))
     }
 
 
-    override fun visitAnd(ctx: LogicTermsParser.AndContext?): Tree {
+    override fun visitAnd(ctx: FeatParser.AndContext?): Tree {
         return Node("and", ctx?.expression()?.map { visit(it) } ?: emptyList())
     }
 
-    override fun visitOr(ctx: LogicTermsParser.OrContext?): Tree {
+    override fun visitOr(ctx: FeatParser.OrContext?): Tree {
         return Node("or", ctx?.expression()?.map { visit(it) } ?: emptyList())
     }
 
-    override fun visitNegated(ctx: LogicTermsParser.NegatedContext?): Tree {
+    override fun visitNegated(ctx: FeatParser.NegatedContext?): Tree {
         return Node("negated", listOf(visit(ctx?.negation()?.expression())))
     }
 
-    override fun visitRelational(ctx: LogicTermsParser.RelationalContext?): Tree {
+    override fun visitRelational(ctx: FeatParser.RelationalContext?): Tree {
         val op = ctx?.relationTail()?.boolOp()?.text ?: "default"
         val standard_op = when (op) {
             "->" -> "implies"
@@ -218,10 +221,10 @@ class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
         return Node(standard_op, listOf(visit(ctx?.expression()), visit(ctx?.relationTail()?.expression())))
     }
 
-    override fun visitParenthesized(ctx: LogicTermsParser.ParenthesizedContext?): Tree =
-            visit(ctx?.parenthesizedExpression()?.expression())
+    override fun visitParenthesized(ctx: FeatParser.ParenthesizedContext?): Tree =
+        visit(ctx?.parenthesizedExpression()?.expression())
 
-    override fun visitBox(ctx: LogicTermsParser.BoxContext?): Tree {
+    override fun visitBox(ctx: FeatParser.BoxContext?): Tree {
         return Leaf("", type = "Box")
     }
 

@@ -22,7 +22,8 @@ fvalue: Fname |FstructVariable| flist| semantics;
 flist: Lsq fvalue (Comma fvalue)* Rsq;
 semantics: Open expression Close;
 expression:
-        FstructVariable2             # Variable
+        constantExpression          # Constant
+        | FstructVariable2             # Variable
         | expression applicationTail  # Application
         | expression And expression   # And
         | expression Or expression    # Or
@@ -33,11 +34,22 @@ expression:
         | forallExpression            # Forall
         | lambdaExpression            # Lambda
         | Box                         # Box
-        | Constant                    # Constant
+        | individualExpression        # Individual
+        | predicateExpression         # Predicate
         ;
 
 
+predicateExpression:
+    Predicate
+    ;
 
+individualExpression:
+    Individual
+    ;
+
+constantExpression:
+    Constant
+    ;
 
 
 
@@ -53,9 +65,10 @@ relationTail:
 	;
 
 parenthesizedExpression: SemLparen expression SemRparen;
-existsExpression: Exists (Constant +) Dot expression;
-forallExpression: Forall (Constant +) Dot expression;
+existsExpression: Exists (argument +) Dot expression;
+forallExpression: Forall (argument +) Dot expression;
 lambdaExpression: Lambda (larg +) Dot expression;
+
 
 
 
@@ -64,5 +77,5 @@ applicationTail: SemLparen expression (SemComma expression)* SemRparen;
 
 negation: Not expression;
 
-
-larg : Constant ;
+argument : Individual | Predicate | FstructVariable;
+larg: Individual | Predicate;

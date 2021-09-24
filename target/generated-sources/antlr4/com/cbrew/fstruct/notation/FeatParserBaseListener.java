@@ -244,6 +244,54 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterConstant(FeatParser.ConstantContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitConstant(FeatParser.ConstantContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterRelational(FeatParser.RelationalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRelational(FeatParser.RelationalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBox(FeatParser.BoxContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBox(FeatParser.BoxContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPredicate(FeatParser.PredicateContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPredicate(FeatParser.PredicateContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterParenthesized(FeatParser.ParenthesizedContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -268,13 +316,13 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterConstant(FeatParser.ConstantContext ctx) { }
+	@Override public void enterIndividual(FeatParser.IndividualContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitConstant(FeatParser.ConstantContext ctx) { }
+	@Override public void exitIndividual(FeatParser.IndividualContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -292,18 +340,6 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterRelational(FeatParser.RelationalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitRelational(FeatParser.RelationalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterNegated(FeatParser.NegatedContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -311,18 +347,6 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitNegated(FeatParser.NegatedContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterBox(FeatParser.BoxContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitBox(FeatParser.BoxContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -359,6 +383,42 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitApplication(FeatParser.ApplicationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPredicateExpression(FeatParser.PredicateExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPredicateExpression(FeatParser.PredicateExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterIndividualExpression(FeatParser.IndividualExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitIndividualExpression(FeatParser.IndividualExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterConstantExpression(FeatParser.ConstantExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitConstantExpression(FeatParser.ConstantExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -455,6 +515,18 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitNegation(FeatParser.NegationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterArgument(FeatParser.ArgumentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArgument(FeatParser.ArgumentContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -127,6 +127,34 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitOr(FeatParser.OrContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code Constant}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConstant(FeatParser.ConstantContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code Relational}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRelational(FeatParser.RelationalContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code Box}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBox(FeatParser.BoxContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code Predicate}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPredicate(FeatParser.PredicateContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code Parenthesized}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
@@ -141,12 +169,12 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExists(FeatParser.ExistsContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code Constant}
+	 * Visit a parse tree produced by the {@code Individual}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitConstant(FeatParser.ConstantContext ctx);
+	T visitIndividual(FeatParser.IndividualContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code And}
 	 * labeled alternative in {@link FeatParser#expression}.
@@ -155,26 +183,12 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAnd(FeatParser.AndContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code Relational}
-	 * labeled alternative in {@link FeatParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitRelational(FeatParser.RelationalContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code Negated}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitNegated(FeatParser.NegatedContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code Box}
-	 * labeled alternative in {@link FeatParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitBox(FeatParser.BoxContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code Forall}
 	 * labeled alternative in {@link FeatParser#expression}.
@@ -196,6 +210,24 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitApplication(FeatParser.ApplicationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link FeatParser#predicateExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPredicateExpression(FeatParser.PredicateExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link FeatParser#individualExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIndividualExpression(FeatParser.IndividualExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link FeatParser#constantExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConstantExpression(FeatParser.ConstantExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link FeatParser#boolOp}.
 	 * @param ctx the parse tree
@@ -244,6 +276,12 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitNegation(FeatParser.NegationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link FeatParser#argument}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArgument(FeatParser.ArgumentContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link FeatParser#larg}.
 	 * @param ctx the parse tree

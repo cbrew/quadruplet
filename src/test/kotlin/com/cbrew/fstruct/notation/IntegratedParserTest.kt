@@ -64,10 +64,7 @@ class IntegratedParserTest {
     fun testTree(){
         // the tree for this grammar looks good.
         val tree = IntegratedParser.toTree(s3)
-
-        assertEquals(
-            "(cfg (lexentry (word \"a dog\") : (featureMap Np [ (mapping (fpair num = (fvalue pl)) , (fpair sem = (fvalue (semantics < (expression (existsExpression exists x . (expression (expression dog) (applicationTail ( (expression x) ))))) >)))) ])) (lexentry (word \"a cat\") : (featureMap Np [ (mapping (fpair num = (fvalue pl)) , (fpair sem = (fvalue (semantics < (expression (existsExpression exists x . (expression (expression cat) (applicationTail ( (expression x) ))))) >)))) ])) (cfgrule (featureMap Np [ (mapping (fpair num = (fvalue pl)) , (fpair sem = (fvalue (semantics < (expression (existsExpression exists x . (expression (expression pelican) (applicationTail ( (expression x) ))))) >)))) ]) -> (cfgrhs (rhspart (word \"a pelican\")))))",
-        tree)
+        println(tree)
 
     }
 
@@ -75,6 +72,7 @@ class IntegratedParserTest {
     fun testCfg() {
 
         val grammar = IntegratedParser.toGrammar(s)
+        println(grammar)
     }
 
     @Test

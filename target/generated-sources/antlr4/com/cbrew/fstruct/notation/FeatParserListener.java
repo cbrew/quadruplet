@@ -202,6 +202,54 @@ public interface FeatParserListener extends ParseTreeListener {
 	 */
 	void exitOr(FeatParser.OrContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code Constant}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterConstant(FeatParser.ConstantContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code Constant}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitConstant(FeatParser.ConstantContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code Relational}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterRelational(FeatParser.RelationalContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code Relational}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitRelational(FeatParser.RelationalContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code Box}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterBox(FeatParser.BoxContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code Box}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitBox(FeatParser.BoxContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code Predicate}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterPredicate(FeatParser.PredicateContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code Predicate}
+	 * labeled alternative in {@link FeatParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitPredicate(FeatParser.PredicateContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code Parenthesized}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
@@ -226,17 +274,17 @@ public interface FeatParserListener extends ParseTreeListener {
 	 */
 	void exitExists(FeatParser.ExistsContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code Constant}
+	 * Enter a parse tree produced by the {@code Individual}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void enterConstant(FeatParser.ConstantContext ctx);
+	void enterIndividual(FeatParser.IndividualContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code Constant}
+	 * Exit a parse tree produced by the {@code Individual}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void exitConstant(FeatParser.ConstantContext ctx);
+	void exitIndividual(FeatParser.IndividualContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code And}
 	 * labeled alternative in {@link FeatParser#expression}.
@@ -250,18 +298,6 @@ public interface FeatParserListener extends ParseTreeListener {
 	 */
 	void exitAnd(FeatParser.AndContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code Relational}
-	 * labeled alternative in {@link FeatParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterRelational(FeatParser.RelationalContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code Relational}
-	 * labeled alternative in {@link FeatParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitRelational(FeatParser.RelationalContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code Negated}
 	 * labeled alternative in {@link FeatParser#expression}.
 	 * @param ctx the parse tree
@@ -273,18 +309,6 @@ public interface FeatParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitNegated(FeatParser.NegatedContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code Box}
-	 * labeled alternative in {@link FeatParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterBox(FeatParser.BoxContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code Box}
-	 * labeled alternative in {@link FeatParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitBox(FeatParser.BoxContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code Forall}
 	 * labeled alternative in {@link FeatParser#expression}.
@@ -321,6 +345,36 @@ public interface FeatParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitApplication(FeatParser.ApplicationContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link FeatParser#predicateExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterPredicateExpression(FeatParser.PredicateExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link FeatParser#predicateExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitPredicateExpression(FeatParser.PredicateExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link FeatParser#individualExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterIndividualExpression(FeatParser.IndividualExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link FeatParser#individualExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitIndividualExpression(FeatParser.IndividualExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link FeatParser#constantExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterConstantExpression(FeatParser.ConstantExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link FeatParser#constantExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitConstantExpression(FeatParser.ConstantExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link FeatParser#boolOp}.
 	 * @param ctx the parse tree
@@ -401,6 +455,16 @@ public interface FeatParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitNegation(FeatParser.NegationContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link FeatParser#argument}.
+	 * @param ctx the parse tree
+	 */
+	void enterArgument(FeatParser.ArgumentContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link FeatParser#argument}.
+	 * @param ctx the parse tree
+	 */
+	void exitArgument(FeatParser.ArgumentContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link FeatParser#larg}.
 	 * @param ctx the parse tree

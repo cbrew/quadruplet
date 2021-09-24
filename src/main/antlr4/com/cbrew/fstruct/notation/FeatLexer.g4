@@ -121,11 +121,22 @@ Dot: '.';
 
 Box: '\u2610';
 
+// Individual variables must begin with a lowercase letter and continue
+// with zero or more digits.
+Individual
+    : [a-z][0-9]*
+    ;
 
+// Predicate names must begin with an uppercase letter and continue
+// with zero or more digits.
+Predicate
+    : [A-Z][0-9]*
+    ;
 
 // Feature structure variables can start with ? or @
 FstructVariable2
     : [?@][a-z0-9]+
     ;
-Constant: ('['|']'|'\''|[a-zA-Z/0-9_%;+:@`*#]|'\u0080'..'\ufffe')+ ;
 
+// constants are any mix of ',letters numbers, %, ; / and _
+Constant: ('['|']'|'\''|[a-zA-Z/0-9_%;+:@`*#]|'\u0080'..'\ufffe')+ ;
