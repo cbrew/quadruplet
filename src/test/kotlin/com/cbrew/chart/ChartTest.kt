@@ -92,7 +92,6 @@ class ChartTest {
     }
 
 
-
     @Ignore
     @Test
     fun testKleiSem2() {

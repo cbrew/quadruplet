@@ -1,5 +1,8 @@
 package com.cbrew.fstruct.notation
 
+import com.cbrew.chart.Chart
+import com.cbrew.chart.FeatureGrammar
+import com.cbrew.unify.Grammar
 import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -70,6 +73,7 @@ class IntegratedParserTest {
     @Test
     fun testCfg() {
         val grammar = IntegratedParser.toGrammar(s)
+
     }
 
     @Test
@@ -82,6 +86,17 @@ class IntegratedParserTest {
     fun testCfgFromFile() {
         val fileContent = IntegratedParserTest::class.java.getResource("/tiny.cfg").readText()
         val grammar = IntegratedParser.toGrammar(fileContent)
+    }
+
+
+    @Test
+    fun testCfgFromFile2() {
+        val fileContent = IntegratedParserTest::class.java.getResource("/tiny2.cfg").readText()
+        val grammar = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
+        val chart = Chart(arrayOf("Chloe", "likes", "John"))
+        chart.parse(grammar)
+
+        println(chart.solutions())
     }
 
 
