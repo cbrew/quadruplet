@@ -5,7 +5,6 @@ import java.util.*
 
 
 
-
 class SemanticVisitor : LogicTermsBaseVisitor<Tree>() {
 
     private fun makeIndividual(text: String) = Leaf(text, "I")
