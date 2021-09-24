@@ -64,7 +64,6 @@ class IntegratedParserTest {
     fun testTree(){
         // the tree for this grammar looks good.
         val tree = IntegratedParser.toTree(s3)
-        println(tree)
 
     }
 
@@ -72,14 +71,12 @@ class IntegratedParserTest {
     fun testCfg() {
 
         val grammar = IntegratedParser.toGrammar(s)
-        println(grammar)
     }
 
     @Test
     fun testCfg2() {
-        // TODO correct behavior for existantials and universals. Diverges from LogicParser.
+
         val grammar = IntegratedParser.toGrammar(s2)
-        println(grammar)
     }
 
     @Test

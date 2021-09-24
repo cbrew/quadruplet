@@ -105,7 +105,6 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
             else
                 throw Exception("unexpected form of fvalue")
 
-    // TODO delegete to LogicVisitor
     override fun visitSemantics(ctx: FeatParser.SemanticsContext?): Unifiable {
         val logicVisitor = LogicVisitor()
         val q = ctx?.expression()
@@ -123,45 +122,6 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         return Constant(ctx?.text ?: "??")
     }
 
-    override fun visitPredicate(ctx: FeatParser.PredicateContext?): Unifiable {
-        return Constant(ctx?.text ?: "??")
-    }
-
-    override fun visitIndividual(ctx: FeatParser.IndividualContext?): Unifiable {
-        return Constant(ctx?.text ?: "??")
-    }
-
-    override fun visitApplication(ctx: FeatParser.ApplicationContext?): Unifiable {
-        val bodies = ctx?.applicationTail()?.expression()?.map { visit(it) } ?: listOf()
-        var functor: Lambda = visit(ctx?.expression()) as Lambda
-        bodies.subList(0, bodies.size - 1).forEach {
-            functor = App(functor, it as Lambda)
-        }
-
-        return App(functor, bodies[bodies.size - 1] as Lambda)
-    }
-
-    override fun visitAnd(ctx: FeatParser.AndContext?): Unifiable = Constant("and")
-    override fun visitOr(ctx: FeatParser.OrContext?): Unifiable = Constant("or")
-
-    override fun visitForallExpression(ctx: FeatParser.ForallExpressionContext?): Unifiable =
-            Forall(visit(ctx?.expression()) as Lambda)
-
-    override fun visitExistsExpression(ctx: FeatParser.ExistsExpressionContext?): Unifiable {
-        return Exists(visit(ctx?.expression()) as Lambda)
-    }
-
-
-    override fun visitLambdaExpression(ctx: FeatParser.LambdaExpressionContext?): Unifiable {
-        return Lam(visit(ctx?.expression()) as Lambda)
-    }
-
-
-
-
-    override fun visitNegated(ctx: FeatParser.NegatedContext?): Unifiable = Constant("not")
-
-    override fun visitRelational(ctx: FeatParser.RelationalContext?): Unifiable = Constant("rel")
 
 
 }
