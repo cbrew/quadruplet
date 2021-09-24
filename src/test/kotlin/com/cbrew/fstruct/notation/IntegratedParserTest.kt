@@ -95,9 +95,20 @@ class IntegratedParserTest {
         val grammar = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
         val chart = Chart(arrayOf("Chloe", "likes", "John"))
         chart.parse(grammar)
-
-        println(chart.solutions())
+        val sols = chart.solutions()
+        println(sols)
     }
+
+    @Test
+    fun testCfgEquality() {
+        val fileContent1 = IntegratedParserTest::class.java.getResource("/tiny.cfg").readText()
+        val grammar1 = FeatureGrammar(IntegratedParser.toGrammar(fileContent1) as Grammar)
+        val fileContent2 = IntegratedParserTest::class.java.getResource("/tiny2.cfg").readText()
+        val grammar2 = FeatureGrammar(IntegratedParser.toGrammar(fileContent2) as Grammar)
+
+
+    }
+
 
 
 

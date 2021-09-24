@@ -41,7 +41,8 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
     }
 
     override fun visitWord(ctx: FeatParser.WordContext?): Unifiable {
-        return Constant(ctx?.Word()?.text ?: "xxx")
+        val str = ctx?.Word()?.text ?: "\"xxx\""
+        return Constant(str.substring(1,str.length-1))
     }
 
     override fun visitCfgrule(ctx: FeatParser.CfgruleContext?): Unifiable {
