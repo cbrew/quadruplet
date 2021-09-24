@@ -8,7 +8,7 @@ import kotlin.system.measureTimeMillis
 
 
 fun main(args: Array<String>) {
-    val args2 = Array<String>(15, { _ -> "a" })
+    val args2 = Array<String>(30, { _ -> "a" })
     // we can go up to 20 'a's without breaking, though it does take a while
     // to count the trees at that point. Unsurprising, since there are over
     // 1.76 billion trees to count.

@@ -1,6 +1,8 @@
 package com.cbrew.logic.notation
 
 import com.cbrew.unify.*
+import org.hamcrest.CoreMatchers.instanceOf
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -67,6 +69,13 @@ class LogicNotationTest {
         val r = LogicParser.toLogic("a|b|forall q . q")
         assertEquals(Or(setOf(Constant("a"), Constant("b"), Forall(QVar(1)))), r,
                 "should flatten out multiple disjuncts")
+    }
+
+    @Test
+    fun testExists () {
+        val r = LogicParser.toLogic("exists x. x")
+        println(r)
+
     }
 
     @Test

@@ -80,7 +80,11 @@ class FeatureNotationVisitor : FeatureTermsBaseVisitor<FeatureStructure>() {
     override fun visitCfgrule(ctx: FeatureTermsParser.CfgruleContext?): FeatureStructure {
         val lhs: FeatureMap = visit(ctx?.expression()) as FeatureMap
         val rhses: List<FeatureList> = ctx?.cfgrhs()?.rhspart()?.map { visit(it) as FeatureList } ?: listOf()
-        val cfgrules: List<FeatureStructure> = rhses.map { rhs: FeatureList -> CfgRule(lhs, rhs.elements.map { it as FeatureMap }) }
+        val cfgrules: List<FeatureStructure> = rhses.map { rhs: FeatureList ->
+            CfgRule(
+                lhs,
+                rhs.elements.map { it as FeatureMap },
+                listOf()) }
 
         return FeatureList(cfgrules)
 

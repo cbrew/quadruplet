@@ -42,6 +42,7 @@ data class FeatureList(val elements: List<Unifiable>) : FeatureStructure() {
     override fun toString(): String = "[${elements.joinToString()}]"
 }
 
+
 fun emptyFeatureList(): FeatureList = FeatureList(listOf())
 
 
@@ -66,7 +67,7 @@ fun emptyGrammar(): Grammar = Grammar(setOf(), mapOf())
 
 interface Rule
 
-data class CfgRule(val lhs: FeatureMap, val rhs: List<FeatureMap>) : Rule, FeatureStructure() {
+data class CfgRule(val lhs: FeatureMap, val rhs: List<FeatureMap>, val words: List<Unifiable>) : Rule, FeatureStructure() {
     override fun toString(): String {
         return "${lhs} -> ${rhs.joinToString(separator = " ")}"
     }

@@ -19,7 +19,8 @@ object IntegratedParser {
         val tokens = CommonTokenStream(lexer)
         val parser = FeatParser(tokens)
         val visitor = IntegratedVisitor()
-        return visitor.visit(parser.cfg())
+        val g1 = visitor.visit(parser.cfg())
+        return g1
     }
 
 }

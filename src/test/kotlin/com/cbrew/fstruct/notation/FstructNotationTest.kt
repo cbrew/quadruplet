@@ -77,8 +77,8 @@ class FstructNotationTest {
     @Test
     fun testGrammar1() {
         assertEquals(Grammar(rules = setOf(
-                CfgRule(atomicMap("S"), listOf(atomicMap("Np"), atomicMap("Vp"))),
-                CfgRule(atomicMap("S"), listOf(atomicMap("S"), atomicMap("Conj"), atomicMap("S")))
+                CfgRule(atomicMap("S"), listOf(atomicMap("Np"), atomicMap("Vp")),listOf()),
+                CfgRule(atomicMap("S"), listOf(atomicMap("S"), atomicMap("Conj"), atomicMap("S")),listOf())
         ),
                 lexicon = (mapOf())),
                 FeatureNotation.toGrammar("S -> Np Vp | S Conj S"),
@@ -89,9 +89,9 @@ class FstructNotationTest {
     @Test
     fun testGrammar2() {
         assertEquals(Grammar(rules = setOf(
-                CfgRule(atomicMap("Np"), listOf(atomicMap("Det"), atomicMap("Nn"))),
-                CfgRule(atomicMap("S"), listOf(atomicMap("Np"), atomicMap("Vp"))),
-                CfgRule(atomicMap("S"), listOf(atomicMap("S"), atomicMap("Conj"), atomicMap("S")))
+                CfgRule(atomicMap("Np"), listOf(atomicMap("Det"), atomicMap("Nn")),listOf()),
+                CfgRule(atomicMap("S"), listOf(atomicMap("Np"), atomicMap("Vp")),listOf()),
+                CfgRule(atomicMap("S"), listOf(atomicMap("S"), atomicMap("Conj"), atomicMap("S")),listOf())
         ),
                 lexicon = (mapOf())),
                 FeatureNotation.toGrammar("S -> Np Vp | S Conj S\nNp -> Det Nn\n\n"),

@@ -2,6 +2,7 @@ package com.cbrew.fstruct.notation
 
 import com.cbrew.unify.*
 
+
 class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
 
@@ -9,7 +10,8 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         val cfgrules = ctx?.cfgrule()?.map(::visit)?.map { it as CfgRule }?.toSet() ?: setOf()
         val mcfgrules = ctx?.mcfgrule()?.map(::visit)?.map { it as McfgRule }?.toSet() ?: setOf()
 
-        val lexentries = ctx
+        // lexentries may be in word: term format
+        val lex1 = ctx
                 ?.lexentry()
                 ?.map {
                     Pair(
@@ -17,8 +19,22 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
                             it.featureMap().map { visit(it) as FeatureMap }.toSet())
                 }
                 ?: listOf()
+
+        // or embedded in CFG rules
+        val lex2 = cfgrules.flatMap {cfg -> cfg.words.map {
+            Pair(it.toString(), listOf(cfg.lhs))
+        } }
+
+        val lexentries = lex1 + lex2
+
         val lexMap = lexentries.groupingBy { it.first }.fold(setOf(), { R: Set<FeatureMap>, E -> R + E.second })
-        return Grammar(cfgrules + mcfgrules, lexMap)
+
+
+        return Grammar(cfgrules.filter {it.rhs.size > 0} .toSet(), lexMap)
+    }
+
+    override fun visitWord(ctx: FeatParser.WordContext?): Unifiable {
+        return Constant(ctx?.Word()?.text ?: "xxx")
     }
 
     override fun visitCfgrule(ctx: FeatParser.CfgruleContext?): Unifiable {
@@ -28,8 +44,17 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
                     ?: listOf()
         } ?: listOf()).map { it as FeatureMap }
 
-        return CfgRule(lhs, rhs)
+        // we'll include an extra field in CfgRules for the lexical RHS elements
+        val words =
+            ctx?.cfgrhs()?.rhspart()?.flatMap { rhs -> rhs?.word()?.map(::visit) ?: listOf()}
+                ?: listOf()
+
+        // add in the words to the CfgRule.
+        return CfgRule(lhs, rhs, words)
     }
+
+
+
 
 
     override fun visitMcfgrule(ctx: FeatParser.McfgruleContext?): Unifiable {
@@ -52,6 +77,8 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         }?.toMap() ?: mapOf()
         return FeatureMap(fs + Pair("cat", AtomicValue(cat)))
     }
+
+
 
     override fun visitLinseq(ctx: FeatParser.LinseqContext?): Unifiable =
             FeatureList(ctx?.numseq()?.map(::visit) ?: listOf())
@@ -102,6 +129,10 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
     override fun visitForallExpression(ctx: FeatParser.ForallExpressionContext?): Unifiable =
             Forall(visit(ctx?.expression()) as Lambda)
+
+    override fun visitExistsExpression(ctx: FeatParser.ExistsExpressionContext?): Unifiable {
+        return Exists(visit(ctx?.expression()) as Lambda)
+    }
 
     override fun visitLambda(ctx: FeatParser.LambdaContext?): Unifiable =
             Constant("lambda")

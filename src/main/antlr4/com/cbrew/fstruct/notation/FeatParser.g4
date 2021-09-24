@@ -1,19 +1,15 @@
 parser grammar FeatParser;
 
 options { tokenVocab=FeatLexer; }
-/*
- This grammar is intentionally restrictive. Feature names may only be lower-case, syntactic categories
- must start with upper case.
 
 
-*/
 
 cfg: (lexentry | cfgrule | mcfgrule)*;
 mcfgrule: featureMap Arrow2 mcfgrhs;
 cfgrule: featureMap Arrow cfgrhs;
 cfgrhs: rhspart (Pipe rhspart)*;
 mcfgrhs: mcfgrhspart (Pipe mcfgrhspart)*;
-rhspart: featureMap +;
+rhspart: (featureMap|word) +;
 mcfgrhspart: featureMap+ Colon linseq (Comma linseq)*;
 linseq:  Open  numseq+  Close;
 numseq: (SemLparen Number+ SemRparen);

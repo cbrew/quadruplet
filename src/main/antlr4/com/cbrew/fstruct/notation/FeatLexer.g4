@@ -128,5 +128,4 @@ FstructVariable2
     : [?@][a-z0-9]+
     ;
 Constant: ('['|']'|'\''|[a-zA-Z/0-9_%;+:@`*#]|'\u0080'..'\ufffe')+ ;
-//  Constant: ([a-z]|'_')+;
 

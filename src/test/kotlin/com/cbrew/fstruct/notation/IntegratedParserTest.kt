@@ -5,6 +5,7 @@ import org.junit.Test
 
 class IntegratedParserTest {
 
+    //  This grammar format is deprecated, want to be closer to NLTK, see below
     val s = "\"John\" : Np[num=sing,sem=<john>]\n" +
             "\"Jim\" : Np[num=sing,sem=<jim>]\n" +
             "\"Mary\" : Np[num=sing,sem=<mary>]\n" +
@@ -13,9 +14,9 @@ class IntegratedParserTest {
             "\"Sarah\": Np[num=sing,sem=<sarah>]\n" +
             "\"Sarah Beth\": Np[num=sing,sem=<sarah_beth>]\n" +
             "\"dogs\": Np[num=pl,sem=<forall x . Hünde(x)>]\n" +
-            "\"cats\": Np[num=pl,sem=<forall x . Katzem(x)>]\n" +
-            "\"a dog\": Np[num=pl,sem=<exists x . dog(x)>]\n" +
-            "\"a cat\": Np[num=pl,sem=<exists x . cat(x)>]\n" +
+            "\"cats\": Np[num=pl,sem=<forall x . Katzen(x)>]\n" +
+            "\"a dog\": Np[num=pl,sem=<forall x . dog(x)>]\n" +
+            "\"a cat\": Np[num=pl,sem=<forall x . cat(x)>]\n" +
             "\"and\": Conj[type=and]\n" +
             "\"or\" : Conj[type=or]\n" +
             "\"liked\": V[sem=<\\x y. like(y,x)>]\n" +
@@ -28,25 +29,49 @@ class IntegratedParserTest {
             "# Bridge semantics: https://web.stanford.edu/~laurik/publications/bridge.pdf\n" +
             "# needs packed rewrites."
 
+    // This grammar is in NLTK format
+    // TODO: why don't exists expressions work? last two foralls should be existential
+    val s2 =
+            "Np[num=sing,sem=<john>] -> \"John\"" +
+            "Np[num=sing,sem=<jim>] -> \"Jim\"" +
+            "Np[num=sing,sem=<mary>] -> \"Mary\"" +
+            "Np[num=sing,sem=<tina>] -> \"Tina\"\n" +
+            " Np[num=sing,sem=<chloe>] -> \"Chloe\" \n" +
+            "Np[num=sing,sem=<sarah>] -> \"Sarah\"" +
+            "Np[num=sing,sem=<sarah_beth>] -> \"Sarah Beth\"\n" +
+            "Np[num=pl,sem=<forall x . Hünde(x)>] -> \"dogs\"\n" +
+            "Np[num=pl,sem=<forall x . Katzen(x)>] -> \"cats\"\n" +
+            "Np[num=pl,sem=<forall x . Hund(x)>] -> \"a dog\"\n" +
+            "Np[num=pl,sem=<forall x . Katze(x)>] -> \"a cat\"\n" +
+            "Conj[type=and] -> \"and\"\n" +
+            "Conj[type=or] -> \"or\"\n" +
+            "V[sem=<\\x y. like(y,x)>] -> \"liked\"\n" +
+            "V[sem=<\\x y. like(y,x)>,num=sing]-> \"likes\"\n" +
+            "V[sem=<\\x y. like(y,x)>,num=pl] -> \"like\"\n" +
+            "S[num=?n,sem=<?vp(?np)>] -> Np[sem=<?np>,num=?n] Vp[sem=<?vp>,num=?n]\n" +
+            "Np[sem=<?np1 & ?np2>,num=pl] -> Np[sem=<?np1>] Conj[type=and] Np[sem=<?np2>]\n" +
+            "Np[sem=<?np1 | ?np2>,num=?n] ->  Np[sem=<?np1>] Conj[type=or] Np[sem=<?np2>,num=?n]\n" +
+            "Vp[num=?n,sem=<?v(?np)>] -> V[num=?n,sem=<?v>] Np[sem=<?np>]\n"
+
     @Test
     fun testCfg() {
 
-        println(IntegratedParser.toGrammar(s))
+        val grammar = IntegratedParser.toGrammar(s)
+    }
+
+    @Test
+    fun testCfg2() {
+
+        val grammar = IntegratedParser.toGrammar(s2)
+        println(grammar)
     }
 
     @Test
     fun testCfgFromFile() {
         val fileContent = IntegratedParserTest::class.java.getResource("/tiny.cfg").readText()
-        println(IntegratedParser.toGrammar(fileContent))
-    }
-
-
-    @Ignore
-    @Test
-    fun testCfgFromFile2() {
-        val fileContent = IntegratedParserTest::class.java.getResource("/tiny.fcfg").readText()
         val grammar = IntegratedParser.toGrammar(fileContent)
     }
+
 
 
 }
