@@ -69,7 +69,6 @@ class IntegratedParserTest {
 
     @Test
     fun testCfg() {
-
         val grammar = IntegratedParser.toGrammar(s)
     }
 
