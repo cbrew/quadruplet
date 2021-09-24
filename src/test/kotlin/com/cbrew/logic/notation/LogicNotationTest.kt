@@ -79,6 +79,18 @@ class LogicNotationTest {
     }
 
     @Test
+    fun testForall () {
+
+        val r = LogicParser.toLogic("forall x y. y(x)")
+        println(r)
+
+    }
+
+
+
+
+
+    @Test
     fun testParseApp() {
         val ex2 = "love(jules,mia)"
         assertEquals(App(App(Constant("love"), Constant("jules")), Constant("mia")),

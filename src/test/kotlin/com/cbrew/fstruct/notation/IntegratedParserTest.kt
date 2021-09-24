@@ -2,6 +2,7 @@ package com.cbrew.fstruct.notation
 
 import org.junit.Ignore
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class IntegratedParserTest {
 
@@ -30,7 +31,6 @@ class IntegratedParserTest {
             "# needs packed rewrites."
 
     // This grammar is in NLTK format
-    // TODO: why don't exists expressions work? last two foralls should be existential
     val s2 =
             "Np[num=sing,sem=<john>] -> \"John\"" +
             "Np[num=sing,sem=<jim>] -> \"Jim\"" +
@@ -41,17 +41,35 @@ class IntegratedParserTest {
             "Np[num=sing,sem=<sarah_beth>] -> \"Sarah Beth\"\n" +
             "Np[num=pl,sem=<forall x . Hünde(x)>] -> \"dogs\"\n" +
             "Np[num=pl,sem=<forall x . Katzen(x)>] -> \"cats\"\n" +
-            "Np[num=pl,sem=<forall x . Hund(x)>] -> \"a dog\"\n" +
-            "Np[num=pl,sem=<forall x . Katze(x)>] -> \"a cat\"\n" +
+            "Np[num=pl,sem=<exists x . Hund(x)>] -> \"a dog\"\n" +
+            "Np[num=pl,sem=<exists x . Katze(x)>] -> \"a cat\"\n" +
             "Conj[type=and] -> \"and\"\n" +
             "Conj[type=or] -> \"or\"\n" +
             "V[sem=<\\x y. like(y,x)>] -> \"liked\"\n" +
             "V[sem=<\\x y. like(y,x)>,num=sing]-> \"likes\"\n" +
-            "V[sem=<\\x y. like(y,x)>,num=pl] -> \"like\"\n" +
+            "V[sem=<\\a b. like(a,b)>,num=pl] -> \"like\"\n" +
             "S[num=?n,sem=<?vp(?np)>] -> Np[sem=<?np>,num=?n] Vp[sem=<?vp>,num=?n]\n" +
             "Np[sem=<?np1 & ?np2>,num=pl] -> Np[sem=<?np1>] Conj[type=and] Np[sem=<?np2>]\n" +
             "Np[sem=<?np1 | ?np2>,num=?n] ->  Np[sem=<?np1>] Conj[type=or] Np[sem=<?np2>,num=?n]\n" +
             "Vp[num=?n,sem=<?v(?np)>] -> V[num=?n,sem=<?v>] Np[sem=<?np>]\n"
+
+
+    val s3 = """
+    "a dog": Np[num=pl,sem=<exists x . dog(x)>]
+    "a cat": Np[num=pl,sem=<exists x . cat(x)>]
+    Np[num=pl,sem=<exists x . pelican(x)>] -> "a pelican"
+    """
+
+    @Test
+    fun testTree(){
+        // the tree for this grammar looks good.
+        val tree = IntegratedParser.toTree(s3)
+
+        assertEquals(
+            "(cfg (lexentry (word \"a dog\") : (featureMap Np [ (mapping (fpair num = (fvalue pl)) , (fpair sem = (fvalue (semantics < (expression (existsExpression exists x . (expression (expression dog) (applicationTail ( (expression x) ))))) >)))) ])) (lexentry (word \"a cat\") : (featureMap Np [ (mapping (fpair num = (fvalue pl)) , (fpair sem = (fvalue (semantics < (expression (existsExpression exists x . (expression (expression cat) (applicationTail ( (expression x) ))))) >)))) ])) (cfgrule (featureMap Np [ (mapping (fpair num = (fvalue pl)) , (fpair sem = (fvalue (semantics < (expression (existsExpression exists x . (expression (expression pelican) (applicationTail ( (expression x) ))))) >)))) ]) -> (cfgrhs (rhspart (word \"a pelican\")))))",
+        tree)
+
+    }
 
     @Test
     fun testCfg() {
@@ -61,7 +79,7 @@ class IntegratedParserTest {
 
     @Test
     fun testCfg2() {
-
+        // TODO correct behavior for existantials and universals. Diverges from LogicParser.
         val grammar = IntegratedParser.toGrammar(s2)
         println(grammar)
     }

@@ -125,7 +125,6 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
     override fun visitAnd(ctx: FeatParser.AndContext?): Unifiable = Constant("and")
     override fun visitOr(ctx: FeatParser.OrContext?): Unifiable = Constant("or")
 
-    override fun visitExists(ctx: FeatParser.ExistsContext?): Unifiable = Constant("exists")
 
     override fun visitForallExpression(ctx: FeatParser.ForallExpressionContext?): Unifiable =
             Forall(visit(ctx?.expression()) as Lambda)
@@ -134,8 +133,14 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         return Exists(visit(ctx?.expression()) as Lambda)
     }
 
-    override fun visitLambda(ctx: FeatParser.LambdaContext?): Unifiable =
-            Constant("lambda")
+    // check fixup for lambda x y . body
+    override fun visitLambdaExpression(ctx: FeatParser.LambdaExpressionContext?): Unifiable {
+        return Lam(visit(ctx?.expression()) as Lambda)
+    }
+
+
+
+
 
     override fun visitNegated(ctx: FeatParser.NegatedContext?): Unifiable = Constant("not")
 

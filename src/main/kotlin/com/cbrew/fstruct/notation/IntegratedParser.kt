@@ -10,7 +10,7 @@ object IntegratedParser {
         val lexer = FeatLexer(input)
         val tokens = CommonTokenStream(lexer)
         val parser = FeatParser(tokens)
-        return parser.cfg().toStringTree()
+        return parser.cfg().toStringTree(parser)
     }
 
     fun toGrammar(s: String): Unifiable {
