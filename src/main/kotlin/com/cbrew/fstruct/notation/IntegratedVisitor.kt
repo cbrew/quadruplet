@@ -107,8 +107,10 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
     // TODO delegete to LogicVisitor
     override fun visitSemantics(ctx: FeatParser.SemanticsContext?): Unifiable {
+        val logicVisitor = LogicVisitor()
         val q = ctx?.expression()
-        return visit(q)
+        val t = logicVisitor.visit(q)
+        return logicVisitor.binarize(t)
     }
 
     override fun visitVariable(ctx: FeatParser.VariableContext?): Unifiable {
@@ -141,7 +143,6 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
     override fun visitAnd(ctx: FeatParser.AndContext?): Unifiable = Constant("and")
     override fun visitOr(ctx: FeatParser.OrContext?): Unifiable = Constant("or")
-
 
     override fun visitForallExpression(ctx: FeatParser.ForallExpressionContext?): Unifiable =
             Forall(visit(ctx?.expression()) as Lambda)
