@@ -107,6 +107,18 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFlist(FeatParser.FlistContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link FeatParser#ftuple}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFtuple(FeatParser.FtupleContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link FeatParser#fvalues}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFvalues(FeatParser.FvaluesContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link FeatParser#semantics}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -168,6 +168,26 @@ public interface FeatParserListener extends ParseTreeListener {
 	 */
 	void exitFlist(FeatParser.FlistContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link FeatParser#ftuple}.
+	 * @param ctx the parse tree
+	 */
+	void enterFtuple(FeatParser.FtupleContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link FeatParser#ftuple}.
+	 * @param ctx the parse tree
+	 */
+	void exitFtuple(FeatParser.FtupleContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link FeatParser#fvalues}.
+	 * @param ctx the parse tree
+	 */
+	void enterFvalues(FeatParser.FvaluesContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link FeatParser#fvalues}.
+	 * @param ctx the parse tree
+	 */
+	void exitFvalues(FeatParser.FvaluesContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link FeatParser#semantics}.
 	 * @param ctx the parse tree
 	 */

@@ -18,8 +18,11 @@ word: Word ;
 featureMap: Category (Lsq mapping Rsq);
 mapping: fpair? (Comma fpair)* ;
 fpair: Fname Equals fvalue;
-fvalue: Fname |FstructVariable| flist| semantics;
-flist: Lsq fvalue (Comma fvalue)* Rsq;
+fvalue: Fname |FstructVariable| flist| ftuple | semantics;
+flist: Lsq fvalues Rsq;
+ftuple:  Lparen fvalues Rparen;
+fvalues: fvalue (Comma fvalue)*;
+
 semantics: Open expression Close;
 expression:
         constantExpression          # Constant

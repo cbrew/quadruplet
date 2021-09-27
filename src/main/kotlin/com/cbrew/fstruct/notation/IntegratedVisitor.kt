@@ -101,8 +101,10 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
                 QueryVariable(ctx.FstructVariable().text)
             else if (ctx?.semantics() != null)
                 SemanticValue(visit(ctx.semantics()) as Lambda)
-            else if (ctx?.flist()?.fvalue() != null)
-                FeatureList(ctx.flist().fvalue().map(::visit))
+            else if (ctx?.flist()?.fvalues()?.fvalue() != null)
+                FeatureList(ctx.flist().fvalues().fvalue().map(::visit))
+            else if (ctx?.ftuple()?.fvalues()?.fvalue() != null)
+                FeatureTuple(ctx.ftuple().fvalues().fvalue().map(::visit))
             else
                 throw Exception("unexpected form of fvalue")
 

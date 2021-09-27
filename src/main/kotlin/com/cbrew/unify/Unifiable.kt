@@ -43,6 +43,11 @@ data class FeatureList(val elements: List<Unifiable>) : FeatureStructure() {
 }
 
 
+data class FeatureTuple(val elements: List<Unifiable>) : FeatureStructure() {
+    override fun toString(): String = "[${elements.joinToString()}]"
+}
+
+
 fun emptyFeatureList(): FeatureList = FeatureList(listOf())
 
 

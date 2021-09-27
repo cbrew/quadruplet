@@ -272,6 +272,7 @@ fun UM.subst(fs: FeatureStructure): FeatureStructure =
             } else
                 fs
             is FeatureList -> FeatureList(fs.elements.map(::subst))
+            is FeatureTuple -> FeatureTuple(fs.elements.map(::subst))
             is CfgRule -> CfgRule(subst(fs.lhs) as FeatureMap, fs.rhs.map { subst(it) as FeatureMap }, listOf())
             is McfgRule -> McfgRule(subst(fs.lhs) as FeatureMap, fs.rhs.map { subst(it) as FeatureMap }, fs.linseq)
             is FeatureMap -> FeatureMap(fs.mapValues { subst(it.value) })

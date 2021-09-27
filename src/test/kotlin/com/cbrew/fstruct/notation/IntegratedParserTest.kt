@@ -2,10 +2,12 @@ package com.cbrew.fstruct.notation
 
 import com.cbrew.chart.Chart
 import com.cbrew.chart.FeatureGrammar
-import com.cbrew.unify.Grammar
+import com.cbrew.unify.*
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class IntegratedParserTest {
 
@@ -63,6 +65,37 @@ class IntegratedParserTest {
     Np[num=pl,sem=<exists x . pelican(x)>] -> "a pelican"
     """
 
+
+
+
+
+    @Test
+    fun testListValue(){
+
+        val gs = """
+        Np[agr=[a,b,c]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureList
+        assertEquals(FeatureList(listOf(AtomicValue("a"), AtomicValue("b"), AtomicValue("c"))),cat)
+    }
+
+
+    @Test
+    fun testTupleValue(){
+
+        val gs = """
+        Np[agr=(a,b,c)] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTuple
+        assertEquals(FeatureTuple(listOf(AtomicValue("a"), AtomicValue("b"),AtomicValue("c"))),cat)
+    }
+
     @Test
     fun testTree(){
         // the tree for this grammar looks good.
@@ -105,6 +138,7 @@ class IntegratedParserTest {
         val grammar1 = FeatureGrammar(IntegratedParser.toGrammar(fileContent1) as Grammar)
         val fileContent2 = IntegratedParserTest::class.java.getResource("/tiny2.cfg").readText()
         val grammar2 = FeatureGrammar(IntegratedParser.toGrammar(fileContent2) as Grammar)
+        assertEquals(grammar2.grammar, grammar1.grammar)
 
 
     }
