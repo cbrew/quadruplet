@@ -2,6 +2,8 @@ package com.cbrew.chart
 
 import com.cbrew.fstruct.notation.FeatureNotation
 import com.cbrew.fstruct.notation.FeatureNotation.toFs
+import com.cbrew.fstruct.notation.IntegratedParser
+import com.cbrew.unify.Grammar
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -91,18 +93,17 @@ class ChartTest {
 
     }
 
-
     @Ignore
     @Test
-    fun testKleiSem2() {
-        val fileContent = Chart::class.java.getResource("/sem2.fcfg").readText()
-        val g = FeatureGrammar(FeatureNotation.toGrammar(fileContent))
-        val chart = Chart(arrayOf("Susie", "barks"))
+    fun testPatio() {
+        val fileContent = Chart::class.java.getResource("/patio.fcfg").readText()
+        val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
+        val chart = Chart(arrayOf("I","want","a","red", "umbrella"))
         chart.parse(g)
         print(chart.solutions())
-
-
     }
+
+
 
 
 }
