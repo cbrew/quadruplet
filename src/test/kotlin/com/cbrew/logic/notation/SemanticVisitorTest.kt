@@ -48,7 +48,6 @@ class SemanticVisitorTest {
                 LogicParser.toLogic("(\\P . P)(x,y,z)"),
                 "this setup triggers beta reduction")
 
-        // TODO answer correct?
         assertEquals(
                 App(App(App(Constant("x"), Constant("a")),
                         Constant("y")), Constant("z")),
