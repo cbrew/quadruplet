@@ -96,6 +96,141 @@ class IntegratedParserTest {
         assertEquals(FeatureTuple(listOf(AtomicValue("a"), AtomicValue("b"),AtomicValue("c"))),cat)
     }
 
+
+    @Test
+    fun testListExpression(){
+
+        val gs = """
+        Np[agr=[?x + ?y]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureListExpression
+        assertEquals(FeatureListExpression(listOf(QueryVariable("?x"),
+            QueryVariable("?y"))),cat)
+    }
+
+
+    @Test
+    fun testListExpressionWithList(){
+
+        val gs = """
+        Np[agr=[?x + [a]]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureListExpression
+        assertEquals(FeatureListExpression(listOf(
+            QueryVariable("?x"),
+            FeatureList(listOf(AtomicValue("a"))))),cat)
+    }
+
+    @Test
+    fun testListExpressionSimplify(){
+
+        val gs = """
+        Np[agr=[[b] + [a]]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureListExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureList(listOf(AtomicValue("b"),AtomicValue("a"))),
+            simplified)
+
+
+    }
+
+    @Test
+    fun testListExpressionSimplify2(){
+        // simplify where second element is tuple
+        val gs = """
+        Np[agr=[[b] + (a)]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureListExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureList(listOf(AtomicValue("b"),AtomicValue("a"))),
+            simplified)
+
+    }
+
+
+    @Test
+    fun testListExpressionSimplify3(){
+        // simplify where second element is atom
+        val gs = """
+        Np[agr=[[b] + a]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureListExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureList(listOf(AtomicValue("b"),AtomicValue("a"))),
+            simplified)
+
+    }
+
+    @Test
+    fun testListExpressionSimplify4(){
+        // dont simplify where second element is variable
+        val gs = """
+        Np[agr=[[b] + ?a]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureListExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureListExpression(listOf(AtomicValue("b"),QueryVariable("?a"))),
+            simplified)
+
+    }
+
+
+    @Test
+    fun testListExpressionSimplify5(){
+        // simplify where second element is category
+        val gs = """
+        Np[agr=[[a] + S[num=sing]]] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cat: Unifiable? = grammar.lexicon["alphabet"]?.elementAt(0)?.get("agr")
+        val simplified = (cat as FeatureListExpression).simplify()
+        assertEquals(FeatureList(listOf(
+            AtomicValue("a"),
+            FeatureMap(mapOf("cat" to AtomicValue("S"), "num" to AtomicValue("sing")))
+        )),simplified)
+    }
+
+
+
+    // TODO cover other sub-cases of expressions with tuples, lists, maps, etc.
+
+    @Test
+    fun testTupleExpression(){
+
+        val gs = """
+        Np[agr=(?x + ?y)] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
+        assertEquals(FeatureTupleExpression(listOf(QueryVariable("?x"),
+            QueryVariable("?y"))),cat)
+    }
+
     @Test
     fun testTree(){
         // the tree for this grammar looks good.

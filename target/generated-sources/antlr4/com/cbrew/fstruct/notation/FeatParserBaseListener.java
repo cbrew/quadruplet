@@ -232,6 +232,18 @@ public class FeatParserBaseListener implements FeatParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterFexpr(FeatParser.FexprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFexpr(FeatParser.FexprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSemantics(FeatParser.SemanticsContext ctx) { }
 	/**
 	 * {@inheritDoc}

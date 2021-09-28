@@ -18,15 +18,20 @@ word: Word ;
 featureMap: Category (Lsq mapping Rsq);
 mapping: fpair? (Comma fpair)* ;
 fpair: Fname Equals fvalue;
-fvalue: Fname |FstructVariable| flist| ftuple | semantics;
-flist: Lsq fvalues Rsq;
-ftuple:  Lparen fvalues Rparen;
+fvalue: Fname |FstructVariable| flist| ftuple | featureMap | semantics;
+flist: Lsq (fvalues|fexpr) Rsq;
+ftuple:  Lparen (fvalues|fexpr) Rparen;
 fvalues: fvalue (Comma fvalue)*;
+// tuple and list expressions, for now just X + Y
+// with the intention that there will be a runtime test to
+// make sure that the expression makes sense
+fexpr: fvalue Plus fvalue;
+
 
 semantics: Open expression Close;
 expression:
         constantExpression          # Constant
-        | FstructVariable2             # Variable
+        | FstructVariable2            # Variable
         | expression applicationTail  # Application
         | expression And expression   # And
         | expression Or expression    # Or

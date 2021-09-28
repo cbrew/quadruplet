@@ -119,6 +119,12 @@ public interface FeatParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFvalues(FeatParser.FvaluesContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link FeatParser#fexpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFexpr(FeatParser.FexprContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link FeatParser#semantics}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

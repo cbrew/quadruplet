@@ -43,8 +43,56 @@ data class FeatureList(val elements: List<Unifiable>) : FeatureStructure() {
 }
 
 
+data class FeatureListExpression(val elements: List<Unifiable>) : FeatureStructure() {
+    override fun toString(): String = "[${elements.joinToString()}]"
+
+    fun simplify(): FeatureStructure {
+
+        // maybe we can simplify by collapsing adjacent elements
+        // result might then be an aggregate or remain an expression
+        val acc = mutableListOf<Unifiable>()
+        var copyIsExpression = false
+        for (element in elements) {
+
+            when (element) {
+                is FeatureTuple -> acc.addAll(element.elements)
+                is FeatureList -> acc.addAll(element.elements)
+                is QueryVariable -> {
+                    copyIsExpression = true; acc.add(element)
+                }
+                else -> acc.add(element)
+            }
+        }
+
+        if (copyIsExpression) {
+            return FeatureListExpression(acc)
+        } else {
+            return FeatureList(acc)
+        }
+    }
+
+}
+
+
+
 data class FeatureTuple(val elements: List<Unifiable>) : FeatureStructure() {
     override fun toString(): String = "[${elements.joinToString()}]"
+}
+
+
+data class FeatureTupleExpression(val elements: List<Unifiable>) : FeatureStructure() {
+    override fun toString(): String = "[${elements.joinToString()}]"
+
+    fun simplify(): FeatureStructure {
+
+        // maybe we can simplify by collapsing adjacent elements
+        // result might then be a FeatureTuple or remain an expression
+
+
+        // if we get here, expression did not simplify
+        return this;
+
+    }
 }
 
 
