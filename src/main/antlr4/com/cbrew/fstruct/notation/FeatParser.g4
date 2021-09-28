@@ -23,8 +23,7 @@ flist: Lsq (fvalues|fexpr) Rsq;
 ftuple:  Lparen (fvalues|fexpr) Rparen;
 fvalues: fvalue (Comma fvalue)*;
 // tuple and list expressions, for now just X + Y
-// with the intention that there will be a runtime test to
-// make sure that the expression makes sense
+// where X and Y are either collections or ? variables
 fexpr: fvalue Plus fvalue;
 
 

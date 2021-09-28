@@ -86,12 +86,26 @@ data class FeatureTupleExpression(val elements: List<Unifiable>) : FeatureStruct
     fun simplify(): FeatureStructure {
 
         // maybe we can simplify by collapsing adjacent elements
-        // result might then be a FeatureTuple or remain an expression
+        // result might then be an aggregate or remain an expression
+        val acc = mutableListOf<Unifiable>()
+        var copyIsExpression = false
+        for (element in elements) {
 
+            when (element) {
+                is FeatureTuple -> acc.addAll(element.elements)
+                is FeatureList -> acc.addAll(element.elements)
+                is QueryVariable -> {
+                    copyIsExpression = true; acc.add(element)
+                }
+                else -> acc.add(element)
+            }
+        }
 
-        // if we get here, expression did not simplify
-        return this;
-
+        if (copyIsExpression) {
+            return FeatureTupleExpression(acc)
+        } else {
+            return FeatureTuple(acc)
+        }
     }
 }
 

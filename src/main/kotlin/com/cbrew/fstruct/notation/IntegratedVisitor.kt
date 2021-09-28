@@ -15,7 +15,6 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
     override fun visitCfg(ctx: FeatParser.CfgContext?): Unifiable {
         val cfgrules = ctx?.cfgrule()?.map(::visit)?.map { it as CfgRule }?.toSet() ?: setOf()
-        val mcfgrules = ctx?.mcfgrule()?.map(::visit)?.map { it as McfgRule }?.toSet() ?: setOf()
 
         // lexentries may be in word: term format
         val lex1 = ctx
@@ -54,7 +53,7 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
         // we'll include an extra field in CfgRules for the lexical RHS elements
         val words =
-            ctx?.cfgrhs()?.rhspart()?.flatMap { rhs -> rhs?.word()?.map(::visit) ?: listOf()}
+            ctx?.cfgrhs()?.rhspart()?.flatMap { r -> r?.word()?.map(::visit) ?: listOf()}
                 ?: listOf()
 
         // add in the words to the CfgRule.

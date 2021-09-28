@@ -60,7 +60,11 @@ fun findVariables(item: Unifiable, variables: MutableSet<Unifiable>) {
         is SemanticValue -> findVariables(item.value, variables)  // reach into semantic value
         is QueryVariable -> variables.add(item)
         is FeatureList -> item.elements.forEach { findVariables(it, variables) }
+        is FeatureTuple -> item.elements.forEach { findVariables(it, variables) }
+        is FeatureListExpression -> item.elements.forEach { findVariables(it, variables) }
+        is FeatureTupleExpression -> item.elements.forEach { findVariables(it, variables) }
         is FeatureMap -> item.forEach { _, v -> findVariables(v, variables) }
+
         is AtomicValue -> {
         }
         is Grammar -> {
@@ -138,9 +142,11 @@ private fun unifyFU(uf1: FeatureStructure, uf2: Unifiable, bindings: UM): UR? =
             is FeatureStructure -> unifyFF(uf1, uf2, bindings)
         }
 
-
+@Suppress("UNUSED_PARAMETER")
 private fun unifyLL(uf1: Lambda, uf2: Lambda, bindings: UM): UR? = null
+@Suppress("UNUSED_PARAMETER")
 private fun unifyLF(uf1: Lambda, uf2: FeatureStructure, bindings: UM): UR? = null
+@Suppress("UNUSED_PARAMETER")
 private fun unifyFL(uf1: FeatureStructure, uf2: Lambda, bindings: UM): UR? = null
 private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM): UR? =
         if (fs1 is QueryVariable || fs2 is QueryVariable)
@@ -453,15 +459,11 @@ private fun shiftQuantifiers(input: Lambda, bvi: Int): Lambda =
             is Constant -> input
             is Box -> Box
             is Empty -> Empty
-
-
         }
 
 /**
  * Create an application of predicate to argument, or, if predicate
  * is a lambda abstract, do the appropriate β-reduction.
- *
- *
  * betaReduce uses factory functions, which guarantees the absence
  * of reducible sub-terms.
  *
@@ -492,7 +494,7 @@ fun createLam(body: Lambda): Lambda {
 
 /**
  * Make a negation, simplifying away double negation.
- *
+ * and applying DeMorgan equivalences
  * @param body
  * @return
  */

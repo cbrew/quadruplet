@@ -215,7 +215,7 @@ class IntegratedParserTest {
 
 
 
-    // TODO cover other sub-cases of expressions with tuples, lists, maps, etc.
+
 
     @Test
     fun testTupleExpression(){
@@ -228,32 +228,125 @@ class IntegratedParserTest {
         assertNotNull(cats)
         val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
         assertEquals(FeatureTupleExpression(listOf(QueryVariable("?x"),
-            QueryVariable("?y"))),cat)
+            QueryVariable("?y"))),cat.simplify())
+    }
+
+
+    @Test
+    fun testTupleExpression1(){
+
+        val gs = """
+        Np[agr=(a + ?y)] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
+        assertEquals(FeatureTupleExpression(listOf(AtomicValue("a"),
+            QueryVariable("?y"))),cat.simplify())
+    }
+
+    @Test
+    fun testTupleExpression2(){
+
+        val gs = """
+        Np[agr=(?y + a)] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
+        assertEquals(FeatureTupleExpression(listOf(QueryVariable("?y"),
+            AtomicValue("a"))),cat.simplify())
+    }
+
+
+    @Test
+    fun testTupleExpressionSimplify(){
+
+        val gs = """
+        Np[agr=((a,b) + (c,d))] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureTuple(listOf(
+                AtomicValue("a"),
+                AtomicValue("b"),
+                AtomicValue("c"),
+                AtomicValue("d"))),
+            simplified)
+
+    }
+
+    @Test
+    fun testTupleExpressionSimplify1(){
+
+        val gs = """
+        Np[agr=((a,b) + c)] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureTuple(listOf(
+                AtomicValue("a"),
+                AtomicValue("b"),
+                AtomicValue("c"))),
+            simplified)
+
+    }
+
+    @Test
+    fun testTupleExpressionSimplify2(){
+
+        val gs = """
+        Np[agr=(a + (b,c))] -> "alphabet"
+        """
+        val grammar  = IntegratedParser.toGrammar(gs) as Grammar
+        val cats: Set<FeatureMap>? = grammar.lexicon["alphabet"]
+        assertNotNull(cats)
+        val cat = cats.elementAt(0)["agr"] as FeatureTupleExpression
+        val simplified = cat.simplify()
+        assertEquals(
+            FeatureTuple(listOf(
+                AtomicValue("a"),
+                AtomicValue("b"),
+                AtomicValue("c"))),
+            simplified)
+
     }
 
     @Test
     fun testTree(){
         // the tree for this grammar looks good.
         val tree = IntegratedParser.toTree(s3)
-
+        assertNotNull(tree)
     }
 
     @Test
     fun testCfg() {
         val grammar = IntegratedParser.toGrammar(s)
-
+        assertNotNull(grammar)
     }
 
     @Test
     fun testCfg2() {
 
         val grammar = IntegratedParser.toGrammar(s2)
+        assertNotNull(grammar)
     }
 
     @Test
     fun testCfgFromFile() {
         val fileContent = IntegratedParserTest::class.java.getResource("/tiny.cfg").readText()
         val grammar = IntegratedParser.toGrammar(fileContent)
+        assertNotNull(grammar)
     }
 
 
@@ -264,7 +357,7 @@ class IntegratedParserTest {
         val chart = Chart(arrayOf("Chloe", "likes", "John"))
         chart.parse(grammar)
         val sols = chart.solutions()
-        println(sols)
+        assertNotNull(sols)
     }
 
     @Test
