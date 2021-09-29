@@ -16,16 +16,16 @@ numseq: (SemLparen Number+ SemRparen);
 lexentry: word Colon featureMap (Pipe featureMap)*;
 word: Word ;
 featureMap: Category (Lsq mapping Rsq);
-mapping: fpair? (Comma fpair)* ;
+mapping: (fpair|fabbrev)? (Comma (fpair|fabbrev))* ;
 fpair: Fname Equals fvalue;
 fvalue: Fname |FstructVariable| flist| ftuple | featureMap | semantics;
 flist: Lsq (fvalues|fexpr) Rsq;
 ftuple:  Lparen (fvalues|fexpr) Rparen;
-fvalues: fvalue (Comma fvalue)*;
+fvalues: fvalue? (Comma fvalue)*;
 // tuple and list expressions, for now just X + Y
 // where X and Y are either collections or ? variables
-fexpr: fvalue Plus fvalue;
-
+fexpr: fvalue Plus fvalue (Plus fvalue)*;
+fabbrev: (Plus|Minus) Fname;
 
 semantics: Open expression Close;
 expression:

@@ -82,7 +82,6 @@ data class FeatureTuple(val elements: List<Unifiable>) : FeatureStructure() {
 
 data class FeatureTupleExpression(val elements: List<Unifiable>) : FeatureStructure() {
     override fun toString(): String = "[${elements.joinToString()}]"
-
     fun simplify(): FeatureStructure {
 
         // maybe we can simplify by collapsing adjacent elements
@@ -176,16 +175,30 @@ data class Lam(val body: Lambda) : Lambda() {
 
 data class Forall(val body: Lambda) : Lambda() {
     override fun toString(): String = "\u2200.(${body})"
+    // TODO hide DeBruijn notation
+
 }
 
 data class Exists(val body: Lambda) : Lambda() {
     override fun toString(): String = "\u2203.(${body})"
+    // TODO hide DeBruijn notation
 
 }
 
 data class App(val e1: Lambda, val e2: Lambda) : Lambda() {
     override fun toString(): String {
-        return "(${e1} ${e2})"
+        val acc = uncurry()
+        return "${acc.get(0)}(${acc.subList(1,acc.size).joinToString(", ")})"
+    }
+    private fun uncurry() :List<Lambda>{
+        val acc = mutableListOf<Lambda>()
+       // currried verstion is a left-branching tree
+        when (e1) {
+            is App -> acc.addAll(e1.uncurry())
+            else -> acc.add(e1)
+        }
+        acc.add(e2)
+        return acc
     }
 }
 

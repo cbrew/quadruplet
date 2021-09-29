@@ -68,12 +68,22 @@ class ChartTest {
     fun testReader2() {
         val fileContent = Chart::class.java.getResource("/tiny.cfg").readText()
         val g = FeatureGrammar(FeatureNotation.toGrammar(fileContent))
-        // N.B. Np[] is a feature map, whereas N is an atom, and the two
-        // do not unify
+
 
 
         val chart = Chart(arrayOf("Chloe", "likes", "John"))
-        chart.parse(g)
+        chart.debug(g)
+        assertEquals(1, chart.solutions().size)
+        assertEquals(Complete(FeatureNotation.toFs("S[num=sing,sem=<like(chloe,john)>]"), 0, 3),
+            chart.solutions()[0])
+    }
+
+    @Test
+    fun testReaderIntegratedParser() {
+        val fileContent = Chart::class.java.getResource("/tiny2.cfg").readText()
+        val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
+        val chart = Chart(arrayOf("Chloe", "likes", "John"))
+        chart.debug(g)
         assertEquals(1, chart.solutions().size)
         assertEquals(Complete(FeatureNotation.toFs("S[num=sing,sem=<like(chloe,john)>]"), 0, 3),
             chart.solutions()[0])
@@ -92,13 +102,11 @@ class ChartTest {
 
 
     }
-
-    @Ignore
     @Test
     fun testPatio() {
         val fileContent = Chart::class.java.getResource("/patio.fcfg").readText()
         val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
-        val chart = Chart(arrayOf("I","want","a","red", "umbrella"))
+        val chart = Chart(arrayOf("I","need","an", "umbrella"))
         chart.parse(g)
         print(chart.solutions())
     }

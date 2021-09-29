@@ -300,7 +300,7 @@ fun UM.subst(lam: Lambda): Lambda =
                 val r: Unifiable = deref(lam)
                 when (r) {
                     is Lambda -> r
-                    is FeatureStructure -> throw Exception("binding of syn term  to sem term $r ")
+                    is FeatureStructure -> throw Exception("binding of syn term $this  to sem term $r ")
                 }
 
             }

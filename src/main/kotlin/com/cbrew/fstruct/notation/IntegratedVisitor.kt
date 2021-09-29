@@ -82,10 +82,11 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
                     fp.Fname().text,
                     visit(fp.fvalue()))
         }?.toMap() ?: mapOf()
-        return FeatureMap(fs + Pair("cat", AtomicValue(cat)))
+        val fs2 = ctx?.mapping()?.fabbrev()?.map { fabb ->
+            Pair(fabb.Fname().text, AtomicValue("${fabb?.Plus()?.text != null}"))
+        }?.toMap() ?: mapOf()
+        return FeatureMap(fs + fs2 + Pair("cat", AtomicValue(cat)))
     }
-
-
 
     override fun visitLinseq(ctx: FeatParser.LinseqContext?): Unifiable =
             FeatureList(ctx?.numseq()?.map(::visit) ?: listOf())

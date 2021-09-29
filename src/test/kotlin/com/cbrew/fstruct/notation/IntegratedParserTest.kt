@@ -41,7 +41,7 @@ class IntegratedParserTest {
             "Np[num=sing,sem=<jim>] -> \"Jim\"" +
             "Np[num=sing,sem=<mary>] -> \"Mary\"" +
             "Np[num=sing,sem=<tina>] -> \"Tina\"\n" +
-            " Np[num=sing,sem=<chloe>] -> \"Chloe\" \n" +
+            "Np[num=sing,sem=<chloe>] -> \"Chloe\" \n" +
             "Np[num=sing,sem=<sarah>] -> \"Sarah\"" +
             "Np[num=sing,sem=<sarah_beth>] -> \"Sarah Beth\"\n" +
             "Np[num=pl,sem=<forall x . Hünde(x)>] -> \"dogs\"\n" +
@@ -65,9 +65,15 @@ class IntegratedParserTest {
     Np[num=pl,sem=<exists x . pelican(x)>] -> "a pelican"
     """
 
-
-
-
+    @Test
+    fun testAbbrev() {
+        val gs = """
+        "a dog": Np[num=pl,+anim,sem=<exists x . dog(x)>]
+        "a table": Np[num=pl,-anim,sem=<exists x . table(x)>]
+        """
+        val grammar = IntegratedParser.toGrammar(gs) as Grammar
+        assertEquals(2, grammar.lexicon.size)
+    }
 
     @Test
     fun testListValue(){

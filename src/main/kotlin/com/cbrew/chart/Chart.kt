@@ -127,7 +127,6 @@ data class Chart(val completes: Array<MutableSet<Complete>>,
      * bottom-up left-to-right chart parser.
      */
     fun parse(grammar: ChartGrammar) {
-        // val agenda: MutableList<Edge> = mutableListOf()
         val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
 
         for (j in 0..sentence.size - 1) {
@@ -140,6 +139,40 @@ data class Chart(val completes: Array<MutableSet<Complete>>,
             }
             while (agenda.size > 0) {
                 val edge = agenda.remove()
+                if (add(edge)) {
+                    when (edge) {
+                        is Complete -> {
+                            agenda.addAll(grammar.spawn(edge))
+                            agenda.addAll(pairwithpartials(edge))
+                        }
+                        is Partial -> {
+                            agenda.addAll(pairwithcompletes(edge))
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+
+    fun debug(grammar: ChartGrammar) {
+        val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
+
+        for (j in 0..sentence.size - 1) {
+            // 1. Single word lexical entries
+            agenda.addAll(grammar.lookup(sentence.get(j), j))
+            // 2. Multiple word lexical entries ending here
+            for (i in 0..j - 1) {
+                val prefix: List<String> = sentence.sliceArray(IntRange(i, j)).toList()
+                agenda.addAll(grammar.lookup(prefix, i, j + 1))
+            }
+            while (agenda.size > 0) {
+                val edge = agenda.remove()
+                when (edge) {
+                    is Complete -> println(edge)
+                    is Partial -> null
+                }
                 if (add(edge)) {
                     when (edge) {
                         is Complete -> {

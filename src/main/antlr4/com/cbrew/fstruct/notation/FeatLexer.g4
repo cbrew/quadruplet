@@ -17,7 +17,7 @@ FstructVariable
 
 
 Category
-    : [A-Z][a-z0-9]*
+    : [A-Z][A-Za-z0-9]*
     ;
 
 Fname
@@ -32,8 +32,7 @@ Rparen
     : ')'
     ;
 
-Plus: '+'
-    ;
+
 
 Lsq
     : '['
@@ -47,6 +46,10 @@ Comma
     : ','
     ;
 
+Plus: '+'
+    ;
+Minus: '-'
+    ;
 
 
 Open: '<' -> pushMode(ISLAND);
