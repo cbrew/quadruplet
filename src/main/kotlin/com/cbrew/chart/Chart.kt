@@ -7,6 +7,7 @@ import com.cbrew.unify.unify
 import java.util.*
 import kotlin.collections.set
 
+
 /**
  * A chart is a container for edges. It contains two arrays: one for complete edges, with
  * edges being stored in a bucket at their start point, and one for partial
@@ -15,10 +16,12 @@ import kotlin.collections.set
  * is created. Some edges will have been created from the lexicon, so will have no predecessors.
  */
 
-data class Chart(val completes: Array<MutableSet<Complete>>,
-                 val partials: Array<MutableSet<Partial>>,
-                 val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>,
-                 val sentence: Array<String>) {
+class Chart(val completes: Array<MutableSet<Complete>>,
+            val partials: Array<MutableSet<Partial>>,
+            val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>,
+            val sentence: Array<String>) {
+
+    private val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
 
     constructor(sentence: Array<String>) : this(
             completes = Array(sentence.size + 1, { _ -> mutableSetOf<Complete>() }),
@@ -31,8 +34,8 @@ data class Chart(val completes: Array<MutableSet<Complete>>,
                     "\"${sentence.joinToString(" ")}\""),
             Pair("length", sentence.size),
             Pair("numSolutions", solutions().size),
-            Pair("numCompletes", completes.sumBy { it.size }),
-            Pair("numPartials", partials.sumBy { it.size }),
+            Pair("numCompletes", completes.sumOf { it.size }),
+            Pair("numPartials", partials.sumOf { it.size }),
             Pair("numTrees", if (doCount) countTrees() else "\"not counted\""))
 
     fun add(e: Edge): Boolean =
@@ -60,12 +63,12 @@ data class Chart(val completes: Array<MutableSet<Complete>>,
     // count the number of distinct trees under an edge
     fun countTrees(e: Edge): Int =
             if (e in predecessors)
-                predecessors[e]!!.sumBy { (p, c) -> countTrees(p) * countTrees(c) }
+                predecessors[e]!!.sumOf { (p, c) -> countTrees(p) * countTrees(c) }
             else
                 1
 
     fun countTrees(): Int =
-            solutions().sumBy { countTrees(it) }
+            solutions().sumOf { countTrees(it) }
 
 
     fun getTrees(e: Edge): Sequence<Tree> =
@@ -127,67 +130,66 @@ data class Chart(val completes: Array<MutableSet<Complete>>,
      * bottom-up left-to-right chart parser.
      */
     fun parse(grammar: ChartGrammar) {
-        val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
 
-        for (j in 0..sentence.size - 1) {
-            // 1. Single word lexical entries
-            agenda.addAll(grammar.lookup(sentence.get(j), j))
-            // 2. Multiple word lexical entries ending here
-            for (i in 0..j - 1) {
-                val prefix: List<String> = sentence.sliceArray(IntRange(i, j)).toList()
-                agenda.addAll(grammar.lookup(prefix, i, j + 1))
-            }
-            while (agenda.size > 0) {
-                val edge = agenda.remove()
-                if (add(edge)) {
-                    when (edge) {
-                        is Complete -> {
-                            agenda.addAll(grammar.spawn(edge))
-                            agenda.addAll(pairwithpartials(edge))
-                        }
-                        is Partial -> {
-                            agenda.addAll(pairwithcompletes(edge))
-                        }
-
-                    }
-                }
-            }
+        start(grammar)
+        while (!done()){
+            oneStep(grammar)
         }
     }
 
+
+    fun oneStep(grammar: ChartGrammar) : Edge? {
+        val edge = agenda.remove()
+        if (add(edge)) {
+            when (edge) {
+                is Complete -> {
+                    agenda.addAll(grammar.spawn(edge))
+                    agenda.addAll(pairwithpartials(edge))
+                }
+                is Partial -> {
+                    agenda.addAll(pairwithcompletes(edge))
+                }
+            }
+            return edge
+        } else {
+            return null
+        }
+    }
+
+
+    fun done() = agenda.size == 0
+
+    fun start(grammar:ChartGrammar) {
+        for (j in 0 until sentence.size) {
+            // 1. Single word lexical entries
+            agenda.addAll(grammar.lookup(sentence.get(j), j))
+            // 2. Multiple word lexical entries ending here
+            for (i in 0 until j) {
+                val prefix: List<String> = sentence.sliceArray(IntRange(i, j)).toList()
+                agenda.addAll(grammar.lookup(prefix, i, j + 1))
+            }
+        }
+    }
 
     fun debug(grammar: ChartGrammar) {
-        val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
+        start(grammar)
 
-        for (j in 0..sentence.size - 1) {
-            // 1. Single word lexical entries
-            agenda.addAll(grammar.lookup(sentence.get(j), j))
-            // 2. Multiple word lexical entries ending here
-            for (i in 0..j - 1) {
-                val prefix: List<String> = sentence.sliceArray(IntRange(i, j)).toList()
-                agenda.addAll(grammar.lookup(prefix, i, j + 1))
-            }
-            while (agenda.size > 0) {
-                val edge = agenda.remove()
-                when (edge) {
-                    is Complete -> println(edge)
-                    is Partial -> null
+        while (!done()){
+                val edge = oneStep(grammar)
+                if(edge != null){
+                    println(edge)
                 }
-                if (add(edge)) {
-                    when (edge) {
-                        is Complete -> {
-                            agenda.addAll(grammar.spawn(edge))
-                            agenda.addAll(pairwithpartials(edge))
-                        }
-                        is Partial -> {
-                            agenda.addAll(pairwithcompletes(edge))
-                        }
-
-                    }
-                }
-            }
         }
     }
+
+
+
+
+
+
+
+
+
 
 
     /**

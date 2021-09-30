@@ -7,6 +7,7 @@ import com.cbrew.unify.Grammar
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class ChartTest {
 
@@ -72,7 +73,7 @@ class ChartTest {
 
 
         val chart = Chart(arrayOf("Chloe", "likes", "John"))
-        chart.debug(g)
+        chart.parse(g)
         assertEquals(1, chart.solutions().size)
         assertEquals(Complete(FeatureNotation.toFs("S[num=sing,sem=<like(chloe,john)>]"), 0, 3),
             chart.solutions()[0])
@@ -83,7 +84,7 @@ class ChartTest {
         val fileContent = Chart::class.java.getResource("/tiny2.cfg").readText()
         val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
         val chart = Chart(arrayOf("Chloe", "likes", "John"))
-        chart.debug(g)
+        chart.parse(g)
         assertEquals(1, chart.solutions().size)
         assertEquals(Complete(FeatureNotation.toFs("S[num=sing,sem=<like(chloe,john)>]"), 0, 3),
             chart.solutions()[0])
@@ -98,7 +99,7 @@ class ChartTest {
 
         val chart = Chart(arrayOf("cat", "cat", "dog"))
         chart.parse(g)
-        print(chart.solutions())
+        assertNotEquals<Int>(0, chart.solutions().size)
 
 
     }
@@ -108,10 +109,20 @@ class ChartTest {
         val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
         val chart = Chart(arrayOf("I","need","an", "umbrella"))
         chart.parse(g)
-        print(chart.solutions())
+        assertEquals(1,chart.solutions().size )
     }
 
 
-
+    @Test
+    fun testStepping() {
+        val fileContent = Chart::class.java.getResource("/patio.fcfg").readText()
+        val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
+        val chart = Chart(arrayOf("I","want","an", "umbrella"))
+        chart.start(g)
+        while(!chart.done()){
+            chart.oneStep(g)
+        }
+        assertEquals(1,chart.solutions().size )
+    }
 
 }
