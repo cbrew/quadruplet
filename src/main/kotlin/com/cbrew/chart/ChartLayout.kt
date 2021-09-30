@@ -12,5 +12,6 @@ class ChartLayout(words: Array<String>){
 
   val size = words.size
   val layers = mutableListOf<MutableList<Edge>>()
+  val words = words
 
 }
