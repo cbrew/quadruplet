@@ -6,6 +6,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 
 class LogicNotationTest {
 
@@ -74,7 +75,7 @@ class LogicNotationTest {
     @Test
     fun testExists () {
         val r = LogicParser.toLogic("exists x. x")
-        println(r)
+        assertNotNull(r)
 
     }
 
@@ -82,7 +83,7 @@ class LogicNotationTest {
     fun testForall () {
 
         val r = LogicParser.toLogic("forall x y. y(x)")
-        println(r)
+        assertNotNull(r)
 
     }
 

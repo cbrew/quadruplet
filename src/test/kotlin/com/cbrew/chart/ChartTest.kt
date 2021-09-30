@@ -125,4 +125,15 @@ class ChartTest {
         assertEquals(1,chart.solutions().size )
     }
 
+    @Test
+    fun testEdges() {
+        val fileContent = Chart::class.java.getResource("/patio.fcfg").readText()
+        val g = FeatureGrammar(IntegratedParser.toGrammar(fileContent) as Grammar)
+        val chart = Chart(arrayOf("I","need","an", "umbrella"))
+        chart.parse(g)
+        for(x in chart.sortedEdges()){
+            println(x)
+        }
+    }
+
 }

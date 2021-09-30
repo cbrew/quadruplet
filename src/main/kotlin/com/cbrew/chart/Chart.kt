@@ -5,6 +5,7 @@ import com.cbrew.unify.FeatureStructure
 import com.cbrew.unify.subst
 import com.cbrew.unify.unify
 import java.util.*
+import kotlin.Comparator
 import kotlin.collections.set
 
 
@@ -50,7 +51,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
     fun pairwithcompletes(p: Partial): List<Edge> =
             completes[p.end].mapNotNull { c -> fundamental(p, c)?.let { e -> recordPredecessors(p, c, e); e } }
 
-    // record a predecessor relationship
+    // record a predecessor relationship.
 
     private fun recordPredecessors(p: Partial, c: Complete, created: Edge) {
         val pair = Pair(p, c)
@@ -124,6 +125,42 @@ class Chart(val completes: Array<MutableSet<Complete>>,
                 else
                     o1.needed.toString().compareTo(o2.needed.toString())
     }
+
+
+
+    // comparator that puts complete edges first
+    class CompleteComparator(val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>): Comparator<Complete> {
+        fun creates(e1: Complete, e2: Complete): Boolean {
+            // read as e1 creates e2
+            val pairs = predecessors[e2]
+            for ((_, c) in pairs ?: listOf()) {
+                if (c == e1) {
+                    return true
+                }
+            }
+
+            return false
+        }
+
+
+        override fun compare(o1: Complete?, o2: Complete?): Int {
+            val l1 = o1!!.end - o1.start
+            val l2 = o2!!.end - o2.start
+            if (l1 != l2)
+                return l2 - l1
+            else if (creates(o1, o2))
+                return 1
+            else if (creates(o2, o1))
+                return -1
+            else
+                return edgeComparator.compare(o1, o2)
+        }
+
+
+
+    }
+
+    fun sortedEdges() = completes.flatMap {it}.sortedWith(CompleteComparator(predecessors))
 
 
     /**
