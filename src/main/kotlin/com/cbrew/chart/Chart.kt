@@ -219,16 +219,6 @@ class Chart(val completes: Array<MutableSet<Complete>>,
         }
     }
 
-
-
-
-
-
-
-
-
-
-
     /**
      * fundamental rule of chart parsing.
      * Returns new edge if possible.

@@ -22,7 +22,7 @@ fun main(args: Array<String>) {
         for (e in chart.solutions(FeatureNotation.toFs("S[f=?s]"))) {
             var i = 0
             for (tree in chart.getTrees(e).take(100)) {
-                print("Tree $i:\n${tree.treestring(1)}")
+                print("Tree.kt $i:\n${tree.treestring(1)}")
 
                 println()
                 i += 1
