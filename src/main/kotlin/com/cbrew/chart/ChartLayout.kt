@@ -2,15 +2,11 @@ package com.cbrew.chart
 
 import com.cbrew.unify.FeatureMap
 
-
-data class Span(val label:String,val start:Int,val end:Int)
-
 /**
  * a chart layout is a set of layers, each containing complete edges. The edges in each layer are
  * non-overlapping, and an edge cannot appear in a layer level with or higher than one that it
  * was responsible fpr creating.
  *
- * TODO this is presentation code, does it belongs on the client side?
  */
 
 
