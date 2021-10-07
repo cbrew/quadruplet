@@ -41,6 +41,7 @@ fun main(args: Array<String>) {
 
     var msg = "I want an umbrella"
     var edges: List<List<Span>> = listOf()
+    var post:Message=Message(id=12,msg="Twelve angry men")
 
 
     val app = Javalin.create {
@@ -68,12 +69,18 @@ fun main(args: Array<String>) {
         ctx.status(204)
     }
 
-    app.post("msgs") {ctx ->
+
+    app.get("/post") {ctx ->
+        ctx.json(post)
+    }
+
+    app.post("/posts") {ctx ->
         val message = ctx.bodyAsClass<Message>()
+        post = message
         ctx.json(message)
     }
 
 
-    app.get("/", VueComponent("todos"))
+    app.get("/", VueComponent("richnlg"))
 
 }
