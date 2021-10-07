@@ -1,6 +1,9 @@
 <template id="parser">
     <div>
     <h1 class="parser">{{name}}</h1>
+        <p>This shows the subparts of a rich NLU analysis. The positions the words
+        are numbered starting before the first and ending after the last word. So a solution for a four word sentence
+        goes from 0 to 4.</p>
         <input v-model="message" placeholder="edit me">
         <p>Message is: {{ message }}</p>
         <p>Words are: {{ words }}</p>

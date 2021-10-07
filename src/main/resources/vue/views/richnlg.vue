@@ -2,22 +2,22 @@
     <div>
         <h5 class="card-header">{{name}}</h5>
         <input v-model="msg" @keyup.enter="updateMsg" style="width:300px">
-        <button v-on:click="parse">RichNLG</button>
+        <button v-on:click="parse">RichNLU</button>
         <h5 class="card-header">Words</h5>
         <ul class="card-body">
-           <li v-for="word in result.wordSpans" style="color:orange">
+           <li v-for="word in result.wordSpans" style="color:black; background-color:lightgray">
                {{word.start}}-{{word.label}}-{{word.end}}
            </li>
         </ul>
         <h5 class="card-header">Parts of speech</h5>
         <ul class="card-body">
-            <li v-for="word in result.preTerminals" style="color:red">
+            <li v-for="word in result.preTerminals" style="color:red; ; background-color:pink">
                 {{word.start}}-{{word.label}}-{{word.end}}
             </li>
         </ul>
         <h5 class="card-header">Phrases</h5>
         <ul class="card-body">
-            <li v-for="word in result.nonTerminals" style="color:blue">
+            <li v-for="word in result.nonTerminals" style="color:blue;  background-color:lightblue">
                 {{word.start}}-{{word.label}}-{{word.end}}
             </li>
         </ul>
