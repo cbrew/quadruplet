@@ -8,7 +8,6 @@ import io.javalin.plugin.rendering.vue.VueComponent
 import java.util.regex.Pattern
 
 data class Sentence(val text: String)
-
 data class Message(val id: Int, val msg: String)
 
 val gs = """
@@ -27,7 +26,6 @@ val gs = """
             NBAR[sem=?n] -> N[sem=?n]
             VP[sem=<?v(?obj)>] -> Tvb[sem=<?v>] NP[sem=<?obj>]
         """.trimIndent()
-
 
 fun parse(text:String): Chart {
     val g = FeatureGrammar(IntegratedParser.toGrammar(gs) as Grammar)
@@ -55,7 +53,7 @@ fun main(args: Array<String>) {
     app.get("/msg") { ctx ->
             ctx.json(Sentence(text=msg))
     }
-    app.post("/msg") { ctx ->
+    app.post("/msga") { ctx ->
         val chart = parse("I need an umbrella")
         val newEdges  = mutableListOf<List<Span>>()
         for (edgeset in chart.completes){
@@ -74,12 +72,11 @@ fun main(args: Array<String>) {
         ctx.json(post)
     }
 
-    app.post("/posts") {ctx ->
+    app.post("/msg") {ctx ->
         val message = ctx.bodyAsClass<Message>()
-        post = message
+        msg = message.msg
         ctx.json(message)
     }
-
 
     app.get("/", VueComponent("richnlg"))
 
