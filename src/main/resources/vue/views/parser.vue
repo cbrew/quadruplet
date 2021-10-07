@@ -1,49 +1,149 @@
 <template id="parser">
     <div>
-    <h1 class="parser">{{sentence.text}}</h1>
-    <table>
-        <tr><td colspan="4">S</td></tr>
-    <!-- 0 [Complete(category=S[sem=<∃.((product_type(umbrella, q:1) ∧ need(speaker, q:1)))>], start=0, end=4)] -->
-        <tr><td colspan="1">NP</td><td colspan="3" class="focus" >VP</td> </tr>
-        <!-- 0 1 [Complete(category=NP[sem=<λ.(v:1(speaker))>], start=0, end=1), Complete(category=VP[sem=<λ.(∃.((product_type(umbrella, q:1) ∧ need(v:1, q:1))))>], start=1, end=4)] -->
-        <tr><td colspan="1">Pn</td><td colspan="1" >Tvb</td><td colspan="2">NP</td> </tr>
-        <!-- 2 [Complete(category=Pn[sem=<λ.(v:1(speaker))>], start=0, end=1), Complete(category=Tvb[sem=<λ.(λ.(v:2(λ.(need(v:2, v:1)))))>], start=1, end=2), Complete(category=NP[sem=<λ.(∃.((product_type(umbrella, q:1) ∧ v:1(q:1))))>], start=2, end=4)] -->
-        <tr><td colspan="2" style="border:none"></td><td>Det</td><td>NBAR</td></tr>
-        <!--  3 [Complete(category=Det[sem=<λ.(λ.(∃.((v:2(q:1) ∧ v:1(q:1)))))>], start=2, end=3), Complete(category=NBAR[sem=<λ.(product_type(umbrella, v:1))>], start=3, end=4)] -->
-        <tr><td colspan="3" style="border:none"></td><td>N</td></tr>
-        <!-- 4 [Complete(category=N[sem=<λ.(product_type(umbrella, v:1))>], start=3, end=4)]-->
-        <tr><td>I</td><td>want</td><td>an</td><td>umbrella</td></tr>
-        <!-- Sentence; [Span(label=I, start=0, end=1), Span(label=need, start=1, end=2), Span(label=an, start=2, end=3), Span(label=umbrella, start=3, end=4)] -->
-
-        </table>
+    <h1 class="parser">{{name}}</h1>
+        <input v-model="message" placeholder="edit me">
+        <p>Message is: {{ message }}</p>
+        <p>Words are: {{ words }}</p>
+        <h2>Counter</h2>
+        <p>{{ counter }}</p>
+        <button v-on:click="addToCounter">Increment</button>
+<!--
         <ul class="edges">
             <li v-for="edge in edges">
                 {{edge.start}}-{{edge.label}}-{{edge.end}} <br/>
             </li>
         </ul>
+        <div id="example">
+            <button v-on:click="layout">Layout</button>
+        </div>
 
+        <table class="presult">
+            <tr v-for="layer in layers">
+                <td v-for="span in layer" :colspan="span.end - span.start" v-on:click="show">{{span.label}}</td>
+            </tr>
+            <tr><td class="word" v-for="word in words">{{word}}</td></tr>
+        </table>
+  -->
         </div>
     </template>
     <script>
-        Vue.component("hello-world", {
+        var p = Vue.component("hello-world", {
 
         template: "#parser",
         data: () => ({
-            edges: [],
-            sentence: []
+            message: "I want an umbrella",
+            counter: "",
+            name: "Rich NLU",
+            layers: []
         }),
+
         created(){
-            // obtain the sentence from the back end.
-            fetch("/sentence")
-            .then(response => response.json())
-            .then(data => (this.sentence = data));
+
 
             // obtain the edges from the back end.
             fetch("/edges")
             .then(response => response.json())
             .then(data => (this.edges = data));
+
+        },
+
+
+
+
+    computed: {
+        words: function () { return this.message.split(' ') },
+        edges: function () {
+            let v = []
+            fetch("/edges")
+            .then(response => response.json())
+            .then(data => (v = data));
+            return v;
         }
+
+    },
+
+    methods: {
+        show: function(event) {
+            alert(event.target)
+        },
+
+        getCounter:  function () {
+            let v = "xxx";
+            fetch("/counter").then(response => response.json()).then(data => this.counter = data)
+
+            },
+        addToCounter: function() {
+            fetch("/counter", {method: "PUT"})
+        },
+        layout: function() {
+            this.layers = []
+            let layers = this.layers
+                function compare(a, b) {
+                    if(a.start < b.start) {
+                        return -1;
+                    }
+                    if(b.start < a.start) {
+                        return 1;
+                    }
+
+                    return a < b ? -1: 1
+
+                }
+
+
+                function overlaps(e1, layer) {
+                    for(const e2 of layer) {
+                        if(! (e1.start >= e2.end || e2.start >= e1.end)) {
+                            return true
+                        }
+                    }
+                    return false
+                }
+
+                function addNoOverlap(e) {
+                    for(layer of layers) {
+                        if (!overlaps(e, layer)) {
+                            layer.push(e)
+                        return
+                        }
+                    }
+                    layers.push([e])
+                }
+
+                function addGaps() {
+                    new_layers = []
+                    for(layer of layers) {
+                        new_layer = []
+                        pos = 0
+                        for(span of layer) {
+                            if(span.start > pos){
+                                new_layer.push({"label":"","start":pos,"end":span.start})
+                            }
+                            new_layer.push(span)
+                            pos = span.end
+                        }
+                       new_layers.push(new_layer)
+                    }
+
+                    return new_layers
+
+                }
+
+                this.edges.forEach(addNoOverlap)
+                for(layer of layers) {
+                    layer.sort(compare)
+                }
+                this.layers = addGaps()
+
+
+
+            }
+
+        }
+
         });
+
+
     </script>
     <style>
         .parser {
@@ -55,10 +155,19 @@
         .focus {
             background-color: lightgrey;
             }
+         .word {
+            color: blue;
+            background-color: white;
+            border: 1px dotted blue;
+            }
         td {
             background-color: white;
             color: black;
             border: 1px solid black;
         text-align: center;
         }
+        .presult {
+            min-width: 300px;
+            width: 100%;
+         }
     </style>

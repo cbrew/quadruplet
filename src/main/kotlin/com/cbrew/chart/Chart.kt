@@ -20,6 +20,7 @@ import kotlin.collections.set
 class Chart(val completes: Array<MutableSet<Complete>>,
             val partials: Array<MutableSet<Partial>>,
             val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>,
+            val spans: MutableList<Span>,
             val sentence: Array<String>) {
 
     private val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
@@ -28,6 +29,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
             completes = Array(sentence.size + 1, { _ -> mutableSetOf<Complete>() }),
             partials = Array(sentence.size + 1, { _ -> mutableSetOf<Partial>() }),
             predecessors = mutableMapOf(),
+            spans = mutableListOf<Span>(),
             sentence = sentence)
 
     fun stats(doCount: Boolean = true) = mapOf(
@@ -162,6 +164,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
 
     fun sortedEdges() = completes.flatMap {it}.sortedWith(CompleteComparator(predecessors))
 
+    fun wordSpans(): List<Span> = spans
 
     /**
      * bottom-up left-to-right chart parser.
@@ -199,11 +202,21 @@ class Chart(val completes: Array<MutableSet<Complete>>,
     fun start(grammar:ChartGrammar) {
         for (j in 0 until sentence.size) {
             // 1. Single word lexical entries
-            agenda.addAll(grammar.lookup(sentence.get(j), j))
+
+            val cats = grammar.lookup(sentence.get(j), j)
+            if(cats.size > 0) {
+                spans.add(Span(label=sentence.get(j),start=j,end=j+1))
+                agenda.addAll(cats)
+            }
             // 2. Multiple word lexical entries ending here
             for (i in 0 until j) {
                 val prefix: List<String> = sentence.sliceArray(IntRange(i, j)).toList()
-                agenda.addAll(grammar.lookup(prefix, i, j + 1))
+                val cats = grammar.lookup(prefix, i, j + 1)
+                if(cats.size > 0) {
+                    spans.add(Span(label = prefix.joinToString(" "), start = i, end = j + 1))
+                    agenda.addAll(cats)
+                }
+
             }
         }
     }

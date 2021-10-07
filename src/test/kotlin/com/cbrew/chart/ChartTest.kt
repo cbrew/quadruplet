@@ -11,11 +11,7 @@ import kotlin.test.assertNotEquals
 
 class ChartTest {
 
-    val ch = Chart(
-            completes = arrayOf(),
-            partials = arrayOf(),
-            predecessors = mutableMapOf(),
-            sentence = arrayOf())
+    val ch = Chart(sentence = arrayOf())
 
     @Test
     fun testFundamental1() {

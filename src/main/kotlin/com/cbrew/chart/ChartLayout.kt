@@ -1,5 +1,7 @@
 package com.cbrew.chart
 
+import com.cbrew.unify.FeatureMap
+
 
 data class Span(val label:String,val start:Int,val end:Int)
 
@@ -13,14 +15,11 @@ data class Span(val label:String,val start:Int,val end:Int)
 
 
 
-class ChartLayout(words: Array<String>){
+class ChartLayout(val chart:Chart) {
 
-  val size = words.size
-  val layers = mutableListOf<MutableList<Edge>>()
-  val words = words.mapIndexed { index, s  -> Span(s,index,index+1)}
+  val layers = mutableListOf<MutableList<Span>>()
 
-
-  private fun overlaps(e1:Edge,e2:Edge) : Boolean{
+  private fun overlaps(e1:Edge,e2:Span) : Boolean{
     if(e1.start >= e2.end){
       return false
     } else if(e2.start >= e1.end) {
@@ -30,19 +29,25 @@ class ChartLayout(words: Array<String>){
     return true
   }
 
-  private fun overlaps(e1:Edge,edges:List<Edge>): Boolean = edges.any { overlaps(e1, it) }
+  private fun overlaps(e1:Edge,edges:List<Span>): Boolean = edges.any { overlaps(e1, it) }
 
-
+  fun layout(): List<List<Span>> {
+    chart.sortedEdges().forEach {edge -> add(edge)}
+    return layers
+  }
 
   fun add(e:Edge): Unit {
+    val s = Span((e.category as FeatureMap)["cat"].toString(),
+                e.start,
+                e.end)
     for(layer in layers) {
       if (!overlaps(e, layer)) {
-        layer.add(e)
+        layer.add(s)
         return
       }
     }
     // didn't find a layer to add it to
-    layers.add(mutableListOf(e))
+    layers.add(mutableListOf(s))
   }
 
 

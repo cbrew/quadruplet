@@ -13,7 +13,7 @@
             edges: [],
         }),
         created() {
-           this.edges = ["a","b"]
+           this.edges = ["a",'b']
         }
     });
 </script>
