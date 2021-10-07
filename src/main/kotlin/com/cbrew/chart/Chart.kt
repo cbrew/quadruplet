@@ -1,5 +1,6 @@
 package com.cbrew.chart
 
+
 import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.FeatureStructure
 import com.cbrew.unify.subst
@@ -245,6 +246,28 @@ class Chart(val completes: Array<MutableSet<Complete>>,
                                 complete.end,
                                 bindings.subst(partial.needed.subList(1, partial.needed.size)))
                     }
+
+
+
+    fun nonterminals(): List<Span> {
+        return sortedEdges().filter {predecessors.containsKey(it)}.map {Span((it.category as FeatureMap)["cat"].toString(),it.start,it.end)}
+    }
+
+    fun preterminals(): List<Span> {
+        return sortedEdges().filter {! predecessors.containsKey(it)}.map {Span((it.category as FeatureMap)["cat"].toString(),it.start,it.end)}
+    }
+
+    fun fullSemantics(): Map<Int, String> {
+        return mapOf()
+    }
+
+    fun simpleSemantics(): Map<Int, Predicate> {
+        return mapOf()
+    }
+
+    fun fullSyntax(): Map<Int, String> {
+        return mapOf()
+    }
 
 }
 

@@ -13,7 +13,7 @@ data class Message(val id: Int, val msg: String)
 val gs = """
             N[sem=<\x. product_type(umbrella,x)>] -> "umbrella" 
             N[sem=<\x. emotion(need,x)>] -> "need" 
-            Tvb[sem=<\X y.X(\x.need(y,x))>] -> "need" | "want"
+            Tvb[sem=<\X y.X(\x.need(y,x))>] -> "need" | "want" | "needs" | "wants"
             Tvb[sem=<\X y.X(\x.have(y,x))>] -> "have" | "has"
             Pn[sem=<\P.P(speaker)>] -> "I" 
             Pn[sem=<\P.P(beth_ann)>] -> "Beth Ann" | "Beth" 
@@ -34,12 +34,24 @@ fun parse(text:String): Chart {
     return chart
 }
 
+fun parseToResult(text: String): ChartResult{
+    val chart = parse(text)
+
+    return ChartResult(wordSpans=chart.wordSpans(),
+                        nonTerminals = chart.nonterminals(),
+                        preTerminals = chart.preterminals(),
+                        fullSemantics = chart.fullSemantics(),
+                        simpleSemantics = chart.simpleSemantics(),
+                        fullSyntax = chart.fullSyntax())
+}
+
 
 fun main(args: Array<String>) {
 
     var msg = "I want an umbrella"
     var edges: List<List<Span>> = listOf()
     var post:Message=Message(id=12,msg="Twelve angry men")
+    var result: ChartResult
 
 
     val app = Javalin.create {
@@ -76,6 +88,12 @@ fun main(args: Array<String>) {
         val message = ctx.bodyAsClass<Message>()
         msg = message.msg
         ctx.json(message)
+    }
+
+    app.post("/parse") { ctx ->
+        val r = parseToResult(msg)
+        result = r
+        ctx.json(r)
     }
 
     app.get("/", VueComponent("richnlg"))

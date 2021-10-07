@@ -26,4 +26,6 @@ data class ChartResult(val wordSpans: List<Span>,
                        val simpleSemantics: Map<Int,Predicate>,
                        val fullSemantics: Map<Int, String>,
                        val fullSyntax: Map<Int, String>,
-                        )
+                        ) {
+
+}

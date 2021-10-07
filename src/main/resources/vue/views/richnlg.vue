@@ -1,11 +1,28 @@
 <template id="richnlg">
-
-
-    <div class="card text-center m-3">
+    <div>
         <h5 class="card-header">{{name}}</h5>
-        <input style="width:500px" v-model="msg" @keyup.enter="updateMsg">
+        <input v-model="msg" @keyup.enter="updateMsg" style="width:300px">
         <button v-on:click="parse">RichNLG</button>
-        <div class="card-body">{{msg}} </div>
+        <h5 class="card-header">Words</h5>
+        <ul class="card-body">
+           <li v-for="word in result.wordSpans" style="color:orange">
+               {{word.start}}-{{word.label}}-{{word.end}}
+           </li>
+        </ul>
+        <h5 class="card-header">Parts of speech</h5>
+        <ul class="card-body">
+            <li v-for="word in result.preTerminals" style="color:red">
+                {{word.start}}-{{word.label}}-{{word.end}}
+            </li>
+        </ul>
+        <h5 class="card-header">Phrases</h5>
+        <ul class="card-body">
+            <li v-for="word in result.nonTerminals" style="color:blue">
+                {{word.start}}-{{word.label}}-{{word.end}}
+            </li>
+        </ul>
+
+
     </div>
 </template>
 
@@ -15,7 +32,8 @@ var p = Vue.component("richnlg", {
   template: "#richnlg",
   data: () => ({
            msg:"",
-           name: "Rich NLU"
+           name: "Rich NLU",
+           result: ""
         }),
   created() {
         fetch("/msg")
@@ -25,8 +43,16 @@ var p = Vue.component("richnlg", {
 
   methods: {
     parse: function(event) {
-            alert(this.msg)
-        },
+        const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ msg:this.msg,id:123 })
+    };
+      fetch("/parse", requestOptions)
+      .then(response => response.json())
+      .then(data => (this.result = data));
+
+    },
     updateMsg: function() {
       const requestOptions = {
       method: "POST",
