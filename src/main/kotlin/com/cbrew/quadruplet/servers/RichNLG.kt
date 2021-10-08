@@ -36,7 +36,6 @@ fun parse(text:String): Chart {
 
 fun parseToResult(text: String): ChartResult{
     val chart = parse(text)
-
     return ChartResult(wordSpans=chart.wordSpans(),
                         nonTerminals = chart.nonterminals(),
                         preTerminals = chart.preterminals(),
