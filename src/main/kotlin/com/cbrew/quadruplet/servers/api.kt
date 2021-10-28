@@ -61,10 +61,17 @@ fun main(args: Array<String>) {
         ctx.json(edges)
     }
 
+    // list grammar files from resource directory
+    app.get("/grammars"){ ctx ->
+
+
+    }
+
+    /*
     app.get("/msg") { ctx ->
             ctx.json(Sentence(text=msg))
     }
-    app.post("/msga") { ctx ->
+    app.post("/msg") { ctx ->
         val chart = parse("I need an umbrella")
         val newEdges  = mutableListOf<List<Span>>()
         for (edgeset in chart.completes){
@@ -96,5 +103,7 @@ fun main(args: Array<String>) {
     }
 
     app.get("/", VueComponent("richnlg"))
+
+    */
 
 }
