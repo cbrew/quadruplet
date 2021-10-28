@@ -1,0 +1,7 @@
+"dog": Elem[sem=<dog>]
+"cat": Elem[sem=<cat>]
+Demo[sem=<?s>] -> List[sem=<?s>]
+List[sem=<?s1 & ?s2>] -> Elem[sem=<?s1>] List[sem=<?s2>]
+List[sem=<?s>] -> Elem[sem=<?s>]
+
+

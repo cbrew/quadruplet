@@ -1,0 +1,15 @@
+# patio lexicon
+N[sem=<\x. product_type(umbrella,x)>] -> "umbrella"
+Tvb[sem=<\X y.X(\x.need(y,x))>] -> "need" | "want"
+Pn[sem=<\P.P(speaker)>] -> "I"
+Det[sem=<\P Q.exists x.(P(x) & Q(x))>] -> "an"|"a"
+# patio grammar
+S[sem=<?subj(?vp)>] -> NP[sem=<?subj>] VP[sem=<?vp>]
+NP[sem=<?det(?nbar)>] -> Det[sem=<?det>] NBAR[sem=<?nbar>]
+NP[sem=<?pn>] -> Pn[sem=<?pn>]
+NBAR[sem=?n] -> N[sem=?n]
+VP[sem=<?v(?obj)>] -> Tvb[sem=<?v>] NP[sem=<?obj>]
+
+
+
+
