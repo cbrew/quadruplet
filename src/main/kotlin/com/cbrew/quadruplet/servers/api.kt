@@ -7,6 +7,7 @@ import io.javalin.Javalin
 import io.javalin.plugin.rendering.vue.VueComponent
 import java.util.regex.Pattern
 
+
 data class Sentence(val text: String)
 data class Message(val id: Int, val msg: String)
 
@@ -44,6 +45,13 @@ fun parseToResult(text: String): ChartResult{
                         fullSyntax = chart.fullSyntax())
 }
 
+fun loadGrammar(name: String) :FeatureGrammar {
+    val gs =  object {}.javaClass.getResource("/grammars/${name}").readText()
+
+    return FeatureGrammar(IntegratedParser.toGrammar(gs) as Grammar)
+
+}
+
 
 fun main(args: Array<String>) {
 
@@ -51,6 +59,9 @@ fun main(args: Array<String>) {
     var edges: List<List<Span>> = listOf()
     var post:Message=Message(id=12,msg="Twelve angry men")
     var result: ChartResult
+
+    // a place to put grammars
+    var grammars= mutableMapOf<String,FeatureGrammar>()
 
 
     val app = Javalin.create {
@@ -61,11 +72,17 @@ fun main(args: Array<String>) {
         ctx.json(edges)
     }
 
-    // list grammar files from resource directory
-    app.get("/grammars"){ ctx ->
+
+    //
+    app.get("/grammars") {ctx ->
 
 
+        val name = "patio.fcfg"
+        val g = loadGrammar(name)
+        grammars.put(name,g)
+        ctx.json(grammars.keys)
     }
+
 
     /*
     app.get("/msg") { ctx ->

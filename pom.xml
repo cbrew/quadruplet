@@ -23,6 +23,8 @@
 
 
     <dependencies>
+
+
         <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-reflect -->
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -89,6 +91,11 @@
             <artifactId>kotlin-test</artifactId>
             <version>${kotlin.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>27.0.1-jre</version>
         </dependency>
     </dependencies>
 

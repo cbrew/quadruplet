@@ -16,6 +16,10 @@ import java.util.stream.Collectors
 class FileResourcesUtils {
     // get a file from the resources folder
     // works everywhere, IDEA, unit test and JAR file.
+    // This demo code derived from https://mkyong.com/java/java-read-a-file-from-resources-folder/
+    // contrary to claim, does not work for me from IDEA, but does work from built jar.
+
+
     private fun getFileFromResourceAsStream(fileName: String): InputStream {
 
         // The class loader that loaded the class
@@ -58,12 +62,12 @@ class FileResourcesUtils {
             // Sample 3 - read all files from a resources folder (JAR version)
             try {
 
-                // get paths from src/main/resources/json
+                // get paths from src/main/resources/grammars
                 val result = app.getPathsFromResourceJAR("grammars")
                 for (path in result) {
                     println("Path : $path")
                     var filePathInJAR = path.toString()
-                    // Windows will returns /json/file1.json, cut the first /
+                    // Windows will return /json/file1.json, cut the first /
                     // the correct path should be json/file1.json
                     if (filePathInJAR.startsWith("/")) {
                         filePathInJAR = filePathInJAR.substring(1, filePathInJAR.length)
@@ -71,8 +75,8 @@ class FileResourcesUtils {
                     println("filePathInJAR : $filePathInJAR")
 
                     // read a file from resource folder
-                    val `is` = app.getFileFromResourceAsStream(filePathInJAR)
-                    printInputStream(`is`)
+                    val inStream = app.getFileFromResourceAsStream(filePathInJAR)
+                    printInputStream(inStream)
                 }
             } catch (e: URISyntaxException) {
                 e.printStackTrace()
@@ -82,9 +86,9 @@ class FileResourcesUtils {
         }
 
         // print input stream
-        private fun printInputStream(`is`: InputStream) {
+        private fun printInputStream(inStream: InputStream) {
             try {
-                InputStreamReader(`is`, StandardCharsets.UTF_8).use { streamReader ->
+                InputStreamReader(inStream, StandardCharsets.UTF_8).use { streamReader ->
                     BufferedReader(streamReader).use { reader ->
                         var line: String?
                         while (reader.readLine().also { line = it } != null) {
