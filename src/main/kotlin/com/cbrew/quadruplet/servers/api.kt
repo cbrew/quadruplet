@@ -41,7 +41,7 @@ fun main() {
 
 
     Javalin.create {config: JavalinConfig->
-        config.registerPlugin(getConfiguredOpenApiPlugin())
+        // config.registerPlugin(getConfiguredOpenApiPlugin())
         config.defaultContentType = "application/json"
         config.enableWebjars()
 
@@ -70,10 +70,10 @@ fun main() {
         }
     }.start(7001)
 
-
+    /*
     println("Check out ReDoc docs at http://localhost:7001/redoc")
     println("Check out Swagger UI docs at http://localhost:7001/swagger-ui")
-
+    */
 
 
 

@@ -82,7 +82,7 @@ object ConversationController {
 
     private val conversations = mutableMapOf<String,Conversation>()
 
-
+/*
     @OpenApi(
         summary = "Create conversation",
         operationId = "startConversation",
@@ -93,6 +93,8 @@ object ConversationController {
             OpenApiResponse("400", [OpenApiContent(ErrorResponse::class)])
         ]
     )
+
+ */
     // call:  `curl -X POST localhost:7001/conversations   -d '{"conversationId":"conv1"}`
     fun startConversation(ctx: Context){
         val params = ctx.bodyAsClass<TokenParameters>()
@@ -102,7 +104,7 @@ object ConversationController {
         ctx.json(conv)
         ctx.status(201)
     }
-
+/*
     @OpenApi(
         summary = "Show the activities for a conversation",
         operationId = "getActivities",
@@ -116,6 +118,7 @@ object ConversationController {
             OpenApiResponse("400", [OpenApiContent(ErrorResponse::class)])
         ]
     )
+ */
     fun getActivities(ctx: Context){
         val conversationId = ctx.pathParam("conversationId")
         val conversation = conversations[conversationId]
@@ -127,6 +130,7 @@ object ConversationController {
     }
 
     // curl -X POST 'localhost:7001/conversations/za/activities'  -d '{"text":"hello","speaker":"user"}'
+    /*
     @OpenApi(
         summary = "Post an activity",
         operationId = "sendActivity",
@@ -137,6 +141,7 @@ object ConversationController {
             OpenApiResponse("400", [OpenApiContent(ErrorResponse::class)])
         ]
     )
+     */
     fun sendActivity(ctx: Context){
         val conversationId = ctx.pathParam("conversationId")
         val conversation = conversations[conversationId]
@@ -157,6 +162,7 @@ object ConversationController {
 
     // curl -X GET localhost:7001/conversations/{conversationId}?watermark={watermark_value}
     // which will return a conversation or raise a Not Found error response.
+    /*
     @OpenApi(
         summary = "Show the information about a conversation",
         operationId = "getConversationInfo",
@@ -172,6 +178,8 @@ object ConversationController {
             OpenApiResponse("400", [OpenApiContent(ErrorResponse::class)])
         ]
     )
+
+     */
     fun getConversationInfo(ctx: Context){
         val conversationId = ctx.pathParam("conversationId")
         val conversation = conversations[conversationId]
@@ -189,7 +197,7 @@ object ConversationController {
     // the same result is re-requested.
 
 
-
+/*
     @OpenApi(
         summary = "Show the parse of the  given activity of the given conversation",
         operationId = "parse",
@@ -201,6 +209,8 @@ object ConversationController {
             OpenApiResponse("400", [OpenApiContent(ErrorResponse::class)])
         ]
     )
+
+ */
     fun parse(ctx:Context){
         val conversationId = ctx.pathParam("conversationId")
         val conversation = conversations[conversationId]
@@ -217,6 +227,7 @@ object ConversationController {
     // reference is a GET operation, does not change state
     // of conversation. However, it may trigger parsing of
     // utterances previous to the current one.
+    /*
     @OpenApi(
         summary = "Show the reference info of the  given activity of the given conversation",
         operationId = "reference",
@@ -228,6 +239,8 @@ object ConversationController {
             OpenApiResponse("400", [OpenApiContent(ErrorResponse::class)])
         ]
     )
+
+     */
     fun reference(ctx:Context){
         ctx.json("reference")
     }
