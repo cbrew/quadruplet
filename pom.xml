@@ -70,13 +70,6 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>27.0.1-jre</version>
-        </dependency>
-        -->
         <!-- okhttp/moshi is only required to consume the API, using the auto generated client -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
