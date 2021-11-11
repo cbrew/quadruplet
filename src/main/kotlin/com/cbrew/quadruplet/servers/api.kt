@@ -1,79 +1,91 @@
 package com.cbrew.quadruplet.servers
+import cc.vileda.openapi.dsl.info
+import cc.vileda.openapi.dsl.openapiDsl
 import com.cbrew.chart.*
 import com.cbrew.fstruct.notation.IntegratedParser
-import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.Grammar
 import io.javalin.Javalin
-import io.javalin.plugin.rendering.vue.VueComponent
+import io.javalin.apibuilder.ApiBuilder.*
+import io.javalin.apibuilder.ApiBuilder.get
+import io.javalin.apibuilder.ApiBuilder.path
+import io.javalin.core.JavalinConfig
+import io.javalin.plugin.openapi.OpenApiOptions
+import io.javalin.plugin.openapi.OpenApiPlugin
+import io.javalin.plugin.openapi.ui.ReDocOptions
+import io.javalin.plugin.openapi.ui.SwaggerOptions
 import java.util.regex.Pattern
 
+fun getConfiguredOpenApiPlugin() = OpenApiPlugin(
+    OpenApiOptions {
+        openapiDsl {
+            info {
+                title = "User API"
+                description = "Demo API with 5 operations"
+                version = "1.0.0"
+            }
+        }
+    }.apply {
+        path("/swagger-docs") // endpoint for OpenAPI json
+        swagger(SwaggerOptions("/swagger-ui")) // endpoint for swagger-ui
+        reDoc(ReDocOptions("/redoc")) // endpoint for redoc
+        defaultDocumentation { doc ->
+            doc.json("500", ErrorResponse::class.java)
+            doc.json("503", ErrorResponse::class.java)
+        }
+    }
+)
 
-data class Sentence(val text: String)
-data class Message(val id: Int, val msg: String)
-
-val gs = """
-            N[sem=<\x. product_type(umbrella,x)>] -> "umbrella" 
-            N[sem=<\x. emotion(need,x)>] -> "need" 
-            Tvb[sem=<\X y.X(\x.need(y,x))>] -> "need" | "want" | "needs" | "wants"
-            Tvb[sem=<\X y.X(\x.have(y,x))>] -> "have" | "has"
-            Pn[sem=<\P.P(speaker)>] -> "I" 
-            Pn[sem=<\P.P(beth_ann)>] -> "Beth Ann" | "Beth" 
-            Pn[sem=<\P.P(john)>] -> "John" | "John Paul"  
-            Det[sem=<\P Q.exists x.(P(x) & Q(x))>] -> "an"|"a"
-            # grammar rules
-            S[sem=<?subj(?vp)>] -> NP[sem=<?subj>] VP[sem=<?vp>]
-            NP[sem=<?det(?nbar)>] -> Det[sem=<?det>] NBAR[sem=<?nbar>]
-            NP[sem=<?pn>] -> Pn[sem=<?pn>]
-            NBAR[sem=?n] -> N[sem=?n]
-            VP[sem=<?v(?obj)>] -> Tvb[sem=<?v>] NP[sem=<?obj>]
-        """.trimIndent()
-
-fun parse(text:String): Chart {
-    val g = FeatureGrammar(IntegratedParser.toGrammar(gs) as Grammar)
-    val chart = Chart(text.split(Pattern.compile("\\s+")).toTypedArray())
-    chart.parse(g)
-    return chart
-}
-
-fun parseToResult(text: String): ChartResult{
-    val chart = parse(text)
-    return ChartResult(wordSpans=chart.wordSpans(),
-                        nonTerminals = chart.nonterminals(),
-                        preTerminals = chart.preterminals(),
-                        fullSemantics = chart.fullSemantics(),
-                        simpleSemantics = chart.simpleSemantics(),
-                        fullSyntax = chart.fullSyntax())
-}
-
-fun loadGrammar(name: String) :FeatureGrammar {
-    val gs =  object {}.javaClass.getResource("/grammars/${name}").readText()
-
-    return FeatureGrammar(IntegratedParser.toGrammar(gs) as Grammar)
-
-}
+fun main() {
 
 
-fun main(args: Array<String>) {
-
-    var msg = "I want an umbrella"
-    var edges: List<List<Span>> = listOf()
-    var post:Message=Message(id=12,msg="Twelve angry men")
-    var result: ChartResult
-
-    // a place to put grammars
-    var grammars= mutableMapOf<String,FeatureGrammar>()
 
 
-    val app = Javalin.create {
-        it.enableWebjars()
-    }.start(7000)
+    Javalin.create {config: JavalinConfig->
+        config.registerPlugin(getConfiguredOpenApiPlugin())
+        config.defaultContentType = "application/json"
+        config.enableWebjars()
+
+    }.routes {
+        path("conversations"){
+            post(ConversationController::startConversation)
+            path("{conversationId}"){
+                get(ConversationController::getConversationInfo)
+                path("activities"){
+                    get(ConversationController::getActivities)
+                    post(ConversationController::sendActivity)
+                }
+                path("parse"){
+                    path("{messageId}"){
+                        get(ConversationController::parse)
+                    }
+                }
+                path("ref"){
+                    path("{messageId}"){
+                        get(ConversationController::reference)
+                    }
+
+                }
+
+            }
+        }
+    }.start(7001)
+
+
+    println("Check out ReDoc docs at http://localhost:7001/redoc")
+    println("Check out Swagger UI docs at http://localhost:7001/swagger-ui")
+
+
+
+
+    /*
 
     app.get("/edges") {ctx ->
         ctx.json(edges)
     }
 
 
-    //
+    // List the available grammars
+    // Currently only one.
     app.get("/grammars") {ctx ->
 
 
@@ -82,6 +94,28 @@ fun main(args: Array<String>) {
         grammars.put(name,g)
         ctx.json(grammars.keys)
     }
+
+
+    app.post("/msg") {ctx ->
+        val message = ctx.bodyAsClass<Sentence>()
+        msg = message.text
+        ctx.json(message)
+    }
+
+
+    app.get("/msg") { ctx ->
+        ctx.json(Sentence(text=msg))
+    }
+
+    app.routes{
+        path("conversation"){
+            get(ConversationController::getAllConversations)
+
+        }
+    }
+
+
+    */
 
 
     /*
@@ -107,11 +141,7 @@ fun main(args: Array<String>) {
         ctx.json(post)
     }
 
-    app.post("/msg") {ctx ->
-        val message = ctx.bodyAsClass<Message>()
-        msg = message.msg
-        ctx.json(message)
-    }
+
 
     app.post("/parse") { ctx ->
         val r = parseToResult(msg)
