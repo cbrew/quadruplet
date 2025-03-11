@@ -21,6 +21,10 @@ class FileResourcesUtils {
 
 
     private fun getFileFromResourceAsStream(fileName: String): InputStream {
+        // Validate resource path to prevent directory traversal
+        if (fileName.contains("..") || fileName.startsWith("/")) {
+            throw IllegalArgumentException("Invalid resource path: $fileName")
+        }
 
         // The class loader that loaded the class
         val classLoader = javaClass.classLoader
@@ -79,9 +83,11 @@ class FileResourcesUtils {
                     printInputStream(inStream)
                 }
             } catch (e: URISyntaxException) {
-                e.printStackTrace()
+                println("Error processing URI: ${e.message}")
+                throw e
             } catch (e: IOException) {
-                e.printStackTrace()
+                println("I/O error: ${e.message}")
+                throw e
             }
         }
 
@@ -97,7 +103,8 @@ class FileResourcesUtils {
                     }
                 }
             } catch (e: IOException) {
-                e.printStackTrace()
+                println("Error reading stream: ${e.message}")
+                throw e
             }
         }
     }
