@@ -5,6 +5,7 @@ import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.FeatureStructure
 import com.cbrew.unify.subst
 import com.cbrew.unify.unify
+import java.math.BigInteger
 import java.util.*
 import kotlin.Comparator
 import kotlin.collections.set
@@ -64,15 +65,23 @@ class Chart(val completes: Array<MutableSet<Complete>>,
             predecessors[created] = mutableSetOf(pair)
     }
 
-    // count the number of distinct trees under an edge
-    fun countTrees(e: Edge): Int =
-            if (e in predecessors)
-                predecessors[e]!!.sumOf { (p, c) -> countTrees(p) * countTrees(c) }
-            else
-                1
+    // count the number of distinct trees under an edge. Sub-forests are
+    // shared between many parents, so counts are memoised; without that the
+    // count takes time proportional to the (exponential) number of trees.
+    // Counts are BigIntegers because they outgrow Int within ~17 words.
+    fun countTrees(e: Edge): BigInteger = countTrees(e, HashMap())
 
-    fun countTrees(): Int =
-            solutions().sumOf { countTrees(it) }
+    private fun countTrees(e: Edge, memo: MutableMap<Edge, BigInteger>): BigInteger =
+            memo.getOrPut(e) {
+                predecessors[e]?.fold(BigInteger.ZERO) { acc, (p, c) ->
+                    acc + countTrees(p, memo) * countTrees(c, memo)
+                } ?: BigInteger.ONE
+            }
+
+    fun countTrees(): BigInteger {
+        val memo = HashMap<Edge, BigInteger>()
+        return solutions().fold(BigInteger.ZERO) { acc, s -> acc + countTrees(s, memo) }
+    }
 
 
     fun getTrees(e: Edge): Sequence<Tree> =

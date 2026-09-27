@@ -132,8 +132,18 @@ class ChartTest {
         }
     }
 
+    private fun countAs(n: Int): java.math.BigInteger {
+        val chart = Chart(Array(n) { "a" })
+        chart.parse(TreeAsFeatureGrammar())
+        return chart.countTrees()
+    }
 
-
-
-
+    @Test
+    fun testCountTrees() {
+        // 16 matches the old unmemoised Int count; 20 overflowed Int and
+        // 40 would overflow Long. Values cross-checked against the Go port.
+        assertEquals(java.math.BigInteger("717061938"), countAs(16))
+        assertEquals(java.math.BigInteger("434299921440"), countAs(20))
+        assertEquals(java.math.BigInteger("67640307007394294146092847"), countAs(40))
+    }
 }
