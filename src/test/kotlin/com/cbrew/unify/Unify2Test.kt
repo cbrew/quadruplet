@@ -243,7 +243,82 @@ class Unify2Test {
         assertNotNull(fs1.unify(fs2), "no features feature map can be written two equivalent ways.")
     }
 
+    // Regression tests for the unifier fixes. Nested feature maps are not
+    // supported (see README), so compound values here are lists.
 
+    private fun fs(s: String) = FeatureNotation.toFs(s)
 
+    @Test
+    fun testBoundVariableIsRefinedNotJustCompared() {
+        assertEquals(fs("X[a=[p, s], b=[p, s]]"),
+                fs("X[a=?x, b=?x]").unify(fs("X[a=[p, ?q], b=[?r, s]]")),
+                "a bound variable's value should be unified with the new value")
+        assertNull(fs("X[a=?x, b=?x]").unify(fs("X[a=[p, ?q], b=[r, s]]")),
+                "refinement still fails on a genuine clash")
+    }
 
+    @Test
+    fun testAliasedVariablesKeepConstraints() {
+        assertNull(fs("X[a=?x, b=?x, c=?y]").unify(fs("X[a=?y, b=sg, c=pl]")),
+                "?x = ?y = sg clashes with ?y = pl")
+        assertEquals(fs("X[a=sg, b=sg, c=sg]"),
+                fs("X[a=?x, b=?x, c=?y]").unify(fs("X[a=?y, b=sg, c=?z]")))
+    }
+
+    @Test
+    fun testUnificationIsOrderIndependent() {
+        val a = fs("X[a=?x, b=?x]")
+        val b = fs("X[a=sg, b=?z]")
+        assertEquals(fs("X[a=sg, b=sg]"), a.unify(b))
+        assertEquals(fs("X[a=sg, b=sg]"), b.unify(a))
+    }
+
+    @Test
+    fun testVariableUnifiesWithItself() {
+        assertEquals(QueryVariable("?x0"), QueryVariable("?x").unify(QueryVariable("?x")))
+        assertEquals(fs("X[a=?x0, b=?x0]"), fs("X[a=?x, b=?x]").unify(fs("X[a=?y, b=?y]")))
+    }
+
+    @Test
+    fun testOccursCheck() {
+        assertNull(fs("X[a=?x, b=?x]").unify(fs("X[a=?y, b=[?y]]")),
+                "binding ?y to a list containing ?y would make a cyclic term")
+    }
+
+    @Test
+    fun testSubstFollowsChains() {
+        val bindings = mapOf<CharSequence, Unifiable>(
+                Pair("?x", (fs("X[a=[p, ?y]]") as FeatureMap)["a"]!!),
+                Pair("?y", AtomicValue("sg")))
+        assertEquals(fs("X[a=[p, sg]]"), bindings.subst(fs("X[a=?x]")))
+
+        val sem = mapOf<CharSequence, Unifiable>(
+                Pair("?f", FstructVar("?g")),
+                Pair("?g", App(Constant("p"), FstructVar("?h"))),
+                Pair("?h", Constant("c")))
+        assertEquals(SemanticValue(App(Constant("p"), Constant("c"))),
+                sem.subst(SemanticValue(FstructVar("?f"))))
+    }
+
+    @Test
+    fun testCanonicalizeRenamesEveryVariable() {
+        assertEquals(SemanticValue(App(FstructVar("?x0"), FstructVar("?x1"))),
+                SemanticValue(App(FstructVar("?f"), FstructVar("?g"))).canonicalize(),
+                "variables in the second half of an application are renamed too")
+        assertEquals(fs("X[a=?x0, b=?x1]"), fs("X[a=?x1, b=?x0]").canonicalize(),
+                "renaming is simultaneous, so swapping names does not chain")
+    }
+
+    @Test
+    fun testRenamedApartFrom() {
+        assertEquals(fs("X[a=?b, b=?a2, c=?a11]"),
+                fs("X[a=?b, b=?a, c=?a1]").renamedApartFrom(fs("Y[d=?a, e=?a1]")),
+                "only clashing variables are renamed, to names unused on either side")
+        val mixed = FeatureMap(mapOf(Pair("cat", AtomicValue("X")),
+                Pair("a", QueryVariable("?s")), Pair("sem", SemanticValue(FstructVar("?s")))))
+        assertEquals(FeatureMap(mapOf(Pair("cat", AtomicValue("X")),
+                Pair("a", QueryVariable("?s1")), Pair("sem", SemanticValue(FstructVar("?s1"))))),
+                mixed.renamedApartFrom(QueryVariable("?s")),
+                "a syntactic and a semantic variable sharing a name each keep their kind")
+    }
 }

@@ -2,10 +2,20 @@ package com.cbrew.unify
 
 /**
  * In the following functions we spell out exactly how unification works.
- * For feature structures, this is completely standard graph unification.
+ * For feature structures, this is term unification with named variables:
+ * reentrancy is expressed by using the same ?x variable in several places,
+ * and bindings are an immutable map from variable names to values that is
+ * threaded through the computation. Failure is signalled by null, so no
+ * binding ever needs to be undone. A bound variable's value is unified with
+ * whatever it meets, so bindings can be refined, and an occurs check keeps
+ * bindings acyclic.
  * For semantic terms, things are more restricted: we can bind a semantic
  * term against a ?x variable, and check consistency with an existing binding,
- * but we don't recurse into semantic terms.
+ * but we don't recurse into semantic terms (two semantic terms unify only if
+ * they are equal).
+ *
+ * Nested feature maps (a feature whose value is itself a feature map) are not
+ * supported and there are no current plans to support them; see README.md.
  *
  * The code makes heavy use of pattern matching over types using when() and is().
  * ?x variables are intercepted early and fed to checkBinding, other instances
@@ -43,8 +53,45 @@ fun Unifiable.canonicalize(): Unifiable {
     }
     val names = variables.map(::name)
 
-    val m2: Map<CharSequence, Unifiable> = mapOf<CharSequence, Unifiable>(*names.zip(newVariables).toTypedArray())
-    return m2.subst(this)
+    return renameVariables(names.zip(newVariables).toMap())
+}
+
+/**
+ * Rename variables simultaneously: each variable is looked up once in
+ * [renaming], so a renaming that swaps two names does not chain.
+ */
+fun Unifiable.renameVariables(renaming: Map<CharSequence, Unifiable>): Unifiable =
+        mapVariables(this) { v -> renaming[name(v)] ?: v }
+
+/**
+ * Rename the variables of this term that also occur in [others], so that it
+ * can be unified with them without identifying unrelated variables that
+ * happen to share a name ("standardizing apart"). Variables that do not
+ * clash keep their names.
+ */
+fun Unifiable.renamedApartFrom(vararg others: Unifiable): Unifiable {
+    val taken = mutableSetOf<Unifiable>()
+    others.forEach { findVariables(it, taken) }
+    if (taken.isEmpty()) return this
+    val takenNames = taken.map { name(it).toString() }.toSet()
+    val mine = mutableSetOf<Unifiable>()
+    findVariables(this, mine)
+    val myNames = mine.map { name(it).toString() }.distinct()
+    val used = (takenNames + myNames).toMutableSet()
+    val renaming = mutableMapOf<String, String>()
+    for (old in myNames.filter { it in takenNames }) {
+        var i = 1
+        while ("$old$i" in used) i++
+        renaming[old] = "$old$i"
+        used += "$old$i"
+    }
+    // keyed by name, but each variable keeps its own kind
+    return if (renaming.isEmpty()) this else mapVariables(this) { v ->
+        when (val fresh = renaming[name(v).toString()]) {
+            null -> v
+            else -> if (v is FstructVar) FstructVar(fresh) else QueryVariable(fresh)
+        }
+    }
 }
 
 private fun name(v: Unifiable): CharSequence =
@@ -56,62 +103,46 @@ private fun name(v: Unifiable): CharSequence =
 
 
 fun findVariables(item: Unifiable, variables: MutableSet<Unifiable>) {
-    when (item) {
-        is SemanticValue -> findVariables(item.value, variables)  // reach into semantic value
-        is QueryVariable -> variables.add(item)
-        is FeatureList -> item.elements.forEach { findVariables(it, variables) }
-        is FeatureTuple -> item.elements.forEach { findVariables(it, variables) }
-        is FeatureListExpression -> item.elements.forEach { findVariables(it, variables) }
-        is FeatureTupleExpression -> item.elements.forEach { findVariables(it, variables) }
-        is FeatureMap -> item.forEach { _, v -> findVariables(v, variables) }
-
-        is AtomicValue -> {
-        }
-        is Grammar -> {
-        }
-        is CfgRule -> {
-        }
-        is McfgRule -> {
-        }
-        is Integer -> {
-        }
-        is Lambda -> {
-            val lam: Lambda = item
-
-            when (lam) {
-                is Constant -> {
-                }
-                is Var -> {
-                }
-                is QVar -> {
-                }
-                is Box -> {
-                }
-                is Empty -> {
-                }
-                is Implies -> {
-                    findVariables(lam.e1, variables)
-                    findVariables(lam.e1, variables)
-                }
-                is Equiv -> {
-                    findVariables(lam.e1, variables)
-                    findVariables(lam.e1, variables)
-                }
-                is App -> {
-                    findVariables(lam.e1, variables)
-                    findVariables(lam.e1, variables)
-                }
-                is And -> lam.conjuncts.forEach { findVariables(it, variables) }
-                is Or -> lam.disjuncts.forEach { findVariables(it, variables) }
-                is Not -> findVariables(lam.body, variables)
-                is Lam -> findVariables(lam.body, variables)
-                is Exists -> findVariables(lam.body, variables)
-                is Forall -> findVariables(lam.body, variables)
-                is FstructVar -> variables.add(item)
-            }
-        }
-    }
+    if (isVariable(item))
+        variables.add(item)
+    else
+        subterms(item).forEach { findVariables(it, variables) }
 }
+
+private fun isVariable(item: Unifiable): Boolean =
+        item is QueryVariable || item is FstructVar
+
+// the immediate subterms that can contain variables
+private fun subterms(item: Unifiable): List<Unifiable> =
+        when (item) {
+            is SemanticValue -> listOf(item.value)  // reach into semantic value
+            is FeatureList -> item.elements
+            is FeatureTuple -> item.elements
+            is FeatureListExpression -> item.elements
+            is FeatureTupleExpression -> item.elements
+            is FeatureMap -> item.values.toList()
+            is QueryVariable -> listOf()
+            is AtomicValue -> listOf()
+            is Integer -> listOf()
+            is Grammar -> listOf()
+            is CfgRule -> listOf()
+            is McfgRule -> listOf()
+            is Implies -> listOf(item.e1, item.e2)
+            is Equiv -> listOf(item.e1, item.e2)
+            is App -> listOf(item.e1, item.e2)
+            is And -> item.conjuncts.toList()
+            is Or -> item.disjuncts.toList()
+            is Not -> listOf(item.body)
+            is Lam -> listOf(item.body)
+            is Exists -> listOf(item.body)
+            is Forall -> listOf(item.body)
+            is Constant -> listOf()
+            is Var -> listOf()
+            is QVar -> listOf()
+            is Box -> listOf()
+            is Empty -> listOf()
+            is FstructVar -> listOf()
+        }
 
 
 fun unify(uf1: Unifiable, uf2: Unifiable): UR? =
@@ -142,8 +173,8 @@ private fun unifyFU(uf1: FeatureStructure, uf2: Unifiable, bindings: UM): UR? =
             is FeatureStructure -> unifyFF(uf1, uf2, bindings)
         }
 
-@Suppress("UNUSED_PARAMETER")
-private fun unifyLL(uf1: Lambda, uf2: Lambda, bindings: UM): UR? = null
+private fun unifyLL(uf1: Lambda, uf2: Lambda, bindings: UM): UR? =
+        if (uf1 == uf2) UR(uf1, bindings) else null
 @Suppress("UNUSED_PARAMETER")
 private fun unifyLF(uf1: Lambda, uf2: FeatureStructure, bindings: UM): UR? = null
 @Suppress("UNUSED_PARAMETER")
@@ -202,34 +233,47 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM):
             null
 
 
-fun UM.checkBinding(uf1: FstructVar, uf2: Unifiable): UR? =
-        if (uf2 is Lambda && uf1.name in this)
-            checkConsistency(deref(uf1), deref(uf2))
-        else if (uf2 is Lambda)
-            UR(uf2, this + Pair(uf1.name, uf2))
-        else
-            null
+fun UM.checkBinding(uf1: FstructVar, uf2: Unifiable): UR? = bindVariable(uf1, uf2)
 
-fun UM.checkBinding(uf1: QueryVariable, uf2: Unifiable): UR? =
-        if (uf2 is FeatureStructure && uf1.name in this)
-            checkConsistency(deref(uf1), deref(uf2))
-        else if (uf2 is FeatureStructure)
-            UR(uf2, this + Pair(uf1.name, uf2))
-        else
-            null
+fun UM.checkBinding(uf1: QueryVariable, uf2: Unifiable): UR? = bindVariable(uf1, uf2)
 
+/**
+ * Unify the variable [v] with [other]. Both are dereferenced first, so chains
+ * of variable-to-variable bindings are followed to their end. If v is already
+ * bound, its value is unified with other, which may refine the binding. If v
+ * is unbound it is bound to other, unless other contains v (occurs check).
+ * QueryVariables range over feature structures and FstructVars over semantic
+ * terms; a binding that crosses the two fails.
+ */
+private fun UM.bindVariable(v: Unifiable, other: Unifiable): UR? {
+    val value = deref(v)
+    val target = deref(other)
+    return if (!inDomain(v, value) || !inDomain(v, target))
+        null
+    else if (!isVariable(value))
+        unify(value, other, this)
+    else if (value == target)
+        UR(value, this)
+    else if (occurs(value, target))
+        null
+    else
+        UR(target, this + Pair(name(value), target))
+}
 
-fun UM.checkConsistency(ufa: Unifiable, ufb: Unifiable): UR? =
-        if (
-                (ufa == ufb) ||
-                (ufa is FstructVar && ufb is FstructVar) ||
-                (ufa is QueryVariable && ufb is QueryVariable) ||
-                (ufa is QueryVariable && ufb is FeatureStructure) ||
-                (ufa is FstructVar && ufb is Lambda)
-        )
-            UR(ufa, this)
-        else
-            null
+private fun inDomain(v: Unifiable, value: Unifiable): Boolean =
+        when (v) {
+            is QueryVariable -> value is FeatureStructure
+            is FstructVar -> value is Lambda
+            else -> throw Exception("should not be possible")
+        }
+
+// does the (unbound) variable v occur in term under these bindings?
+private fun UM.occurs(v: Unifiable, term: Unifiable): Boolean =
+        if (isVariable(term)) {
+            val t = deref(term)
+            if (isVariable(t)) name(t) == name(v) else occurs(v, t)
+        } else
+            subterms(term).any { occurs(v, it) }
 
 
 // dereference a variable using a set of bindings
@@ -254,69 +298,93 @@ tailrec fun UM.deref(v: Unifiable): Unifiable =
 fun UR.subst(): Unifiable =
         second.subst(first)
 
-fun UM.subst(uf: Unifiable): Unifiable =
+/*
+ * Substitution applies the bindings exhaustively: a bound variable is replaced
+ * by its value, and that value is itself substituted, so a chain such as
+ * ?x -> [p, ?y], ?y -> sg resolves completely. This terminates because the
+ * occurs check in bindVariable keeps bindings acyclic.
+ */
+
+fun UM.subst(uf: Unifiable): Unifiable = mapVariables(uf) { resolve(it) }
+
+fun UM.subst(ufs: List<Unifiable>): List<Unifiable> = ufs.map { subst(it) }
+
+fun UM.subst(fs: FeatureStructure): FeatureStructure = mapVariablesFs(fs) { resolve(it) }
+
+fun UM.subst(lam: Lambda): Lambda = mapVariablesLam(lam) { resolve(it) }
+
+// the fully substituted value of a variable; an unbound variable is itself
+private fun UM.resolve(v: Unifiable): Unifiable {
+    val r = deref(v)
+    return if (isVariable(r)) r else subst(r)
+}
+
+/**
+ * Rebuild a term, replacing every variable v by onVar(v). Used both for
+ * applying bindings (subst) and for renaming variables. Lambda terms are
+ * rebuilt with the factory functions, so the result is simplified.
+ */
+private fun mapVariables(uf: Unifiable, onVar: (Unifiable) -> Unifiable): Unifiable =
         when (uf) {
-            is FeatureStructure -> subst(uf)
-            is Lambda -> subst(uf)
+            is FeatureStructure -> mapVariablesFs(uf, onVar)
+            is Lambda -> mapVariablesLam(uf, onVar)
         }
 
-
-fun UM.subst(ufs: List<Unifiable>): List<Unifiable> = ufs.map(::subst)
-
-fun UM.subst(fs: FeatureStructure): FeatureStructure =
-        when (fs) {
-            is AtomicValue -> fs
-            is Integer -> fs
-            is SemanticValue -> SemanticValue(subst(fs.value))
-            is QueryVariable -> if (fs.name in this) {
-                val r = this[fs.name]!!
-                when (r) {
-                    is FeatureStructure -> r
-                    is Lambda -> throw Exception("Trying to substitute sem term into syn variable")
-                }
-
-            } else
-                fs
-            is FeatureList -> FeatureList(fs.elements.map(::subst))
-            is FeatureTuple -> FeatureTuple(fs.elements.map(::subst))
-            is FeatureListExpression -> FeatureListExpression(fs.elements.map(::subst)).simplify()
-            is FeatureTupleExpression -> FeatureTupleExpression(fs.elements.map(::subst)).simplify()
-            is CfgRule -> CfgRule(subst(fs.lhs) as FeatureMap, fs.rhs.map { subst(it) as FeatureMap }, listOf())
-            is McfgRule -> McfgRule(subst(fs.lhs) as FeatureMap, fs.rhs.map { subst(it) as FeatureMap }, fs.linseq)
-            is FeatureMap -> FeatureMap(fs.mapValues { subst(it.value) })
-            is Grammar -> throw Exception("does not make sense to call subst on Grammar")
+private fun mapVariablesFs(fs: FeatureStructure, onVar: (Unifiable) -> Unifiable): FeatureStructure {
+    fun map(u: Unifiable) = mapVariables(u, onVar)
+    fun mapFs(u: FeatureStructure) = mapVariablesFs(u, onVar)
+    return when (fs) {
+        is AtomicValue -> fs
+        is Integer -> fs
+        is SemanticValue -> SemanticValue(mapVariablesLam(fs.value, onVar))
+        is QueryVariable -> {
+            val r = onVar(fs)
+            when (r) {
+                is FeatureStructure -> r
+                is Lambda -> throw Exception("Trying to substitute sem term into syn variable")
+            }
         }
+        is FeatureList -> FeatureList(fs.elements.map(::map))
+        is FeatureTuple -> FeatureTuple(fs.elements.map(::map))
+        is FeatureListExpression -> FeatureListExpression(fs.elements.map(::map)).simplify()
+        is FeatureTupleExpression -> FeatureTupleExpression(fs.elements.map(::map)).simplify()
+        is CfgRule -> CfgRule(mapFs(fs.lhs) as FeatureMap, fs.rhs.map { mapFs(it) as FeatureMap }, listOf())
+        is McfgRule -> McfgRule(mapFs(fs.lhs) as FeatureMap, fs.rhs.map { mapFs(it) as FeatureMap }, fs.linseq)
+        is FeatureMap -> FeatureMap(fs.mapValues { map(it.value) })
+        is Grammar -> throw Exception("does not make sense to call subst on Grammar")
+    }
+}
 
 /**
  * substitution for lambda terms, with automatic
  * simplifications.
  */
-
-fun UM.subst(lam: Lambda): Lambda =
-        when (lam) {
-            is Constant -> lam
-            is QVar -> lam
-            is FstructVar -> {
-                val r: Unifiable = deref(lam)
-                when (r) {
-                    is Lambda -> r
-                    is FeatureStructure -> throw Exception("binding of syn term $this  to sem term $r ")
-                }
-
+private fun mapVariablesLam(lam: Lambda, onVar: (Unifiable) -> Unifiable): Lambda {
+    fun map(l: Lambda) = mapVariablesLam(l, onVar)
+    return when (lam) {
+        is Constant -> lam
+        is QVar -> lam
+        is FstructVar -> {
+            val r = onVar(lam)
+            when (r) {
+                is Lambda -> r
+                is FeatureStructure -> throw Exception("binding of sem term $lam to syn term $r")
             }
-            is Empty -> lam
-            is Box -> lam
-            is Var -> lam
-            is Lam -> createLam(subst(lam.body))
-            is Exists -> createExistential(subst(lam.body))
-            is Not -> createNegation(subst(lam.body))
-            is Forall -> createUniversal(subst(lam.body))
-            is Implies -> createImplication(subst(lam.e1), subst(lam.e2))
-            is Equiv -> createEquiv(subst(lam.e1), subst(lam.e2))
-            is App -> createApp(subst(lam.e1), subst(lam.e2))
-            is Or -> createOr(lam.disjuncts.map(::subst))
-            is And -> createAnd(lam.conjuncts.map(::subst))
         }
+        is Empty -> lam
+        is Box -> lam
+        is Var -> lam
+        is Lam -> createLam(map(lam.body))
+        is Exists -> createExistential(map(lam.body))
+        is Not -> createNegation(map(lam.body))
+        is Forall -> createUniversal(map(lam.body))
+        is Implies -> createImplication(map(lam.e1), map(lam.e2))
+        is Equiv -> createEquiv(map(lam.e1), map(lam.e2))
+        is App -> createApp(map(lam.e1), map(lam.e2))
+        is Or -> createOr(lam.disjuncts.map(::map))
+        is And -> createAnd(lam.conjuncts.map(::map))
+    }
+}
 
 
 /**
@@ -447,8 +515,8 @@ private fun shiftQuantifiers(input: Lambda, bvi: Int): Lambda =
                 createExistential(shiftQuantifiers(input.body, bvi + 1))
             is Forall ->
                 createUniversal(shiftQuantifiers(input.body, bvi + 1))
-            is And -> createOr(input.conjuncts.map { shiftQuantifiers(it, bvi) })
-            is Or -> createAnd(input.disjuncts.map { shiftQuantifiers(it, bvi) })
+            is And -> createAnd(input.conjuncts.map { shiftQuantifiers(it, bvi) })
+            is Or -> createOr(input.disjuncts.map { shiftQuantifiers(it, bvi) })
             is Lam -> createLam(shiftQuantifiers(input.body, bvi))
             is Not -> createNegation(shiftQuantifiers(input.body, bvi))
             is Implies -> createImplication(shiftQuantifiers(input.e1, bvi), shiftQuantifiers(input.e2, bvi))
@@ -543,8 +611,8 @@ fun createAnd(conjuncts: List<Lambda>): Lambda {
 
     val newConjuncts = conjuncts.flatMap(::andYield).toSet()
 
-    return if (conjuncts.size == 1)
-        conjuncts.single()
+    return if (newConjuncts.size == 1)
+        newConjuncts.single()
     else And(newConjuncts)
 
 }

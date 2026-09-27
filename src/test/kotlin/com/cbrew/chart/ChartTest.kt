@@ -146,4 +146,27 @@ class ChartTest {
         assertEquals(java.math.BigInteger("434299921440"), countAs(20))
         assertEquals(java.math.BigInteger("67640307007394294146092847"), countAs(40))
     }
+
+    @Test
+    fun testFundamentalStandardizesApart() {
+        // ?a in the partial and ?a in the complete are unrelated variables.
+        val partial = Partial(toFs("Z[h=?a]"), 0, 0, listOf(toFs("Y[f=u, g=?a]")))
+        val complete = Complete(toFs("Y[f=?a, g=v]"), 0, 1)
+        assertEquals(Complete(toFs("Z[h=v]"), 0, 1), Chart(arrayOf("w")).fundamental(partial, complete))
+    }
+
+    @Test
+    fun testSpawnStandardizesApart() {
+        val rule = com.cbrew.unify.CfgRule(toFs("Z[h=?a]") as com.cbrew.unify.FeatureMap,
+                listOf(toFs("Y[f=u, g=?a]") as com.cbrew.unify.FeatureMap), listOf())
+        val grammar = FeatureGrammar(Grammar(setOf(rule), mapOf()))
+        assertEquals(1, grammar.spawn(Complete(toFs("Y[f=?a, g=v]"), 0, 1)).size)
+    }
+
+    @Test
+    fun testSolutionsStandardizesApart() {
+        val chart = Chart(arrayOf("w"))
+        chart.add(Complete(toFs("S[f=?s, g=b]"), 0, 1))
+        assertEquals(1, chart.solutions(toFs("S[f=a, g=?s]")).size)
+    }
 }

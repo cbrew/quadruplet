@@ -3,6 +3,7 @@ package com.cbrew.chart
 
 import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.FeatureStructure
+import com.cbrew.unify.renamedApartFrom
 import com.cbrew.unify.subst
 import com.cbrew.unify.unify
 import java.math.BigInteger
@@ -122,7 +123,9 @@ class Chart(val completes: Array<MutableSet<Complete>>,
 
 
     fun solutions(target: FeatureStructure): List<Complete> =
-        completes[0].filter { c -> c.end == completes.size - 1 && (unify(c.category, target) != null) }
+        completes[0].filter { c ->
+            c.end == completes.size - 1 && unify(c.category, target.renamedApartFrom(c.category)) != null
+        }
 
 
 
@@ -246,9 +249,12 @@ class Chart(val completes: Array<MutableSet<Complete>>,
      * fundamental rule of chart parsing.
      * Returns new edge if possible.
      * Returns null if partial and complete are incompatible.
+     * The complete edge's variables are renamed apart from the partial's
+     * first, since a shared name does not mean a shared variable.
      */
     fun fundamental(partial: Partial, complete: Complete): Edge? =
-            unify(partial.needed.first(), complete.category)
+            unify(partial.needed.first(),
+                    complete.category.renamedApartFrom(partial.category, *partial.needed.toTypedArray()))
                     ?.let { (_, bindings) ->
                         makeEdge(bindings.subst(partial.category),
                                 partial.start,

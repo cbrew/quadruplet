@@ -106,5 +106,21 @@ class LogicTest {
                         Not(Constant("b"))))))
     }
 
+    @Test
+    fun testVacuousQuantifierKeepsConnective() {
+        val pq = createAnd(Constant("p"), Constant("q"))
+        assertEquals(pq, createExistential(pq), "∃.(p ∧ q) with nothing bound is p ∧ q")
+        assertEquals(pq, createUniversal(pq), "∀.(p ∧ q) with nothing bound is p ∧ q")
+        val porq = createOr(Constant("p"), Constant("q"))
+        assertEquals(porq, createExistential(porq))
+        assertEquals(porq, createUniversal(porq))
+        assertEquals(createAnd(QVar(1), Constant("a")),
+                createExistential(createAnd(QVar(2), Constant("a"))),
+                "free variables are shifted down, connective kept")
+    }
 
+    @Test
+    fun testDuplicateConjunctsCollapse() {
+        assertEquals(Constant("a"), createAnd(Constant("a"), Constant("a")))
+    }
 }

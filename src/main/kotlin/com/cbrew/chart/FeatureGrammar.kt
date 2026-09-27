@@ -43,7 +43,11 @@ class FeatureGrammar : ChartGrammar {
     override fun spawn(lc: Complete): List<Edge> {
         val cat = lc.category
         val k = cat.key()
-        val rules = leftCorner[k]?.filter { r: Rule -> cat.unify(r.firstNeeded()) != null } ?: listOf()
+        // same test as Chart.fundamental, so a spawned edge always combines
+        // with the edge that spawned it
+        val rules = leftCorner[k]?.filter { r: Rule ->
+            unify(r.firstNeeded(), cat.renamedApartFrom(r.lhs(), *r.rhs().toTypedArray())) != null
+        } ?: listOf()
         return rules.map { r -> emptyEdge(r.lhs(), lc.start, r.rhs()) }
     }
 
