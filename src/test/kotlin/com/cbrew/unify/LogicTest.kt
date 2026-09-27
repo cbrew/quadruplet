@@ -123,4 +123,17 @@ class LogicTest {
     fun testDuplicateConjunctsCollapse() {
         assertEquals(Constant("a"), createAnd(Constant("a"), Constant("a")))
     }
+
+    @Test
+    fun testNormalOrderReduceKeepsOtherConjuncts() {
+        // a conjunction containing a redex: reducing it must keep the rest
+        val redex = App(Lam(App(Constant("f"), Var(1))), Constant("c"))
+        assertEquals(And(setOf(Constant("a"), App(Constant("f"), Constant("c")))),
+                normalOrderReduce(And(setOf(Constant("a"), redex))))
+        assertEquals(Or(setOf(Constant("a"), App(Constant("f"), Constant("c")))),
+                normalOrderReduce(Or(setOf(Constant("a"), redex))))
+        assertEquals(And(setOf(App(Constant("f"), Constant("c")), App(Constant("f"), Constant("d")))),
+                normalOrderReduce(And(setOf(redex, App(Lam(App(Constant("f"), Var(1))), Constant("d"))))),
+                "every redex is reduced, one step at a time")
+    }
 }

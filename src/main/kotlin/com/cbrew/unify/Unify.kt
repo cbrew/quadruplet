@@ -822,29 +822,8 @@ private fun betaReduce(ex: Lambda): Lambda =
                     throw IllegalArgumentException("unexpected fail in beta reduce: $ex")
                 }
             }
-            is And -> {
-                var reductionNeeded = true
-                And(ex.conjuncts.map(
-                        {
-                            if (reductionNeeded && it.betaReducible()) {
-                                reductionNeeded = false
-                                return betaReduce(it)
-                            } else it
-                        })
-                        .toSet())
-
-            }
-            is Or -> {
-                var reductionNeeded = true
-                Or(ex.disjuncts.map(
-                        {
-                            if (reductionNeeded && it.betaReducible()) {
-                                reductionNeeded = false
-                                return betaReduce(it)
-                            } else it
-                        })
-                        .toSet())
-            }
+            is And -> And(SmallSet.of(reduceFirst(ex.conjuncts)))
+            is Or -> Or(SmallSet.of(reduceFirst(ex.disjuncts)))
             is Forall -> Forall(betaReduce(ex.body))
             is Exists -> Exists(betaReduce(ex.body))
             is Implies ->
@@ -860,6 +839,18 @@ private fun betaReduce(ex: Lambda): Lambda =
             else -> throw Exception("unexpected: $ex")
         }
 
+
+// One reduction step inside a conjunction or disjunction: the first
+// reducible element is reduced and the others are kept as they are.
+private fun reduceFirst(xs: Set<Lambda>): List<Lambda> {
+    var done = false
+    return xs.map { x ->
+        if (!done && x.betaReducible()) {
+            done = true
+            betaReduce(x)
+        } else x
+    }
+}
 
 /**
  * Beta reduction of (λ.body) arg in a single pass over body. The variable
