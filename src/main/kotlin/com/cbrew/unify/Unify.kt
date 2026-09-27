@@ -221,21 +221,21 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: Bind
             null
 
 
-// The result is built in a local map that never escapes except inside the
-// (immutable) FeatureMap. Features only in fs1 come first, then those only in
-// fs2, then shared ones, as in earlier versions.
+// Features only in fs1 come first, then those only in fs2, then shared ones,
+// as in earlier versions; each key is added once. Built in a local builder
+// that never escapes except inside the (immutable) FeatureMap.
 private fun unifyMaps(fs1: FeatureMap, fs2: FeatureMap, bindings: Bindings): BR? {
-    val result = LinkedHashMap<String, Unifiable>(fs1.size + fs2.size)
-    for ((k, v) in fs1) if (k !in fs2) result[k] = v
-    for ((k, v) in fs2) if (k !in fs1) result[k] = v
+    val result = SmallMap.Builder<String, Unifiable>(fs1.size + fs2.size)
+    for ((k, v) in fs1) if (k !in fs2) result.put(k, v)
+    for ((k, v) in fs2) if (k !in fs1) result.put(k, v)
     var newBindings = bindings
     for ((k, v1) in fs1) {
         val v2 = fs2[k] ?: continue
         val (fs, bs) = unify(v1, v2, newBindings) ?: return null
         newBindings = bs
-        result[k] = fs
+        result.put(k, fs)
     }
-    return BR(FeatureMap(result), newBindings)
+    return BR(FeatureMap(result.build()), newBindings)
 }
 
 fun UM.checkBinding(uf1: FstructVar, uf2: Unifiable): UR? = Bindings.of(this).bindVariable(uf1, uf2)
@@ -405,8 +405,9 @@ private fun mapVariablesFs(fs: FeatureStructure, onVar: (Unifiable) -> Unifiable
         }
         is FeatureMap -> {
             var changed = !share
-            val m = fs.mapValues { (_, v) -> map(v).also { if (it !== v) changed = true } }
-            if (changed) FeatureMap(m) else fs
+            val m = SmallMap.Builder<String, Unifiable>(fs.size)
+            for ((k, v) in fs) m.put(k, map(v).also { if (it !== v) changed = true })
+            if (changed) FeatureMap(m.build()) else fs
         }
         is Grammar -> throw Exception("does not make sense to call subst on Grammar")
     }
