@@ -534,8 +534,12 @@ private fun createQuantified(isUniversal: Boolean, body: Lambda): Lambda =
  * @param bvi   the bound variable index
  * @return whether the quantifier binds
  */
-private fun quantifierBinds(input: Lambda, bvi: Int): Boolean =
-        when (input) {
+internal fun quantifierBinds(input: Lambda, bvi: Int): Boolean =
+        // freeQVarDepth is the largest i - q over QVar(i) under q quantifiers,
+        // so it decides the question outright unless it exceeds bvi
+        if (input.freeQVarDepth < bvi) false
+        else if (input.freeQVarDepth == bvi) true
+        else when (input) {
             is Box -> false
             is Empty -> false
             is Constant -> false
@@ -863,24 +867,46 @@ fun placeBoxes(em: Lambda): Lambda {
     return placeBoxes(em, 1)
 }
 
-private fun placeBoxes(e: Lambda, bvi: Int): Lambda =
-        when (e) {
-            is And -> And(e.conjuncts.map { it -> placeBoxes(it, bvi) }.toSet())
-            is Or -> Or(e.disjuncts.map { it -> placeBoxes(it, bvi) }.toSet())
-            is Constant -> e
-            is FstructVar -> e
-            is Var -> if (bvi == e.index) Box else e
-            is QVar -> e
-            is Box -> e
-            is Empty -> e
-            is Forall -> Forall(placeBoxes(e.body, bvi))
-            is Exists -> Exists(placeBoxes(e.body, bvi))
-            is Not -> Not(placeBoxes(e.body, bvi))
-            is Lam -> Lam(placeBoxes(e.body, bvi + 1))
-            is App -> App(placeBoxes(e.e1, bvi), placeBoxes(e.e2, bvi))
-            is Equiv -> Equiv(placeBoxes(e.e1, bvi), placeBoxes(e.e2, bvi))
-            is Implies -> Implies(placeBoxes(e.e1, bvi), placeBoxes(e.e2, bvi))
+// A subterm with no free Var at or above bvi is returned as is (only
+// Var(bvi + d) under d Lams becomes a Box); so is one whose children all
+// came back unchanged.
+private fun placeBoxes(e: Lambda, bvi: Int): Lambda {
+    if (e.freeVarDepth < bvi) return e
+    fun p(l: Lambda) = placeBoxes(l, bvi)
+    return when (e) {
+        is And -> e.conjuncts.mapSharedSet(::p)?.let { And(it) } ?: e
+        is Or -> e.disjuncts.mapSharedSet(::p)?.let { Or(it) } ?: e
+        is Constant -> e
+        is FstructVar -> e
+        is Var -> if (bvi == e.index) Box else e
+        is QVar -> e
+        is Box -> e
+        is Empty -> e
+        is Forall -> p(e.body).let { if (it === e.body) e else Forall(it) }
+        is Exists -> p(e.body).let { if (it === e.body) e else Exists(it) }
+        is Not -> p(e.body).let { if (it === e.body) e else Not(it) }
+        is Lam -> placeBoxes(e.body, bvi + 1).let { if (it === e.body) e else Lam(it) }
+        is App -> {
+            val a = p(e.e1); val b = p(e.e2)
+            if (a === e.e1 && b === e.e2) e else App(a, b)
         }
+        is Equiv -> {
+            val a = p(e.e1); val b = p(e.e2)
+            if (a === e.e1 && b === e.e2) e else Equiv(a, b)
+        }
+        is Implies -> {
+            val a = p(e.e1); val b = p(e.e2)
+            if (a === e.e1 && b === e.e2) e else Implies(a, b)
+        }
+    }
+}
+
+// f applied to each element, or null if every element came back unchanged
+private inline fun Set<Lambda>.mapSharedSet(f: (Lambda) -> Lambda): Set<Lambda>? {
+    var changed = false
+    val out = map { x -> f(x).also { if (it !== x) changed = true } }
+    return if (changed) out.toSet() else null
+}
 
 
 fun substBoxes(e: Lambda, x: Lambda) =
@@ -900,7 +926,11 @@ fun substBoxes(e: Lambda, x: Lambda) =
  */
 
 private fun substBoxes(e: Lambda, x: Lambda, bvi: Int, qvi: Int): Lambda =
-        when (e) {
+        // Box-free subterms are unchanged. Everything else is rebuilt with the
+        // factories as before; this relies on terms already being in the form
+        // the factories produce, which FeatureGrammar ensures on load.
+        if (!e.hasBox) e
+        else when (e) {
             is And -> createAnd(e.conjuncts.map { it -> substBoxes(it, x, bvi, qvi) })
             is Or -> createOr(e.disjuncts.map { it -> substBoxes(it, x, bvi, qvi) })
             is Constant -> e
@@ -934,7 +964,9 @@ fun qshift(en: Lambda, amount: Int): Lambda {
  * @return changed expression.
  */
 private fun qshift(e: Lambda, amount: Int, qvi: Int): Lambda =
-        when (e) {
+        // unchanged unless some QVar(i) under q quantifiers has i - q > qvi
+        if (amount == 0 || e.freeQVarDepth <= qvi) e
+        else when (e) {
             is And -> createAnd(e.conjuncts.map { it -> qshift(it, amount, qvi) })
             is Or -> createOr(e.disjuncts.map { it -> qshift(it, amount, qvi) })
             is Constant -> e
@@ -974,7 +1006,9 @@ fun shift(em: Lambda, n: Int): Lambda {
  */
 
 private fun shift(e: Lambda, amount: Int, bvi: Int): Lambda =
-        when (e) {
+        // unchanged unless some Var(i) under d Lams has i - d > bvi
+        if (amount == 0 || e.freeVarDepth <= bvi) e
+        else when (e) {
             is And -> And(e.conjuncts.map { it -> shift(it, amount, bvi) }.toSet())
             is Or -> Or(e.disjuncts.map { it -> shift(it, amount, bvi) }.toSet())
             is Constant -> e

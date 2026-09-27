@@ -8,11 +8,16 @@ class FeatureGrammar : ChartGrammar {
 
     private val leftCorner: MutableMap<String, MutableSet<Rule>> = mutableMapOf()
 
+    // the grammar's lexicon, normalized (see the constructor)
+    private val lexicon: Map<String, Set<FeatureMap>>
+
     constructor(g: Grammar) {
         grammar = g
-        // Rules are normalized once here, so that substitution, which shares
-        // unchanged subterms instead of rebuilding them, still yields the
-        // simplified lambda terms that a full rebuild would produce.
+        // Rules and lexical entries are normalized once here, so that
+        // substitution and beta reduction, which share unchanged subterms
+        // instead of rebuilding them, still yield the simplified lambda terms
+        // that a full rebuild would produce.
+        lexicon = g.lexicon.mapValues { (_, entries) -> entries.map { it.normalized() as FeatureMap }.toSet() }
         grammar.rules.forEach {
             val rule = (it as Unifiable).normalized() as Rule
             val k = rule.firstNeeded().key()
@@ -57,11 +62,11 @@ class FeatureGrammar : ChartGrammar {
     }
 
     override fun lookup(word: String, start: Int): List<Edge> =
-            grammar.lexicon[word]?.map { e -> Complete(e, start, start + 1) } ?: listOf()
+            lexicon[word]?.map { e -> Complete(e, start, start + 1) } ?: listOf()
 
 
     override fun lookup(words: List<String>, start: Int, end: Int): List<Edge> =
-            grammar.lexicon[words.joinToString(" ")]?.map { e -> Complete(e, start, end) } ?: listOf()
+            lexicon[words.joinToString(" ")]?.map { e -> Complete(e, start, end) } ?: listOf()
 
 
 }

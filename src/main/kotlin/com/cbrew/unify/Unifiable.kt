@@ -199,7 +199,26 @@ data class McfgRule(val lhs: FeatureMap,
     }
 }
 
-sealed class Lambda : Unifiable()
+sealed class Lambda : Unifiable() {
+    /*
+     * De Bruijn facts, computed once when a term is built, that let shift,
+     * placeBoxes, qshift and substBoxes return a subterm unchanged after an
+     * O(1) check instead of copying it.
+     */
+
+    /**
+     * The largest i - d over occurrences of Var(i) under d enclosing Lams
+     * within this term, or 0 if there is none. The term has a free Var
+     * above index n exactly when freeVarDepth > n.
+     */
+    open val freeVarDepth: Int get() = 0
+
+    /** As [freeVarDepth], for QVar and the quantifiers Exists and Forall. */
+    open val freeQVarDepth: Int get() = 0
+
+    /** Whether Box occurs in this term. */
+    open val hasBox: Boolean get() = false
+}
 data class Constant(val name: String) : Lambda() {
     override fun toString(): String {
         return name
@@ -207,12 +226,16 @@ data class Constant(val name: String) : Lambda() {
 }
 
 data class Var(val index: Int) : Lambda() {
+    override val freeVarDepth: Int get() = maxOf(0, index)
+
     override fun toString(): String {
         return "v:${index}"
     }
 }
 
 data class QVar(val index: Int) : Lambda() {
+    override val freeQVarDepth: Int get() = maxOf(0, index)
+
     override fun toString(): String {
         return "q:${index}"
     }
@@ -222,6 +245,9 @@ data class Lam(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
     private val hash: Int = body.hashCode() * 31 + 1
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = maxOf(0, body.freeVarDepth - 1)
+    override val freeQVarDepth: Int = body.freeQVarDepth
+    override val hasBox: Boolean = body.hasBox
 
     override fun toString(): String {
         return "\u03BB.($body)"
@@ -232,6 +258,9 @@ data class Forall(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
     private val hash: Int = body.hashCode() * 31 + 2
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = body.freeVarDepth
+    override val freeQVarDepth: Int = maxOf(0, body.freeQVarDepth - 1)
+    override val hasBox: Boolean = body.hasBox
 
     override fun toString(): String = "\u2200.(${body})"
     // TODO hide DeBruijn notation
@@ -242,6 +271,9 @@ data class Exists(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
     private val hash: Int = body.hashCode() * 31 + 3
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = body.freeVarDepth
+    override val freeQVarDepth: Int = maxOf(0, body.freeQVarDepth - 1)
+    override val hasBox: Boolean = body.hasBox
 
     override fun toString(): String = "\u2203.(${body})"
     // TODO hide DeBruijn notation
@@ -252,6 +284,9 @@ data class App(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val ground: Boolean = e1.ground && e2.ground
     private val hash: Int = (e1.hashCode() * 31 + e2.hashCode()) * 31 + 7
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = maxOf(e1.freeVarDepth, e2.freeVarDepth)
+    override val freeQVarDepth: Int = maxOf(e1.freeQVarDepth, e2.freeQVarDepth)
+    override val hasBox: Boolean = e1.hasBox || e2.hasBox
 
     override fun toString(): String {
         val acc = uncurry()
@@ -273,11 +308,17 @@ data class Not(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
     private val hash: Int = body.hashCode() * 31 + 4
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = body.freeVarDepth
+    override val freeQVarDepth: Int = body.freeQVarDepth
+    override val hasBox: Boolean = body.hasBox
 }
 data class And(val conjuncts: Set<Lambda>) : Lambda() {
     override val ground: Boolean = conjuncts.all { it.ground }
     private val hash: Int = conjuncts.sumOf { mixHash(it.hashCode()) } * 31 + 8
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = conjuncts.maxOfOrNull { it.freeVarDepth } ?: 0
+    override val freeQVarDepth: Int = conjuncts.maxOfOrNull { it.freeQVarDepth } ?: 0
+    override val hasBox: Boolean = conjuncts.any { it.hasBox }
 
     override fun toString(): String {
         return "(${conjuncts.joinToString(separator = " \u2227 ")})"
@@ -288,6 +329,9 @@ data class Or(val disjuncts: Set<Lambda>) : Lambda() {
     override val ground: Boolean = disjuncts.all { it.ground }
     private val hash: Int = disjuncts.sumOf { mixHash(it.hashCode()) } * 31 + 9
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = disjuncts.maxOfOrNull { it.freeVarDepth } ?: 0
+    override val freeQVarDepth: Int = disjuncts.maxOfOrNull { it.freeQVarDepth } ?: 0
+    override val hasBox: Boolean = disjuncts.any { it.hasBox }
 
     override fun toString(): String {
         return "(${disjuncts.joinToString(separator = " \u2228 ")})"
@@ -298,11 +342,17 @@ data class Implies(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val ground: Boolean = e1.ground && e2.ground
     private val hash: Int = (e1.hashCode() * 31 + e2.hashCode()) * 31 + 5
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = maxOf(e1.freeVarDepth, e2.freeVarDepth)
+    override val freeQVarDepth: Int = maxOf(e1.freeQVarDepth, e2.freeQVarDepth)
+    override val hasBox: Boolean = e1.hasBox || e2.hasBox
 }
 data class Equiv(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val ground: Boolean = e1.ground && e2.ground
     private val hash: Int = (e1.hashCode() * 31 + e2.hashCode()) * 31 + 6
     override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = maxOf(e1.freeVarDepth, e2.freeVarDepth)
+    override val freeQVarDepth: Int = maxOf(e1.freeQVarDepth, e2.freeQVarDepth)
+    override val hasBox: Boolean = e1.hasBox || e2.hasBox
 }
 
 data class FstructVar(val name: String) : Lambda() {
@@ -313,7 +363,9 @@ data class FstructVar(val name: String) : Lambda() {
     }
 }
 
-object Box : Lambda()
+object Box : Lambda() {
+    override val hasBox: Boolean get() = true
+}
 object Empty : Lambda()
 
 data class Integer(val value: Int) : FeatureStructure() {
