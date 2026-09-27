@@ -3,13 +3,17 @@ package com.cbrew.chart
 import com.cbrew.fstruct.notation.IntegratedParser
 import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.Grammar
+import com.cbrew.unify.SemanticValue
+import com.cbrew.unify.pretty
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * The MASC benchmark grammar and sample, in src/test/resources/masc.
  * go/testdata/golden/masc.golden records every sentence's chart and readings
- * (see GoldenDumpTest). To time the whole sample:
+ * (see GoldenDumpTest), and readings.txt is a correctness suite of sentences
+ * whose readings have been checked by hand. To time the whole sample:
  *
  *   mvn test -Dtest=MascTest -Dmasc.bench=5
  */
@@ -19,9 +23,10 @@ class MascTest {
                 Chart::class.java.getResource("/masc/masc.fcfg").readText()) as Grammar)
     }
 
+    private fun resource(name: String) = Chart::class.java.getResource("/masc/$name").readText()
+
     private val sample by lazy {
-        Chart::class.java.getResource("/masc/sample.txt").readText().trim().lines()
-                .map { it.split("\t")[2].split(" ").toTypedArray() }
+        resource("sample.txt").trim().lines().map { it.split("\t")[2].split(" ").toTypedArray() }
     }
 
     private fun readings(chart: Chart) =
@@ -31,7 +36,27 @@ class MascTest {
     fun testCoverage() {
         val parsed = sample.count { words -> readings(Chart(words).also { it.parse(grammar) }).isNotEmpty() }
         assertEquals(299, sample.size)
-        assertEquals(279, parsed, "sentences with a reading")
+        assertEquals(278, parsed, "sentences with a reading")
+    }
+
+    @Test
+    fun testReadings() {
+        // sentence -> its readings, as Lambda.pretty() prints them, sorted
+        val suite = linkedMapOf<String, MutableList<String>>()
+        val intended = mutableMapOf<String, Int>()
+        var sentence = ""
+        for (line in resource("readings.txt").lines()) when {
+            line.startsWith("> ") -> { sentence = line.substring(2); suite[sentence] = mutableListOf() }
+            line.startsWith("* ") -> { suite.getValue(sentence).add(line.substring(2)); intended.merge(sentence, 1, Int::plus) }
+            line.startsWith("  ") -> suite.getValue(sentence).add(line.substring(2))
+        }
+        assertTrue(suite.size >= 50, "sentences in readings.txt")
+        for ((s, want) in suite) {
+            assertEquals(1, intended[s], "$s: readings marked intended")
+            val chart = Chart(s.split(" ").toTypedArray()).also { it.parse(grammar) }
+            val got = readings(chart).map { ((it.category as FeatureMap)["sem"] as SemanticValue).value.pretty() }.sorted()
+            assertEquals(want, got, s)
+        }
     }
 
     @Test

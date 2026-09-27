@@ -71,19 +71,29 @@ func mascRecord(c *Chart, id string) []string {
 	top, trees := tops(c)
 	out := []string{strings.Join([]string{id, "stats", strconv.Itoa(s.Completes), strconv.Itoa(s.Partials),
 		strconv.Itoa(len(top)), trees.String()}, "\t")}
-	var readings []string
-	for _, e := range top {
-		readings = append(readings, id+"\treading\t"+e.Cat.String())
+	readings := prettyReadings(top)
+	for _, r := range readings {
+		out = append(out, id+"\treading\t"+r)
 	}
-	slices.Sort(readings)
-	return append(out, readings...)
+	return out
 }
 
-// TestMascGolden checks the agenda parser's charts and readings against the
-// Kotlin implementation's, and the wave parsers' against the agenda
-// parser's. Readings are compared as terms there, since a conjunction is a
-// set and the chart keeps the first of equal edges to arrive, which prints
-// its conjuncts in the order they were built.
+// prettyReadings returns the semantics of each edge as term.Pretty prints
+// it, sorted. Pretty sorts conjunctions: the chart keeps the first of equal
+// edges to arrive, whose conjuncts are in the order they were built, and
+// that depends on the parser.
+func prettyReadings(edges []*Edge) []string {
+	var out []string
+	for _, e := range edges {
+		sem, _ := e.Cat.(*term.Map).Get("sem")
+		out = append(out, term.Pretty(sem.(*term.Sem).Value()))
+	}
+	slices.Sort(out)
+	return out
+}
+
+// TestMascGolden checks each parser's charts and readings against the
+// Kotlin implementation's.
 func TestMascGolden(t *testing.T) {
 	want := map[string][]string{}
 	for _, rec := range readGolden(t, "masc.golden") {
@@ -95,24 +105,66 @@ func TestMascGolden(t *testing.T) {
 		t.Fatalf("%d sentences, %d in masc.golden", len(sample), len(want))
 	}
 	for _, s := range sample {
-		c := New(s.words)
-		c.Parse(g)
-		if got := mascRecord(c, s.id); !slices.Equal(got, want[s.id]) {
-			t.Errorf("agenda %s:\n got  %s\n want %s", s.id,
-				strings.Join(got, "\n      "), strings.Join(want[s.id], "\n      "))
-		}
-		readings, _ := tops(c)
-		for _, workers := range []int{1, 4} {
-			w := New(s.words)
-			w.ParseParallel(g, workers)
-			if got := mascRecord(w, s.id); got[0] != want[s.id][0] {
-				t.Errorf("wave %d %s: got %s, want %s", workers, s.id, got[0], want[s.id][0])
+		for name, parse := range parsers {
+			c := New(s.words)
+			parse(c, g)
+			if got := mascRecord(c, s.id); !slices.Equal(got, want[s.id]) {
+				t.Errorf("%s %s:\n got  %s\n want %s", name, s.id,
+					strings.Join(got, "\n      "), strings.Join(want[s.id], "\n      "))
 			}
-			wr, _ := tops(w)
-			for _, e := range wr {
-				if !slices.ContainsFunc(readings, func(r *Edge) bool { return term.Equal(r.Cat, e.Cat) }) {
-					t.Errorf("wave %d %s: extra reading %s", workers, s.id, e.Cat)
-				}
+		}
+	}
+}
+
+// readingsSuite is the correctness suite in readings.txt: each sentence
+// with its readings, as term.Pretty prints them, in sorted order.
+type suiteEntry struct {
+	sentence string
+	readings []string
+}
+
+func readingsSuite(t *testing.T) []suiteEntry {
+	var out []suiteEntry
+	for _, line := range mascFile(t, "readings.txt") {
+		switch {
+		case strings.HasPrefix(line, "> "):
+			out = append(out, suiteEntry{sentence: line[2:]})
+		case strings.HasPrefix(line, "* "), strings.HasPrefix(line, "  "):
+			e := &out[len(out)-1]
+			e.readings = append(e.readings, line[2:])
+		}
+	}
+	return out
+}
+
+// TestMascReadings checks that every parser gives exactly the readings the
+// correctness suite lists, and that the suite marks one of them as intended.
+func TestMascReadings(t *testing.T) {
+	g := mascGrammar(t)
+	suite := readingsSuite(t)
+	if len(suite) < 50 {
+		t.Fatalf("only %d sentences in readings.txt", len(suite))
+	}
+	intended := map[string]int{}
+	var current string
+	for _, line := range mascFile(t, "readings.txt") {
+		if strings.HasPrefix(line, "> ") {
+			current = line[2:]
+		} else if strings.HasPrefix(line, "* ") {
+			intended[current]++
+		}
+	}
+	for _, e := range suite {
+		if intended[e.sentence] != 1 {
+			t.Errorf("%q: %d readings marked intended", e.sentence, intended[e.sentence])
+		}
+		for name, parse := range parsers {
+			c := New(strings.Split(e.sentence, " "))
+			parse(c, g)
+			top, _ := tops(c)
+			if got := prettyReadings(top); !slices.Equal(got, e.readings) {
+				t.Errorf("%s %q:\n got  %s\n want %s", name, e.sentence,
+					strings.Join(got, "\n      "), strings.Join(e.readings, "\n      "))
 			}
 		}
 	}

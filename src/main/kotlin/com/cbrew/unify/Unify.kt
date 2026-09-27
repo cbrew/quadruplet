@@ -683,16 +683,20 @@ fun createAnd(conjunct: Lambda, vararg conjuncts: Lambda): Lambda =
         else
             createAnd(listOf(conjunct) + conjuncts.toList())
 
+/** The constant true, the unit of conjunction: createAnd drops it. */
+val TRUE = Constant("true")
+
 fun createAnd(conjuncts: List<Lambda>): Lambda {
-    // flatten nested Ands, then drop duplicates keeping the first
+    // flatten nested Ands, then drop duplicates keeping the first, and true
     val flat: Set<Lambda> =
-            if (conjuncts.none { it is And }) SmallSet.of(conjuncts)
+            if (conjuncts.none { it is And || it == TRUE }) SmallSet.of(conjuncts)
             else {
                 val items = ArrayList<Lambda>(conjuncts.size * 2)
                 fun add(item: Lambda) {
-                    if (item is And) item.conjuncts.forEach(::add) else items.add(item)
+                    if (item is And) item.conjuncts.forEach(::add) else if (item != TRUE) items.add(item)
                 }
                 conjuncts.forEach(::add)
+                if (items.isEmpty()) return TRUE
                 SmallSet.of(items)
             }
 

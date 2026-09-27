@@ -181,7 +181,8 @@ def verb_frame(v):
     """The subcategorisation frame of a verb, from its complements, or
     ('aux', comp) when it takes a VP."""
     comps = [s for s in v.siblings_after() if s.label in ('NP', 'S', 'SBAR', 'VP', 'ADJP')
-             and not (s.label == 'SBAR' and s.kids[0].label == 'IN' and s.kids[0].word != 'that')]
+             and not (s.label == 'SBAR' and s.kids[0].label == 'IN' and s.kids[0].word != 'that')
+             and not temporal(s)]
     labels = [c.label for c in comps]
     if 'VP' in labels:
         tag = comps[labels.index('VP')].head_tag()
@@ -226,6 +227,19 @@ def clause_frame(s, prefix):
     return 'tr'
 
 
+def temporal(n):
+    """Whether a phrase is a bare noun of time, like "today" (an NP-TMP,
+    whose function tag normalisation has removed)."""
+    words = [k.word.lower() for k in walk(n) if k.leaf()]
+    return n.label == 'NP' and words and all(w in TEMPORAL_NOUNS for w in words)
+
+
+def in_adverb_phrase(n):
+    """Whether a word is part of one of the ADVERB_PHRASES."""
+    words = ' '.join(k.word.lower() for k in n.parent.kids if k.leaf())
+    return n.parent.label == 'ADVP' and words in ADVERB_PHRASES
+
+
 def empty(n):
     return n.label == 'NP' and len(n.kids) == 1 and n.kids[0].label == '-NONE-'
 
@@ -257,20 +271,77 @@ def fmap(cat, **fs):
     return '%s[%s]' % (cat, ', '.join(parts))
 
 
+# verbs whose subject is an experiencer rather than an agent
+EXPERIENCERS = {'think', 'know', 'believe', 'see', 'hear', 'feel', 'like', 'love', 'hate',
+                'want', 'need', 'remember', 'recall', 'expect', 'fear', 'appreciate',
+                'understand', 'notice', 'mean', 'doubt', 'wish', 'hope', 'forget', 'prefer',
+                'enjoy', 'fancy', 'suppose', 'realize', 'recognize', 'wonder'}
+
+
 def verb_sem(frame, pred):
+    """A verb's meaning: it takes its complements, its subject and a
+    condition F on its event, and says there is such an event."""
+    role = 'Experiencer' if pred in EXPERIENCERS else 'Agent'
     return {
-        'intr': r'\x.%s(x)',
-        'tr': r'\X y.X(\x.%s(y, x))',
-        'ditr': r'\X Y z.X(\x.Y(\y.%s(z, x, y)))',
-        'scomp': r'\p x.%s(x, p)',
-        'qcomp': r'\Q x.%s(x, Q)',
-        'vpto': r'\P x.%s(x, P(x))',
-        'vping': r'\P x.%s(x, P(x))',
-        'vpbase': r'\P x.%s(x, P(x))',
-        'npvpto': r'\P X y.X(\x.%s(y, x, P(x)))',
-        'npvpbase': r'\P X y.X(\x.%s(y, x, P(x)))',
-        'pred': r'\P x.%s(x, P(x))',
-    }[frame] % pred
+        'intr': r'\x F.exists e.(%(v)s(e) & %(r)s(e, x) & F(e))',
+        'tr': r'\X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Theme(e, x) & F(e)))',
+        'ditr': r'\X Y z F.X(\x.Y(\y.exists e.(%(v)s(e) & %(r)s(e, z) & Recipient(e, x) & Theme(e, y) & F(e))))',
+        'scomp': r'\p x F.exists e.(%(v)s(e) & %(r)s(e, x) & Topic(e, p) & F(e))',
+        'qcomp': r'\Q x F.exists e.(%(v)s(e) & %(r)s(e, x) & Topic(e, Q) & F(e))',
+        'vpto': r'\P x F.exists e.(%(v)s(e) & %(r)s(e, x) & Theme(e, P(x, \e2.true)) & F(e))',
+        'vping': r'\P x F.exists e.(%(v)s(e) & %(r)s(e, x) & Theme(e, P(x, \e2.true)) & F(e))',
+        'vpbase': r'\P x F.exists e.(%(v)s(e) & %(r)s(e, x) & Theme(e, P(x, \e2.true)) & F(e))',
+        'npvpto': r'\P X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Patient(e, x) & Theme(e, P(x, \e2.true)) & F(e)))',
+        'npvpbase': r'\P X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Patient(e, x) & Theme(e, P(x, \e2.true)) & F(e)))',
+        'pred': r'\P x F.exists e.(%(v)s(e) & Theme(e, x) & Result(e, P(x)) & F(e))',
+    }[frame] % {'v': pred, 'r': role}
+
+
+# Adverbs that say something about the event: manner adverbs in -ly, and
+# adverbs of place and time. The rest are operators on propositions.
+PLACE_ADVERBS = {'here', 'there', 'home', 'inside', 'outside', 'around', 'away', 'back',
+                 'near', 'together', 'somewhere', 'nowhere', 'everywhere', 'abroad',
+                 'upstairs', 'downstairs', 'out', 'up', 'down', 'off', 'on', 'in', 'forward',
+                 'ahead', 'alone', 'north', 'south', 'east', 'west', 'by', 'along', 'over',
+                 'through', 'fast', 'hard', 'well', 'tomorrow', 'today', 'yesterday',
+                 'tonight'}
+TIME_ADVERBS = {'again', 'later', 'now', 'soon', 'once', 'early', 'late'}
+OPERATOR_LY = {'really', 'actually', 'obviously', 'certainly', 'probably', 'possibly',
+               'clearly', 'apparently', 'interestingly', 'secondly', 'firstly', 'finally',
+               'presently', 'recently', 'only', 'simply', 'rarely', 'barely', 'merely',
+               'nearly', 'definitely', 'surely', 'basically', 'generally', 'usually',
+               'typically', 'especially', 'particularly', 'increasingly', 'slightly',
+               'extremely', 'fairly', 'highly', 'completely', 'substantially', 'relatively',
+               'likely', 'hopefully', 'unfortunately', 'fortunately', 'largely', 'mostly',
+               'entirely', 'totally', 'truly', 'lately', 'currently', 'originally'}
+
+
+def adverb(lw):
+    """The entry for an adverb: manner adverbs modify the event, before or
+    after the verb; adverbs of time too; adverbs of place only after it
+    (and "today" and the like, which are nouns before it); the rest are
+    operators."""
+    c = const(lw)
+    if lw in PLACE_ADVERBS:
+        return fmap('Adv', type='ev', pre='no', sem=r'\e.%s(e)' % c)
+    if lw in TIME_ADVERBS or lw.endswith('ly') and lw not in OPERATOR_LY:
+        return fmap('Adv', type='ev', pre='yes', sem=r'\e.%s(e)' % c)
+    return fmap('Adv', type='op', sem=r'\p.%s(p)' % c)
+
+
+# nouns that also serve as adverbs of time ("doing today")
+TEMPORAL_NOUNS = {'today', 'tomorrow', 'yesterday', 'tonight'}
+
+# adjectives that are really determiners ("many shops"); they are
+# adjectives only after a degree adverb ("too many")
+QUANTITY_ADJECTIVES = {'many', 'few', 'several'}
+
+# multiword adverbs, whose words get no entries of their own
+ADVERB_PHRASES = {'of course': 'of_course'}
+
+
+# wh-adverbs relate an event to its place, time, manner or reason
+WH_ADVERBS = {'where': 'Location', 'when': 'Time', 'how': 'Manner', 'why': 'Reason'}
 
 
 def main(out_dir):
@@ -286,18 +357,18 @@ def main(out_dir):
     for w in BE:
         for f, a in [BE[w]]:
             add(w, fmap('Be', vform=f, agr=a))
-            add(w, fmap('Aux', vform=f, agr=a, comp='ing', sem=r'\p.prog(p)'))
-            add(w, fmap('Aux', vform=f, agr=a, comp='pass', sem=r'\p.p'))
+            add(w, fmap('Aux', vform=f, agr=a, comp='ing', ell='no', sem=r'\p.prog(p)'))
+            add(w, fmap('Aux', vform=f, agr=a, comp='pass', ell='no', sem=r'\p.p'))
     for w, forms in HAVE.items():
         for f, a in forms:
-            add(w, fmap('Aux', vform=f, agr=a, comp='en', sem=r'\p.perf(p)'))
-            add(w, fmap('Aux', vform=f, agr=a, comp='to', sem=r'\p.must(p)'))
+            add(w, fmap('Aux', vform=f, agr=a, comp='en', ell='yes', sem=r'\p.perf(p)'))
+            add(w, fmap('Aux', vform=f, agr=a, comp='to', ell='no', sem=r'\p.must(p)'))
     for w, forms in DO.items():
         for f, a in forms:
             if f in ('base', 'fin'):
-                add(w, fmap('Aux', vform=f, agr=a, comp='base', sem=r'\p.p'))
+                add(w, fmap('Aux', vform=f, agr=a, comp='base', ell='yes', sem=r'\p.p'))
     for w, m in MODALS.items():
-        add(w, fmap('Aux', vform='fin', comp='to' if m == 'ought' else 'base',
+        add(w, fmap('Aux', vform='fin', comp='to' if m == 'ought' else 'base', ell='yes',
                     sem=r'\p.%s(p)' % m))
     sample_words = set()
     verbs = collections.defaultdict(lambda: (set(), set()))
@@ -317,6 +388,8 @@ def main(out_dir):
                 else:
                     add(w, fmap('N', agr='3sg' if tag == 'NN' else 'non3sg',
                                 sem=r'\x.%s(x)' % const(lemma(w, 'NOUN'))))
+                if lw in TEMPORAL_NOUNS:
+                    add(w, adverb(lw))
             elif tag == 'NNP':
                 pass  # below, by maximal sequence
             elif tag == 'PRP':
@@ -337,21 +410,27 @@ def main(out_dir):
                     add(w, fmap('Det', agr=a, sem=sem))
             elif tag == 'EX':
                 add(w, fmap('NP', expl='there', sem=r'\P.P(there)'))
+            elif tag in ('JJ', 'JJR', 'JJS') and lw in QUANTITY_ADJECTIVES:
+                a, sem = DETERMINERS[lw]
+                add(w, fmap('Det', agr=a, sem=sem))
+                add(w, fmap('A', subcat='deg', sem=r'\x.%s(x)' % lw))
             elif tag in ('JJ', 'JJR', 'JJS'):
                 pred = const(lw)
                 add(w, fmap('A', subcat='none', sem=r'\x.%s(x)' % pred))
                 if any(s.label == 'S' for s in n.siblings_after()) or \
                         (parent == 'ADJP' and any(s.label == 'S' for s in n.parent.siblings_after())):
-                    add(w, fmap('A', subcat='vpto', sem=r'\P x.%s(x, P(x))' % pred))
+                    add(w, fmap('A', subcat='vpto', sem=r'\P x.%s(x, P(x, \e.true))' % pred))
             elif tag in ('RB', 'RBR', 'RBS'):
                 if lw in NEGATIONS:
                     add(w, fmap('Neg', sem=r'\p.-p'))
                     continue
-                add(w, fmap('Adv', sem=r'\p.%s(p)' % const(lw)))
+                if in_adverb_phrase(n):
+                    continue
+                add(w, adverb(lw))
                 if lw in LOCATIVES:
                     add(w, fmap('A', subcat='none', sem=r'\x.%s(x)' % const(lw)))
             elif tag == 'RP':
-                add(w, fmap('Prt', sem=r'\p.%s(p)' % const(lw)))
+                add(w, fmap('Prt', sem=r'\e.%s(e)' % const(lw)))
             elif tag in ('IN', 'TO'):
                 if parent == 'PP':
                     add(w, fmap('P', sem=r'\x y.%s(x, y)' % const(lw)))
@@ -363,7 +442,7 @@ def main(out_dir):
                 r, free = WH.get(lw, ('thing', 'no'))
                 add(w, fmap('Wh', free=free, sem=r'\x.%s(x)' % r))
             elif tag == 'WRB':
-                add(w, fmap('WhAdv', sem=r'\p y.%s(p, y)' % const(lw)))
+                add(w, fmap('WhAdv', sem=r'\e y.%s(e, y)' % WH_ADVERBS.get(lw, const(lw))))
                 if n.parent.parent is not None and n.parent.parent.label == 'SBAR' and \
                         n.parent.parent.parent is not None and \
                         n.parent.parent.parent.label in ('S', 'VP'):
@@ -395,10 +474,11 @@ def main(out_dir):
 
     add_verbs(verbs, add)
     # phrases entered whole, when the sample has them
-    phrases = {
+    phrases = {p: fmap('Adv', type='op', sem=r'\p.%s(p)' % c) for p, c in ADVERB_PHRASES.items()}
+    phrases |= {
         'a few': fmap('Det', agr='non3sg', sem=gq('few')),
-        'had better': fmap('Aux', vform='fin', comp='base', sem=r'\p.should(p)'),
-        "'d better": fmap('Aux', vform='fin', comp='base', sem=r'\p.should(p)'),
+        'had better': fmap('Aux', vform='fin', comp='base', ell='yes', sem=r'\p.should(p)'),
+        "'d better": fmap('Aux', vform='fin', comp='base', ell='yes', sem=r'\p.should(p)'),
     }
     for tree in trees:
         text = ' ' + ' '.join(n.word for n in walk(tree) if n.leaf() and n.label != '-NONE-') + ' '
@@ -436,8 +516,10 @@ def verb_entries(v, add, verbs):
         if lw in HAVE or lw in DO:
             return  # the tables
         # a main verb taking a VP: "get graded", "had better watch"
-        add(w, fmap('Aux', vform=vform, agr=agr, comp=frame[1], sem=r'\p.%s(p)' % pred))
+        add(w, fmap('Aux', vform=vform, agr=agr, comp=frame[1], ell='no', sem=r'\p.%s(p)' % pred))
         return
+    if frame == 'intr' and (lw in HAVE or lw in DO) and v.label not in ('VBG', 'VBN'):
+        return  # "they always have" is VP ellipsis
     forms, frames = verbs[pred]
     forms.add((w, vform, agr))
     if is_passive(v):

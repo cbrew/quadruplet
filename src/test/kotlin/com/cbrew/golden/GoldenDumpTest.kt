@@ -120,7 +120,10 @@ class GoldenDumpTest {
         }
 
         // The MASC benchmark: each sentence's chart size, trees and readings
-        // of the start category Top.
+        // of the start category Top. Readings are printed by pretty(), which
+        // sorts conjunctions: the chart keeps the first of equal edges to
+        // arrive, whose conjuncts are in the order they were built, and that
+        // depends on the order of the agenda.
         File(dir, "masc.golden").printWriter().use { out ->
             val g = FeatureGrammar(grammar("masc/masc.fcfg", "integrated"))
             for (line in lines(File("$resources/masc/sample.txt"))) {
@@ -131,7 +134,8 @@ class GoldenDumpTest {
                 val top = chart.solutions().filter { (it.category as FeatureMap)["cat"].toString() == "Top" }
                 val trees = top.fold(java.math.BigInteger.ZERO) { n, e -> n + chart.countTrees(e) }
                 out.println("$id\tstats\t${stats["numCompletes"]}\t${stats["numPartials"]}\t${top.size}\t$trees")
-                for (s in top.map { show(it.category) }.sorted()) out.println("$id\treading\t$s")
+                for (s in top.map { ((it.category as FeatureMap)["sem"] as SemanticValue).value.pretty() }.sorted())
+                    out.println("$id\treading\t$s")
             }
         }
 

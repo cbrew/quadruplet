@@ -129,3 +129,8 @@ a;b	a;b	a;b
 a &	ERROR
 exists . a	ERROR
 \ . x	ERROR
+p & true	(p ∧ true)	p
+true & true	(true)	true
+true	true	true
+(\F.exists e.(walk(e) & F(e)))(\e.true)	∃.(walk(q:1))	∃.(walk(q:1))
+\x F.exists e.(walk(e) & Agent(e, x) & F(e))	λ.(λ.(∃.((walk(q:1) ∧ Agent(q:1, v:2) ∧ v:1(q:1)))))	λ.(λ.(∃.((walk(q:1) ∧ Agent(q:1, v:2) ∧ v:1(q:1)))))

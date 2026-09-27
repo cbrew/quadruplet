@@ -18,6 +18,7 @@ import (
 	"io"
 	"math/big"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ func main() {
 	workers := flag.Int("workers", 0, "goroutines for parsing: 0 for one per CPU, 1 for the sequential agenda parser")
 	startCat := flag.String("start", "", "count only readings of this category, such as Top")
 	quiet := flag.Bool("quiet", false, "print only the summary line for each sentence")
+	pretty := flag.Bool("pretty", false, "print readings' semantics with named variables and sorted conjuncts")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: quadruplet -grammar FILE [flags] [sentence ...]\n")
 		flag.PrintDefaults()
@@ -80,8 +82,21 @@ func main() {
 		if *quiet {
 			return
 		}
+		var lines []string
 		for _, e := range solutions {
-			fmt.Printf("  %s\n", e.Cat)
+			if sem, ok := e.Cat.(*term.Map).Get("sem"); ok && *pretty {
+				if s, ok := sem.(*term.Sem); ok {
+					lines = append(lines, term.Key(e.Cat)+": "+term.Pretty(s.Value()))
+					continue
+				}
+			}
+			lines = append(lines, e.Cat.String())
+		}
+		if *pretty {
+			slices.Sort(lines)
+		}
+		for i, e := range solutions {
+			fmt.Printf("  %s\n", lines[i])
 			n := 0
 			for t := range c.Trees(e) {
 				if n == *trees {

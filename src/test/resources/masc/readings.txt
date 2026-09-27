@@ -1,0 +1,242 @@
+# The MASC correctness suite: sentences from the sample whose readings
+# have been checked by hand.
+#
+# Each sentence ("> ...") is followed by every reading of Top that the
+# grammar gives it, as Lambda.pretty() and term.Pretty print them, in sorted
+# order. The intended reading is marked "*"; where there are others, a note
+# ("# ...") says where they come from. MascTest and masc_test.go check that
+# the parsers give exactly these readings.
+#
+# Variables are named by depth: x1, x2, ... are quantified, v1, v2, ...
+# λ-bound. speaker and hearer are the deictic constants; ynq marks a yes/no
+# question.
+
+> this is an economic statute
+* ∃x1.(Theme(x1, this) ∧ be(x1) ∧ ∃x2.((this = x2) ∧ economic(x2) ∧ statute(x2)))
+
+> we are a big industrial state
+* ∃x1.(Theme(x1, we) ∧ be(x1) ∧ ∃x2.((we = x2) ∧ big(x2) ∧ industrial(x2) ∧ state(x2)))
+
+> Dublin is a young city
+* ∃x1.(Theme(x1, dublin) ∧ be(x1) ∧ ∃x2.((dublin = x2) ∧ city(x2) ∧ young(x2)))
+
+> my name is Mrs Linda Yace
+# A proper name of three words is one lexical entry.
+* ∃x1.(name(x1) ∧ of(x1, speaker) ∧ ∃x2.((x1 = mrs_linda_yace) ∧ Theme(x2, x1) ∧ be(x2)))
+
+> the guy 's guilty
+# "the" is Russellian: there is exactly one guy.
+* ∃x1.(guy(x1) ∧ ∀x2.(guy(x2) → (x1 = x2)) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2) ∧ guilty(x1)))
+
+> is faux confidence enough
+* ynq(∃x1.(confidence(x1) ∧ faux(x1) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2) ∧ enough(x1))))
+
+> I 'm now a buffalo in Montaaaaaaaana
+# A time adverb holds of the state; the PP after the copula is inside its NP complement.
+* ∃x1.(Theme(x1, speaker) ∧ be(x1) ∧ now(x1) ∧ ∃x2.((speaker = x2) ∧ buffalo(x2) ∧ in(x2, montaaaaaaaana)))
+
+> an additional patient required a liver transplant
+# Noun compounds relate the head to the modifier by nn.
+* ∃x1.(additional(x1) ∧ patient(x1) ∧ ∃x2.(transplant(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ require(x3)) ∧ ∃x3.(liver(x3) ∧ nn(x2, x3))))
+
+> my husband works for TI
+* ∃x1.(husband(x1) ∧ of(x1, speaker) ∧ ∃x2.(Agent(x2, x1) ∧ for(x2, ti) ∧ work(x2)))
+
+> I can not give you a specific date
+# Two objects: the first is the Recipient.
+* can(¬∃x1.(date(x1) ∧ specific(x1) ∧ ∃x2.(Agent(x2, speaker) ∧ Recipient(x2, hearer) ∧ Theme(x2, x1) ∧ give(x2))))
+
+> get Flash Player from Adobe
+# An imperative: the subject is the hearer.
+* ∃x1.(Agent(x1, hearer) ∧ Theme(x1, flash_player) ∧ from(x1, adobe) ∧ get(x1))
+
+> signing up on Twitter
+# A subjectless tweet: the subject is the speaker.
+* ∃x1.(Agent(x1, speaker) ∧ on(x1, twitter) ∧ sign(x1) ∧ up(x1))
+
+> explore Penobscot Bay by canoe
+* ∃x1.(Agent(x1, hearer) ∧ Theme(x1, penobscot_bay) ∧ explore(x1) ∧ ∃x2.(by(x1, x2) ∧ canoe(x2)))
+
+> join my crew and postpone the judgment
+* (∃x1.(crew(x1) ∧ of(x1, speaker) ∧ ∃x2.(Agent(x2, hearer) ∧ Theme(x2, x1) ∧ join(x2))) ∧ ∃x1.(judgment(x1) ∧ ∀x2.(judgment(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, hearer) ∧ Theme(x2, x1) ∧ postpone(x2))))
+
+> quickly she holds up a cross
+# A manner adverb and a particle are predicates of the event.
+* ∃x1.(cross(x1) ∧ ∃x2.(Agent(x2, she) ∧ Theme(x2, x1) ∧ hold(x2) ∧ quickly(x2) ∧ up(x2)))
+
+> the back came down and an elephant walked out
+* (∃x1.(back(x1) ∧ ∀x2.(back(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, x1) ∧ come(x2) ∧ down(x2))) ∧ ∃x1.(elephant(x1) ∧ ∃x2.(Agent(x2, x1) ∧ out(x2) ∧ walk(x2))))
+
+> however the attacks of 9/11 changed everything
+# Quantified pronouns restrict to things or persons.
+* however(∃x1.(attack(x1) ∧ of(x1, w_9_11) ∧ ∀x2.((attack(x2) ∧ of(x2, w_9_11)) → (x1 = x2)) ∧ ∀x2.(thing(x2) → ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ change(x3)))))
+
+> Nathan Road has many electronics shops
+# many is a relation between properties (Barwise and Cooper).
+* many(λv1.(shop(v1) ∧ ∃x1.(electronics(x1) ∧ nn(v1, x1))), λv1.∃x1.(Agent(x1, nathan_road) ∧ Theme(x1, v1) ∧ have(x1)))
+
+> these stores sell excess stock or factory overruns
+# Disjoined NPs give a disjunction of quantifications.
+* ∃x1.((∃x2.(excess(x2) ∧ stock(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ sell(x3))) ∨ ∃x2.(overrun(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ sell(x3)) ∧ ∃x3.(factory(x3) ∧ nn(x2, x3)))) ∧ store(x1) ∧ this(x1))
+
+> the young adults who leave Pleasant Run have those same feelings
+* ∃x1.(adult(x1) ∧ young(x1) ∧ ∀x2.((adult(x2) ∧ young(x2) ∧ ∃x3.(Agent(x3, x2) ∧ Theme(x3, pleasant_run) ∧ leave(x3))) → (x1 = x2)) ∧ ∃x2.(Agent(x2, x1) ∧ Theme(x2, pleasant_run) ∧ leave(x2)) ∧ ∃x2.(feeling(x2) ∧ same(x2) ∧ that(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ have(x3))))
+
+> we did n't finalize that plan
+# There is no quantifier storage: the object NP scopes under negation.
+* ¬∃x1.(plan(x1) ∧ that(x1) ∧ ∃x2.(Agent(x2, we) ∧ Theme(x2, x1) ∧ finalize(x2)))
+
+> I will not cut the benefits
+# Modals and negation scope over the event quantifier.
+* will(¬∃x1.(benefit(x1) ∧ ∀x2.(benefit(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, speaker) ∧ Theme(x2, x1) ∧ cut(x2))))
+
+> I do n't remember
+* ¬∃x1.(Experiencer(x1, speaker) ∧ remember(x1))
+
+> state legislatures always have
+# VP ellipsis: the elided VP is an event of the subject's.
+* ∃x1.(always(perf(∃x2.(Agent(x2, x1) ∧ elided(x2)))) ∧ legislature(x1) ∧ ∃x2.(nn(x1, x2) ∧ state(x2)))
+
+> I have n't either
+* either(perf(¬∃x1.(Agent(x1, speaker) ∧ elided(x1))))
+
+> this change would have doubled the channel gradient
+* ∃x1.(change(x1) ∧ this(x1) ∧ would(perf(∃x2.(gradient(x2) ∧ ∀x3.((gradient(x3) ∧ ∃x4.(channel(x4) ∧ nn(x3, x4))) → (x2 = x3)) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ double(x3)) ∧ ∃x3.(channel(x3) ∧ nn(x2, x3))))))
+
+> this wolf will be running for its life
+* ∃x1.(this(x1) ∧ will(prog(∃x2.(Agent(x2, x1) ∧ run(x2) ∧ ∃x3.(for(x2, x3) ∧ life(x3) ∧ of(x3, it))))) ∧ wolf(x1))
+
+> the next destination was discussed
+# An agentless passive: the agent is existentially quantified.
+* ∃x1.(destination(x1) ∧ next(x1) ∧ ∀x2.((destination(x2) ∧ next(x2)) → (x1 = x2)) ∧ ∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ discuss(x3)))
+
+> these rules were not used extensively
+* ∃x1.(rule(x1) ∧ this(x1) ∧ ¬∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ extensively(x3) ∧ use(x3)))
+
+> isopropyl alcohol was removed by evaporation under nitrogen
+# "by evaporation" is an agent in two readings and a means in two; "under nitrogen" modifies the evaporation or the removal.
+  ∃x1.(alcohol(x1) ∧ ∃x2.(evaporation(x2) ∧ ∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ remove(x3) ∧ ∃x4.(nitrogen(x4) ∧ under(x3, x4)))) ∧ ∃x2.(isopropyl(x2) ∧ nn(x1, x2)))
+  ∃x1.(alcohol(x1) ∧ ∃x2.(evaporation(x2) ∧ ∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ remove(x3)) ∧ ∃x3.(nitrogen(x3) ∧ under(x2, x3))) ∧ ∃x2.(isopropyl(x2) ∧ nn(x1, x2)))
+* ∃x1.(alcohol(x1) ∧ ∃x2.(isopropyl(x2) ∧ nn(x1, x2)) ∧ ∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ remove(x3) ∧ ∃x4.(by(x3, x4) ∧ evaporation(x4) ∧ ∃x5.(nitrogen(x5) ∧ under(x4, x5)))))
+  ∃x1.(alcohol(x1) ∧ ∃x2.(isopropyl(x2) ∧ nn(x1, x2)) ∧ ∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ remove(x3) ∧ ∃x4.(by(x3, x4) ∧ evaporation(x4)) ∧ ∃x4.(nitrogen(x4) ∧ under(x3, x4))))
+
+> the alliance became known as the Delian League
+# became is an auxiliary taking a passive VP.
+* ∃x1.(alliance(x1) ∧ become(∃x2.∃x3.(Experiencer(x3, x2) ∧ Theme(x3, x1) ∧ know(x3) ∧ ∃x4.(as(x3, x4) ∧ delian_league(x4) ∧ ∀x5.(delian_league(x5) → (x4 = x5))))) ∧ ∀x2.(alliance(x2) → (x1 = x2)))
+
+> the financial markets have become increasingly globalized
+* ∃x1.(financial(x1) ∧ market(x1) ∧ perf(become(increasingly(∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ globalize(x3))))) ∧ ∀x2.((financial(x2) ∧ market(x2)) → (x1 = x2)))
+
+> I think it 's a triumph
+# A clausal complement is the Topic of the thinking.
+* ∃x1.(Experiencer(x1, speaker) ∧ Topic(x1, ∃x2.(Theme(x2, it) ∧ be(x2) ∧ ∃x3.((it = x3) ∧ triumph(x3)))) ∧ think(x1))
+
+> she said reading is the new civil right
+* ∃x1.(Agent(x1, she) ∧ Topic(x1, ∃x2.(reading(x2) ∧ ∃x3.(Theme(x3, x2) ∧ be(x3) ∧ ∃x4.((x2 = x4) ∧ civil(x4) ∧ new(x4) ∧ right(x4) ∧ ∀x5.((civil(x5) ∧ new(x5) ∧ right(x5)) → (x4 = x5)))))) ∧ say(x1))
+
+> caps ensure that environmental goals are met
+* ∃x1.(cap(x1) ∧ ∃x2.(Agent(x2, x1) ∧ Topic(x2, ∃x3.(environmental(x3) ∧ goal(x3) ∧ ∃x4.∃x5.(Agent(x5, x4) ∧ Theme(x5, x3) ∧ meet(x5)))) ∧ ensure(x2)))
+
+> then the region began to subside
+# Subject control: the infinitive's subject is the region.
+* then(∃x1.(region(x1) ∧ ∀x2.(region(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, x1) ∧ Theme(x2, ∃x3.(Agent(x3, x1) ∧ subside(x3))) ∧ begin(x2))))
+
+> the advertisement attempts to make several points and reach several different constituencies
+* ∃x1.(advertisement(x1) ∧ ∀x2.(advertisement(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, x1) ∧ Theme(x2, (several(λv1.(constituency(v1) ∧ different(v1)), λv1.∃x3.(Agent(x3, x1) ∧ Theme(x3, v1) ∧ reach(x3))) ∧ several(λv1.point(v1), λv1.∃x3.(Agent(x3, x1) ∧ Theme(x3, v1) ∧ make(x3))))) ∧ attempt(x2)))
+
+> it may help a family stay together
+# Object control; "together" modifies the staying or the helping.
+* may(∃x1.(family(x1) ∧ ∃x2.(Agent(x2, it) ∧ Patient(x2, x1) ∧ Theme(x2, ∃x3.(Agent(x3, x1) ∧ stay(x3) ∧ together(x3))) ∧ help(x2))))
+  may(∃x1.(family(x1) ∧ ∃x2.(Agent(x2, it) ∧ Patient(x2, x1) ∧ Theme(x2, ∃x3.(Agent(x3, x1) ∧ stay(x3))) ∧ help(x2) ∧ together(x2))))
+
+> one can finally grasp how the world is filled with conflictuous passions
+# An embedded question is a property of manners.
+* can(finally(∃x1.(Agent(x1, one) ∧ Topic(x1, λv1.∃x2.(world(x2) ∧ ∀x3.(world(x3) → (x2 = x3)) ∧ ∃x3.∃x4.(Agent(x4, x3) ∧ Manner(x4, v1) ∧ Theme(x4, x2) ∧ fill(x4) ∧ ∃x5.(conflictuous(x5) ∧ passion(x5) ∧ with(x4, x5))))) ∧ grasp(x1))))
+  can(finally(∃x1.(Agent(x1, one) ∧ Topic(x1, λv1.∃x2.(world(x2) ∧ ∀x3.(world(x3) → (x2 = x3)) ∧ ∃x3.∃x4.(Agent(x4, x3) ∧ Manner(x4, v1) ∧ Theme(x4, x2) ∧ fill(x4)))) ∧ grasp(x1) ∧ ∃x2.(conflictuous(x2) ∧ passion(x2) ∧ with(x1, x2)))))
+
+> he pushed off the dark glasses because he could n't see to fly
+* because(∃x1.(dark(x1) ∧ glass(x1) ∧ ∀x2.((dark(x2) ∧ glass(x2)) → (x1 = x2)) ∧ ∃x2.(Agent(x2, he) ∧ Theme(x2, x1) ∧ off(x2) ∧ push(x2))), could(¬∃x1.(Experiencer(x1, he) ∧ Theme(x1, ∃x2.(Agent(x2, he) ∧ fly(x2))) ∧ see(x1))))
+
+> whereas Greenberg seamlessly resolves this tension Jacobsen allows it to surface
+* whereas(∃x1.(Agent(x1, jacobsen) ∧ Patient(x1, it) ∧ Theme(x1, ∃x2.(Agent(x2, it) ∧ surface(x2))) ∧ allow(x1)), ∃x1.(tension(x1) ∧ this(x1) ∧ ∃x2.(Agent(x2, greenberg) ∧ Theme(x2, x1) ∧ resolve(x2) ∧ seamlessly(x2))))
+
+> did you hear about the cheapskate vampire hunter
+# A yes/no question.
+* ynq(∃x1.(Experiencer(x1, hearer) ∧ hear(x1) ∧ ∃x2.(about(x1, x2) ∧ cheapskate(x2) ∧ hunter(x2) ∧ ∀x3.((cheapskate(x3) ∧ hunter(x3) ∧ ∃x4.(nn(x3, x4) ∧ vampire(x4))) → (x2 = x3)) ∧ ∃x3.(nn(x2, x3) ∧ vampire(x3)))))
+
+> am I missing something
+* ynq(prog(∃x1.(thing(x1) ∧ ∃x2.(Agent(x2, speaker) ∧ Theme(x2, x1) ∧ miss(x2)))))
+
+> what 're you doing
+# A wh-question is a property of its answers.
+* λv1.(prog(∃x1.(Agent(x1, hearer) ∧ Theme(x1, v1) ∧ do(x1))) ∧ thing(v1))
+
+> what do you think
+* λv1.(thing(v1) ∧ ∃x1.(Experiencer(x1, hearer) ∧ Theme(x1, v1) ∧ think(x1)))
+
+> what do you think the time frame is on this
+# The gap is in the embedded clause; "on this" modifies its state or the thinking.
+* λv1.(thing(v1) ∧ ∃x1.(Experiencer(x1, hearer) ∧ Topic(x1, ∃x2.(frame(x2) ∧ ∀x3.((frame(x3) ∧ ∃x4.(nn(x3, x4) ∧ time(x4))) → (x2 = x3)) ∧ ∃x3.((x2 = v1) ∧ Theme(x3, x2) ∧ be(x3) ∧ on(x3, this)) ∧ ∃x3.(nn(x2, x3) ∧ time(x3)))) ∧ think(x1)))
+  λv1.(thing(v1) ∧ ∃x1.(Experiencer(x1, hearer) ∧ Topic(x1, ∃x2.(frame(x2) ∧ ∀x3.((frame(x3) ∧ ∃x4.(nn(x3, x4) ∧ time(x4))) → (x2 = x3)) ∧ ∃x3.((x2 = v1) ∧ Theme(x3, x2) ∧ be(x3)) ∧ ∃x3.(nn(x2, x3) ∧ time(x3)))) ∧ on(x1, this) ∧ think(x1)))
+
+> where is it overextended
+# Wh-adverbs relate the event to a place, time, manner or reason.
+* λv1.∃x1.∃x2.(Agent(x2, x1) ∧ Location(x2, v1) ∧ Theme(x2, it) ∧ overextend(x2))
+
+> how are you doing today
+# "doing" is also transitive (from "what 're you doing"), with "today" as its object.
+* λv1.prog(∃x1.(Agent(x1, hearer) ∧ Manner(x1, v1) ∧ do(x1) ∧ today(x1)))
+  λv1.prog(∃x1.(today(x1) ∧ ∃x2.(Agent(x2, hearer) ∧ Manner(x2, v1) ∧ Theme(x2, x1) ∧ do(x2))))
+
+> the only thing that Moore compressed is the timeframe
+* ∃x1.(only(x1) ∧ thing(x1) ∧ ∀x2.((only(x2) ∧ thing(x2) ∧ ∃x3.(Agent(x3, moore) ∧ Theme(x3, x2) ∧ compress(x3))) → (x1 = x2)) ∧ ∃x2.(Agent(x2, moore) ∧ Theme(x2, x1) ∧ compress(x2)) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2) ∧ ∃x3.((x1 = x3) ∧ timeframe(x3) ∧ ∀x4.(timeframe(x4) → (x3 = x4)))))
+
+> this is the big lie the wholesalers tell
+# A relative clause without a relative pronoun.
+* ∃x1.(Theme(x1, this) ∧ be(x1) ∧ ∃x2.((this = x2) ∧ big(x2) ∧ lie(x2) ∧ ∀x3.((big(x3) ∧ lie(x3) ∧ ∃x4.(wholesaler(x4) ∧ ∀x5.(wholesaler(x5) → (x4 = x5)) ∧ ∃x5.(Agent(x5, x4) ∧ Theme(x5, x3) ∧ tell(x5)))) → (x2 = x3)) ∧ ∃x3.(wholesaler(x3) ∧ ∀x4.(wholesaler(x4) → (x3 = x4)) ∧ ∃x4.(Agent(x4, x3) ∧ Theme(x4, x2) ∧ tell(x4)))))
+
+> it 's the best story you 've ever written
+* ∃x1.(Theme(x1, it) ∧ be(x1) ∧ ∃x2.((it = x2) ∧ best(x2) ∧ perf(ever(∃x3.(Agent(x3, hearer) ∧ Theme(x3, x2) ∧ write(x3)))) ∧ story(x2) ∧ ∀x3.((best(x3) ∧ perf(ever(∃x4.(Agent(x4, hearer) ∧ Theme(x4, x3) ∧ write(x4)))) ∧ story(x3)) → (x2 = x3))))
+
+> this is what Java Bayes takes
+# A free relative.
+* ∃x1.(Theme(x1, this) ∧ be(x1) ∧ ∃x2.((this = x2) ∧ thing(x2) ∧ ∃x3.(Agent(x3, java_bayes) ∧ Theme(x3, x2) ∧ take(x3))))
+
+> I do it as somebody who has a conscience and is caring
+# A quantified pronoun with a relative clause.
+* ∃x1.(Agent(x1, speaker) ∧ Theme(x1, it) ∧ do(x1) ∧ ∃x2.(as(x1, x2) ∧ person(x2) ∧ ∃x3.(Theme(x3, x2) ∧ be(x3) ∧ caring(x2)) ∧ ∃x3.(conscience(x3) ∧ ∃x4.(Agent(x4, x2) ∧ Theme(x4, x3) ∧ have(x4)))))
+
+> there is also a market and a porcelain shop
+# Existential there: a state of each thing the NP quantifies over.
+* also((∃x1.(market(x1) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2))) ∧ ∃x1.(shop(x1) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2)) ∧ ∃x2.(nn(x1, x2) ∧ porcelain(x2)))))
+
+> then there is the furniture
+* then(∃x1.(furniture(x1) ∧ ∀x2.(furniture(x2) → (x1 = x2)) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2))))
+
+> and Christmas would come and Christmas would go
+* (would(∃x1.(Agent(x1, christmas) ∧ come(x1))) ∧ would(∃x1.(Agent(x1, christmas) ∧ go(x1))))
+
+> of course we notice
+# "of course" is also a PP modifying the sentence.
+* of_course(∃x1.(Experiencer(x1, we) ∧ notice(x1)))
+  ∃x1.(Experiencer(x1, we) ∧ notice(x1) ∧ ∃x2.(course(x2) ∧ of(x1, x2)))
+
+> a guy walks into a bar with a small dog
+# The PP modifies the walking or the bar.
+  ∃x1.(guy(x1) ∧ ∃x2.(Agent(x2, x1) ∧ walk(x2) ∧ ∃x3.(bar(x3) ∧ into(x2, x3) ∧ ∃x4.(dog(x4) ∧ small(x4) ∧ with(x3, x4)))))
+* ∃x1.(guy(x1) ∧ ∃x2.(Agent(x2, x1) ∧ walk(x2) ∧ ∃x3.(bar(x3) ∧ into(x2, x3)) ∧ ∃x3.(dog(x3) ∧ small(x3) ∧ with(x2, x3))))
+
+> I looked at the sheet in my hand
+# The PP modifies the sheet or the looking.
+* ∃x1.(Agent(x1, speaker) ∧ look(x1) ∧ ∃x2.(at(x1, x2) ∧ sheet(x2) ∧ ∀x3.((sheet(x3) ∧ ∃x4.(hand(x4) ∧ in(x3, x4) ∧ of(x4, speaker))) → (x2 = x3)) ∧ ∃x3.(hand(x3) ∧ in(x2, x3) ∧ of(x3, speaker))))
+  ∃x1.(Agent(x1, speaker) ∧ look(x1) ∧ ∃x2.(at(x1, x2) ∧ sheet(x2) ∧ ∀x3.(sheet(x3) → (x2 = x3))) ∧ ∃x2.(hand(x2) ∧ in(x1, x2) ∧ of(x2, speaker)))
+
+> I rapped my fingers against my desk nervously
+# The PP modifies the rapping or the fingers.
+* ∃x1.(finger(x1) ∧ of(x1, speaker) ∧ ∃x2.(Agent(x2, speaker) ∧ Theme(x2, x1) ∧ nervously(x2) ∧ rap(x2) ∧ ∃x3.(against(x2, x3) ∧ desk(x3) ∧ of(x3, speaker))))
+  ∃x1.(finger(x1) ∧ of(x1, speaker) ∧ ∃x2.(Agent(x2, speaker) ∧ Theme(x2, x1) ∧ nervously(x2) ∧ rap(x2)) ∧ ∃x2.(against(x1, x2) ∧ desk(x2) ∧ of(x2, speaker)))
+
+> both sides are in talks to settle the dispute
+# An infinitival relative (the talks settle it) or a purpose clause (the sides do).
+  ∀x1.(side(x1) → ∃x2.(Purpose(x2, ∃x3.(dispute(x3) ∧ ∀x4.(dispute(x4) → (x3 = x4)) ∧ ∃x4.(Agent(x4, x1) ∧ Theme(x4, x3) ∧ settle(x4)))) ∧ Theme(x2, x1) ∧ be(x2) ∧ ∃x3.(in(x1, x3) ∧ talk(x3))))
+* ∀x1.(side(x1) → ∃x2.(Theme(x2, x1) ∧ be(x2) ∧ ∃x3.(Purpose(x3, ∃x4.(dispute(x4) ∧ ∀x5.(dispute(x5) → (x4 = x5)) ∧ ∃x5.(Agent(x5, x3) ∧ Theme(x5, x4) ∧ settle(x5)))) ∧ in(x1, x3) ∧ talk(x3))))
