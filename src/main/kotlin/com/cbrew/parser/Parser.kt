@@ -9,12 +9,12 @@ import kotlin.system.measureTimeMillis
 
 fun main(args: Array<String>) {
     val args2 = Array<String>(30, { _ -> "a" })
-    // we can go up to 20 'a's without breaking, though it does take a while
-    // to count the trees at that point. Unsurprising, since there are over
-    // 1.76 billion trees to count.
-    // Parsing itself is still fast, as is enumeration of first few trees,
-    // since getTrees() is efficient. Parsing a sentence of 170 'a's takes
-    // 36s and produces ~ 44k edges.
+    // The number of trees grows exponentially: 717,061,938 for 16 'a's,
+    // ~4.95e18 for 30 and a 121-digit number for 170. Tree counting is
+    // memoised over the packed chart, so it stays cheap even so, and
+    // enumeration of the first few trees is fast because getTrees() is
+    // lazy. A sentence of 170 'a's gives ~104k edges (14,535 complete,
+    // 89,244 partial).
 
     val parseTime = measureTimeMillis {
         val chart = Chart(args2)
@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
                 i += 1
             }
         }
-        println(chart.stats(doCount = args2.size < 16))
+        println(chart.stats())
     }
 
     println("Total time: ${parseTime} ms")

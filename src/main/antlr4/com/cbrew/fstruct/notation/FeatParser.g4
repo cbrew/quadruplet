@@ -18,6 +18,9 @@ word: Word ;
 featureMap: Category (Lsq mapping Rsq);
 mapping: (fpair|fabbrev)? (Comma (fpair|fabbrev))* ;
 fpair: Fname Equals fvalue;
+// Nested feature maps (the featureMap alternative below) parse, but are not
+// supported: nothing uses or tests them and there are no plans to support
+// them. See README.md.
 fvalue: Fname |FstructVariable| flist| ftuple | featureMap | semantics;
 flist: Lsq (fvalues|fexpr) Rsq;
 ftuple:  Lparen (fvalues|fexpr) Rparen;

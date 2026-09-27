@@ -106,5 +106,34 @@ class LogicTest {
                         Not(Constant("b"))))))
     }
 
+    @Test
+    fun testVacuousQuantifierKeepsConnective() {
+        val pq = createAnd(Constant("p"), Constant("q"))
+        assertEquals(pq, createExistential(pq), "∃.(p ∧ q) with nothing bound is p ∧ q")
+        assertEquals(pq, createUniversal(pq), "∀.(p ∧ q) with nothing bound is p ∧ q")
+        val porq = createOr(Constant("p"), Constant("q"))
+        assertEquals(porq, createExistential(porq))
+        assertEquals(porq, createUniversal(porq))
+        assertEquals(createAnd(QVar(1), Constant("a")),
+                createExistential(createAnd(QVar(2), Constant("a"))),
+                "free variables are shifted down, connective kept")
+    }
 
+    @Test
+    fun testDuplicateConjunctsCollapse() {
+        assertEquals(Constant("a"), createAnd(Constant("a"), Constant("a")))
+    }
+
+    @Test
+    fun testNormalOrderReduceKeepsOtherConjuncts() {
+        // a conjunction containing a redex: reducing it must keep the rest
+        val redex = App(Lam(App(Constant("f"), Var(1))), Constant("c"))
+        assertEquals(And(setOf(Constant("a"), App(Constant("f"), Constant("c")))),
+                normalOrderReduce(And(setOf(Constant("a"), redex))))
+        assertEquals(Or(setOf(Constant("a"), App(Constant("f"), Constant("c")))),
+                normalOrderReduce(Or(setOf(Constant("a"), redex))))
+        assertEquals(And(setOf(App(Constant("f"), Constant("c")), App(Constant("f"), Constant("d")))),
+                normalOrderReduce(And(setOf(redex, App(Lam(App(Constant("f"), Var(1))), Constant("d"))))),
+                "every redex is reduced, one step at a time")
+    }
 }

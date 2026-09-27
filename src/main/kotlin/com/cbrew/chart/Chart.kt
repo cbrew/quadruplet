@@ -3,8 +3,11 @@ package com.cbrew.chart
 
 import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.FeatureStructure
+import com.cbrew.unify.Unifiable
+import com.cbrew.unify.renamedApartFrom
 import com.cbrew.unify.subst
 import com.cbrew.unify.unify
+import java.math.BigInteger
 import java.util.*
 import kotlin.Comparator
 import kotlin.collections.set
@@ -20,11 +23,11 @@ import kotlin.collections.set
 
 class Chart(val completes: Array<MutableSet<Complete>>,
             val partials: Array<MutableSet<Partial>>,
-            val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>,
+            val predecessors: MutableMap<Edge, MutableList<Pair<Partial, Complete>>>,
             val spans: MutableList<Span>,
             val sentence: Array<String>) {
 
-    private val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
+    private val agenda: PriorityQueue<Edge> = PriorityQueue(agendaOrder)
 
     constructor(sentence: Array<String>) : this(
             completes = Array(sentence.size + 1, { _ -> mutableSetOf<Complete>() }),
@@ -54,25 +57,31 @@ class Chart(val completes: Array<MutableSet<Complete>>,
     fun pairwithcompletes(p: Partial): List<Edge> =
             completes[p.end].mapNotNull { c -> fundamental(p, c)?.let { e -> recordPredecessors(p, c, e); e } }
 
-    // record a predecessor relationship.
+    // Record a predecessor relationship. Each (partial, complete) pair is
+    // formed exactly once, when the later of the two enters the chart, so a
+    // list holds an edge's predecessors without duplicates.
 
     private fun recordPredecessors(p: Partial, c: Complete, created: Edge) {
-        val pair = Pair(p, c)
-        if (created in predecessors)
-            predecessors[created]?.add(pair)
-        else
-            predecessors[created] = mutableSetOf(pair)
+        predecessors.getOrPut(created) { ArrayList(2) }.add(Pair(p, c))
     }
 
-    // count the number of distinct trees under an edge
-    fun countTrees(e: Edge): Int =
-            if (e in predecessors)
-                predecessors[e]!!.sumOf { (p, c) -> countTrees(p) * countTrees(c) }
-            else
-                1
+    // count the number of distinct trees under an edge. Sub-forests are
+    // shared between many parents, so counts are memoised; without that the
+    // count takes time proportional to the (exponential) number of trees.
+    // Counts are BigIntegers because they outgrow Int within ~17 words.
+    fun countTrees(e: Edge): BigInteger = countTrees(e, HashMap())
 
-    fun countTrees(): Int =
-            solutions().sumOf { countTrees(it) }
+    private fun countTrees(e: Edge, memo: MutableMap<Edge, BigInteger>): BigInteger =
+            memo.getOrPut(e) {
+                predecessors[e]?.fold(BigInteger.ZERO) { acc, (p, c) ->
+                    acc + countTrees(p, memo) * countTrees(c, memo)
+                } ?: BigInteger.ONE
+            }
+
+    fun countTrees(): BigInteger {
+        val memo = HashMap<Edge, BigInteger>()
+        return solutions().fold(BigInteger.ZERO) { acc, s -> acc + countTrees(s, memo) }
+    }
 
 
     fun getTrees(e: Edge): Sequence<Tree> =
@@ -113,9 +122,22 @@ class Chart(val completes: Array<MutableSet<Complete>>,
 
 
     fun solutions(target: FeatureStructure): List<Complete> =
-        completes[0].filter { c -> c.end == completes.size - 1 && (unify(c.category, target) != null) }
+        completes[0].filter { c ->
+            c.end == completes.size - 1 && unify(c.category, target.renamedApartFrom(c.category)) != null
+        }
 
 
+
+    /**
+     * Agenda order: left to right by start, then end. The order in which
+     * edges come off the agenda does not change the finished chart, so ties
+     * are left to the queue rather than broken by comparing (expensive)
+     * printed categories, as edgeComparator does for display.
+     */
+    object agendaOrder : Comparator<Edge> {
+        override fun compare(o1: Edge, o2: Edge): Int =
+                if (o1.start != o2.start) o1.start - o2.start else o1.end - o2.end
+    }
 
     object edgeComparator : Comparator<Edge> {
         override fun compare(o1: Edge?, o2: Edge?): Int =
@@ -132,7 +154,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
 
 
     // comparator that puts complete edges first
-    class CompleteComparator(val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>): Comparator<Complete> {
+    class CompleteComparator(val predecessors: MutableMap<Edge, MutableList<Pair<Partial, Complete>>>): Comparator<Complete> {
         fun creates(e1: Complete, e2: Complete): Boolean {
             // read as e1 creates e2
             val pairs = predecessors[e2]
@@ -237,9 +259,11 @@ class Chart(val completes: Array<MutableSet<Complete>>,
      * fundamental rule of chart parsing.
      * Returns new edge if possible.
      * Returns null if partial and complete are incompatible.
+     * The complete edge's variables are renamed apart from the partial's
+     * first, since a shared name does not mean a shared variable.
      */
     fun fundamental(partial: Partial, complete: Complete): Edge? =
-            unify(partial.needed.first(), complete.category)
+            unify(partial.needed.first(), renamedApart(complete.category, partial.category, partial.needed))
                     ?.let { (_, bindings) ->
                         makeEdge(bindings.subst(partial.category),
                                 partial.start,
@@ -248,6 +272,10 @@ class Chart(val completes: Array<MutableSet<Complete>>,
                     }
 
 
+
+    // checks ground first, so the common case allocates nothing
+    private fun renamedApart(term: Unifiable, category: Unifiable, needed: List<Unifiable>): Unifiable =
+            if (term.ground) term else term.renamedApartFrom(listOf(category) + needed)
 
     fun nonterminals(): List<Span> {
         return sortedEdges().filter {predecessors.containsKey(it)}.map {Span((it.category as FeatureMap)["cat"].toString(),it.start,it.end)}
