@@ -1,8 +1,9 @@
-"""Writes the MASC correctness suite, src/test/resources/masc/readings.txt.
+"""Writes the MASC correctness suite, src/test/resources/masc/readings.txt,
+and the examples of sentences outside the sample, examples.txt.
 
     python3 tools/masc/suite.py        (from the top of the repository)
 
-For each sentence below it records every reading the grammar gives, as the
+For each sentence in SUITE and EXAMPLES it records every reading the grammar gives, as the
 Go command-line parser prints them with -pretty, marks the intended one,
 and adds the note. The readings were checked by hand: after changing the
 grammar, rerun this and check every change in readings.txt before
@@ -89,34 +90,27 @@ SUITE = [
  ("I rapped my fingers against my desk nervously", "against(x2, x3)", "The PP modifies the rapping or the fingers."),
  ("both sides are in talks to settle the dispute", "Agent(x5, x3)", "An infinitival relative (the talks settle it) or a purpose clause (the sides do)."),
 ]
-sents=[s for s,_,_ in SUITE]
-assert len(set(sents))==len(sents)
-out=subprocess.run(['go','run','./cmd/quadruplet','-grammar','../src/test/resources/masc/masc.fcfg',
-                    '-start','Top','-pretty','-workers','1'],
-                   cwd='go', input='\n'.join(sents)+'\n', capture_output=True, text=True, check=True).stdout
-readings={}; cur=None
-for line in out.split('\n'):
-    if line and not line.startswith(' '):
-        cur=line; readings[cur]=[]
-    elif line.startswith('  Top: '):
-        readings[cur].append(line[len('  Top: '):])
-lines=[]
-for s,sel,note in SUITE:
-    rs=readings[s]
-    assert rs, s
-    if sel is None:
-        assert len(rs)==1, (s, rs)
-        marked=[True]
-    else:
-        marked=[sel in r for r in rs]
-        assert sum(marked)==1, (s, sel, rs)
-    lines.append('')
-    lines.append('> '+s)
-    if note: lines.append('# '+note)
-    for m,r in zip(marked,rs):
-        lines.append(('* ' if m else '  ')+r)
-print('%d sentences, %d readings' % (len(SUITE), sum(len(readings[s]) for s in sents)), file=sys.stderr)
-header='''# The MASC correctness suite: sentences from the sample whose readings
+
+# Sentences that are not in the sample, made from the lexicon's words.
+EXAMPLES = [
+ ("every architect who knows Dave found a house", None, None),
+ ("the company expected every customer to find a house", "Patient(x3, x2)",
+  "The intended reading has the customers find houses; the others read \"to find a house\" as an infinitival relative on \"customer\" or as a purpose clause of the company's."),
+ ("a guy with a dog looked at the house in Dublin", "in(x3, dublin)", "\"in Dublin\" modifies the house or the looking."),
+ ("the book was found by a guy in the house", "in(x2, x3)",
+  "\"by a guy\" is the agent or an adjunct; \"in the house\" modifies the guy or the finding."),
+ ("the elephant was not seen by the family", "family(x2)", "\"by the family\" is the agent, or an adjunct."),
+ ("Dave thought that no customer noticed the change", None, None),
+ ("the guy that the company ignored knew the answer", None, None),
+ ("there is a dog in the house", None, None),
+ ("Dave and Bruce heard a holler", None, "Conjoined names distribute: each heard a holler."),
+ ("who knows Dave", None, None),
+ ("what did the architect say", None, None),
+ ("where did Dave find the book", None, None),
+]
+
+HEADERS = {
+    'readings.txt': """# The MASC correctness suite: sentences from the sample whose readings
 # have been checked by hand.
 #
 # Each sentence ("> ...") is followed by every reading of Top that the
@@ -127,5 +121,50 @@ header='''# The MASC correctness suite: sentences from the sample whose readings
 #
 # Variables are named by depth: x1, x2, ... are quantified, v1, v2, ...
 # λ-bound. speaker and hearer are the deictic constants; ynq marks a yes/no
-# question.'''
-open('src/test/resources/masc/readings.txt','w').write(header+'\n'+'\n'.join(lines)+'\n')
+# question.""",
+    'examples.txt': """# Sentences that are not in the MASC sample, made from words in its
+# lexicon, with every reading the grammar gives them, checked by hand. The
+# format is that of readings.txt: the intended reading is marked "*", and
+# MascTest and masc_test.go check that the parsers give exactly these
+# readings.""",
+}
+
+
+def write(name, entries):
+    sents = [s for s, _, _ in entries]
+    assert len(set(sents)) == len(sents)
+    out = subprocess.run(['go', 'run', './cmd/quadruplet', '-grammar', '../src/test/resources/masc/masc.fcfg',
+                          '-start', 'Top', '-pretty', '-workers', '1'],
+                         cwd='go', input='\n'.join(sents) + '\n', capture_output=True, text=True,
+                         check=True).stdout
+    readings, cur = {}, None
+    for line in out.split('\n'):
+        if line and not line.startswith(' '):
+            cur = line
+            readings[cur] = []
+        elif line.startswith('  Top: '):
+            readings[cur].append(line[len('  Top: '):])
+    lines = []
+    for s, sel, note in entries:
+        rs = readings[s]
+        assert rs, s
+        if sel is None:
+            assert len(rs) == 1, (s, rs)
+            marked = [True]
+        else:
+            marked = [sel in r for r in rs]
+            assert sum(marked) == 1, (s, sel, rs)
+        lines.append('')
+        lines.append('> ' + s)
+        if note:
+            lines.append('# ' + note)
+        for m, r in zip(marked, rs):
+            lines.append(('* ' if m else '  ') + r)
+    with open('src/test/resources/masc/' + name, 'w') as fh:
+        fh.write(HEADERS[name] + '\n' + '\n'.join(lines) + '\n')
+    print('%s: %d sentences, %d readings' % (name, len(entries), sum(len(readings[s]) for s in sents)),
+          file=sys.stderr)
+
+
+write('readings.txt', SUITE)
+write('examples.txt', EXAMPLES)

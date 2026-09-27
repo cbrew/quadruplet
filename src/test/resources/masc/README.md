@@ -1,16 +1,18 @@
-# MASC benchmark
+# MASC grammar v0
 
 A grammar with Montague-style event semantics, and 299 real sentences to
 parse with it, for testing and timing the parser on something bigger than a
-toy.
+toy. This is version 0 of the grammar: it parses 284 of the sentences (95%),
+and the [known failures](#known-failures) are listed below.
 
 | file | contents |
 |---|---|
-| `masc.fcfg` | the grammar: 109 hand-written rules, then a lexicon generated from the sample |
+| `masc.fcfg` | the grammar: 113 hand-written rules, then a lexicon of 1,136 words and phrases generated from the sample |
 | `sample.txt` | the sentences: id, genre, and the words to parse, tab-separated |
 | `sample.mrg` | their Penn Treebank trees as MASC has them |
 | `gold.txt` | the same trees normalised: no punctuation, traces or function tags |
 | `readings.txt` | the correctness suite: 61 sentences with their readings, checked by hand |
+| `examples.txt` | 12 sentences from outside the sample, with their readings, checked by hand |
 
 ## The sentences
 
@@ -69,12 +71,14 @@ The rules cover:
   sentences
 * auxiliaries, modals, negation, VP ellipsis ("they always have"), the
   copula, existential "there", passives with and without an agent
-* verbs taking objects, two objects, clauses, embedded questions, and
+* verbs taking objects, two objects, clauses, embedded questions, an
+  object and a clause or question ("asked him what he thought"), and
   infinitival or participial VPs, including control and ECM verbs
 * relative clauses (subject, object and contact), free relatives,
   infinitival and reduced relatives
 * coordination of sentences, VPs, NPs, nominals and adjectives, and
   subordinate, purpose and participial adjuncts
+* headlines ("Mac OS X updating")
 
 Gaps use slash categories (`VPgap`, `Sgap`, ...), whose meanings abstract over
 the gap. There is no quantifier storage, so an object quantifier always
@@ -87,7 +91,12 @@ for their part of speech. Each verb gets every subcategorisation frame its
 lemma has in the sample, read from the complements beside it in the tree
 (traces included, so gapped objects and passives count), and a thematic
 role for its subject: Experiencer for verbs of perception and attitude,
-Agent otherwise.
+Agent otherwise. Two tagging slips are repaired: a lone adverb of place
+between a verb and its object is also a particle ("push back the tide"),
+and a past tense in the complement of "be" is also a participle ("was n't
+identified"). Only the word forms the sample has are in the lexicon, as
+the parts of speech it has them as: "notice", for one, is only a noun and a
+present tense.
 The script rewrites the part of `masc.fcfg` after the "generated lexicon"
 line:
 
@@ -98,12 +107,12 @@ cd tools/masc && python3 lexicon.py ../../src/test/resources/masc
 
 ## Results
 
-278 of the 299 sentences (93%) get at least one reading. The grammar was
+284 of the 299 sentences (95%) get at least one reading. The grammar was
 written by looking at the sample, so this is not a measure of coverage on
-unseen text. Of the multi-word treebank phrases in those 278 sentences,
+unseen text. Of the multi-word treebank phrases in those 284 sentences,
 96.5% are spanned by an edge in some parse.
 
-The 299 charts have 155,169 edges and 1,712 trees. The most ambiguous
+The 299 charts have 161,954 edges and 1,798 trees. The most ambiguous
 sentence, "never mind that the Taliban continued selling opium in spite of
 the deal", has 46 readings.
 
@@ -111,13 +120,77 @@ On 4 cores:
 
 | | Kotlin | Go, agenda | Go, 4 workers | Go, 4 workers, `GOGC=400` |
 |---|---|---|---|---|
-| whole sample | 0.87 s | 1.39 s | 0.76 s | 0.58 s |
+| whole sample | 0.90 s | 1.44 s | 0.83 s | 0.58 s |
 
 ```bash
 mvn test -Dtest=MascTest -Dmasc.bench=5            # Kotlin timing
 cd go && go test ./chart -run MascReport -v        # coverage report
 cd go && go test ./chart -run X -bench Masc        # Go timing
 ```
+
+## Known failures
+
+These 15 sentences get no reading. Most need a construction v0 lacks; the
+sample's filter lets a verb phrase have any sequence of complements, so
+these slipped through it.
+
+| sentence | why |
+|---|---|
+| we will deliver to your office tomorrow *detailed legislative language* | object after a PP and an adverb (heavy NP shift) |
+| it stabilizes and controls forms because it brings to light *the contours of the space* | the same |
+| we do need to get *something done* in October | small clause after "get" |
+| they were never declared *legal currency* | passive with a predicate NP left over |
+| I had no idea *what was in store for me* | a question as the complement of a noun |
+| … *although designed by* an architect with a classical sensibility | adverbial clause without a subject |
+| *when pickled* bitter melon makes a savory condiment | the same |
+| several palaces were built and a water system *installed* | gapping: the second "were" is missing |
+| what would any of you be willing to do | the gap is inside "willing to do": no gap rules for adjective phrases or the copula |
+| the newsboy just ignored him and went *on* calling out read all about it | a particle before a VP complement, and a quoted imperative as a complement |
+| it 's tough growing up today | extraposed subject |
+| give me my grammatical games *any day* to a crossword puzzle | a bare NP as an adverb |
+| you look like hell *Tar* | a vocative |
+| *faculty protest* against apartheid at Cornell | "faculty" is tagged singular and "protest" plural, and the grammar checks agreement |
+| this is the reason I make contact with you to help me *received* the money | ungrammatical (spam): a past tense after "help" |
+
+## Examples
+
+`examples.txt` has sentences outside the sample, made from the lexicon's
+words, with every reading the grammar gives them. The intended reading is
+there, sometimes among others:
+
+    every architect who knows Dave found a house
+
+    ∀x1.((architect(x1) ∧ ∃x2.(Experiencer(x2, x1) ∧ Theme(x2, dave) ∧ know(x2)))
+         → ∃x2.(house(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ find(x3))))
+
+    Dave thought that no customer noticed the change
+
+    ∃x1.(Experiencer(x1, dave) ∧
+         Topic(x1, ¬∃x2.(customer(x2) ∧ ∃x3.(change(x3) ∧ ∀x4.(change(x4) → (x3 = x4)) ∧
+                         ∃x4.(Experiencer(x4, x2) ∧ Theme(x4, x3) ∧ notice(x4))))) ∧
+         think(x1))
+
+    where did Dave find the book
+
+    λv1.∃x1.(book(x1) ∧ ∀x2.(book(x2) → (x1 = x2)) ∧
+             ∃x2.(Agent(x2, dave) ∧ Location(x2, v1) ∧ Theme(x2, x1) ∧ find(x2)))
+
+"the company expected every customer to find a house" has three readings.
+The intended one is
+
+    ∃x1.(company(x1) ∧ ∀x2.(company(x2) → (x1 = x2)) ∧
+         ∀x2.(customer(x2) → ∃x3.(Experiencer(x3, x1) ∧ Patient(x3, x2) ∧
+              Theme(x3, ∃x4.(house(x4) ∧ ∃x5.(Agent(x5, x2) ∧ Theme(x5, x4) ∧ find(x5)))) ∧
+              expect(x3))))
+
+and the others read "to find a house" as an infinitival relative on
+"customer" (customers for finding houses) or as the company's purpose.
+"the book was found by a guy in the house" has four: "by a guy" is the
+agent or an adjunct, and "in the house" modifies the guy or the finding.
+
+The examples are limited by the lexicon: "did every customer notice the
+change" gets no reading, because the sample has "notice" only as a
+present tense.
 
 ## Testing
 
@@ -129,10 +202,11 @@ tests check all three Go parsers against it.
 constructions above, with every reading the grammar gives them (73 in all),
 each checked by hand. The intended reading is marked `*`, and a note says
 where any others come from (PP attachment, a lexical ambiguity and so on).
-Both implementations check that they give exactly these readings. Readings
+Both implementations check that they give exactly these readings, and
+likewise for `examples.txt`. Readings
 are printed by `Lambda.pretty()` (Kotlin) and `term.Pretty` (Go), which
 name variables by depth and sort conjuncts, so that equal readings print
 the same whatever order the parser built them in. `tools/masc/suite.py`
-writes the file from its list of sentences, intended readings and notes;
+writes both files from its lists of sentences, intended readings and notes;
 after a change to the grammar, rerun it and check each changed reading by
 hand.

@@ -116,16 +116,16 @@ func TestMascGolden(t *testing.T) {
 	}
 }
 
-// readingsSuite is the correctness suite in readings.txt: each sentence
+// readingsSuite reads a file in the format of readings.txt: each sentence
 // with its readings, as term.Pretty prints them, in sorted order.
 type suiteEntry struct {
 	sentence string
 	readings []string
 }
 
-func readingsSuite(t *testing.T) []suiteEntry {
+func readingsSuite(t *testing.T, file string) []suiteEntry {
 	var out []suiteEntry
-	for _, line := range mascFile(t, "readings.txt") {
+	for _, line := range mascFile(t, file) {
 		switch {
 		case strings.HasPrefix(line, "> "):
 			out = append(out, suiteEntry{sentence: line[2:]})
@@ -140,14 +140,21 @@ func readingsSuite(t *testing.T) []suiteEntry {
 // TestMascReadings checks that every parser gives exactly the readings the
 // correctness suite lists, and that the suite marks one of them as intended.
 func TestMascReadings(t *testing.T) {
-	g := mascGrammar(t)
-	suite := readingsSuite(t)
-	if len(suite) < 50 {
-		t.Fatalf("only %d sentences in readings.txt", len(suite))
+	if n := len(readingsSuite(t, "readings.txt")); n < 50 {
+		t.Fatalf("only %d sentences in readings.txt", n)
 	}
+	checkReadings(t, "readings.txt")
+}
+
+// TestMascExamples does the same for the sentences outside the sample.
+func TestMascExamples(t *testing.T) { checkReadings(t, "examples.txt") }
+
+func checkReadings(t *testing.T, file string) {
+	g := mascGrammar(t)
+	suite := readingsSuite(t, file)
 	intended := map[string]int{}
 	var current string
-	for _, line := range mascFile(t, "readings.txt") {
+	for _, line := range mascFile(t, file) {
 		if strings.HasPrefix(line, "> ") {
 			current = line[2:]
 		} else if strings.HasPrefix(line, "* ") {

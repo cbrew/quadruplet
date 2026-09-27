@@ -123,7 +123,7 @@ On 4 cores, best of three (`go test ./chart -bench .`):
 | sem2, 12 PPs (40 words, 4,096 readings) | 74–82 ms | 99 ms | 54 ms | 36 ms |
 | sem2, 14 PPs (46 words, 16,384 readings) | 0.30–0.44 s | 0.43 s | 0.22 s | 0.17 s |
 | `TreeGrammar`, 170 words | ~2.1 s | 0.97 s | 0.59 s | 0.35 s |
-| MASC sample, 299 sentences | 0.87 s | 1.39 s | 0.76 s | 0.58 s |
+| MASC sample, 299 sentences | 0.90 s | 1.44 s | 0.83 s | 0.58 s |
 
 Sequentially, Go and the JVM are close on sem2: the chart keeps every term
 alive, so each Go garbage collection re-marks a large, pointer-heavy heap,

@@ -12,8 +12,9 @@ import kotlin.test.assertTrue
 /**
  * The MASC benchmark grammar and sample, in src/test/resources/masc.
  * go/testdata/golden/masc.golden records every sentence's chart and readings
- * (see GoldenDumpTest), and readings.txt is a correctness suite of sentences
- * whose readings have been checked by hand. To time the whole sample:
+ * (see GoldenDumpTest), readings.txt is a correctness suite of sentences
+ * whose readings have been checked by hand, and examples.txt has more,
+ * from outside the sample. To time the whole sample:
  *
  *   mvn test -Dtest=MascTest -Dmasc.bench=5
  */
@@ -36,21 +37,27 @@ class MascTest {
     fun testCoverage() {
         val parsed = sample.count { words -> readings(Chart(words).also { it.parse(grammar) }).isNotEmpty() }
         assertEquals(299, sample.size)
-        assertEquals(278, parsed, "sentences with a reading")
+        assertEquals(284, parsed, "sentences with a reading")
     }
 
     @Test
-    fun testReadings() {
+    fun testReadings() = checkReadings("readings.txt", 50)
+
+    /** Sentences outside the sample. */
+    @Test
+    fun testExamples() = checkReadings("examples.txt", 10)
+
+    private fun checkReadings(file: String, atLeast: Int) {
         // sentence -> its readings, as Lambda.pretty() prints them, sorted
         val suite = linkedMapOf<String, MutableList<String>>()
         val intended = mutableMapOf<String, Int>()
         var sentence = ""
-        for (line in resource("readings.txt").lines()) when {
+        for (line in resource(file).lines()) when {
             line.startsWith("> ") -> { sentence = line.substring(2); suite[sentence] = mutableListOf() }
             line.startsWith("* ") -> { suite.getValue(sentence).add(line.substring(2)); intended.merge(sentence, 1, Int::plus) }
             line.startsWith("  ") -> suite.getValue(sentence).add(line.substring(2))
         }
-        assertTrue(suite.size >= 50, "sentences in readings.txt")
+        assertTrue(suite.size >= atLeast, "sentences in $file")
         for ((s, want) in suite) {
             assertEquals(1, intended[s], "$s: readings marked intended")
             val chart = Chart(s.split(" ").toTypedArray()).also { it.parse(grammar) }

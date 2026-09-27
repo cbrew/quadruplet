@@ -1,5 +1,6 @@
-## masc.fcfg: a benchmark grammar with Montague-style event semantics,
-## written for sentences sampled from the MASC Penn Treebank (see README.md).
+## masc.fcfg, version 0: a benchmark grammar with Montague-style event
+## semantics, written for sentences sampled from the MASC Penn Treebank
+## (see README.md).
 ##
 ## The rules are written by hand. The lexicon, at the end of the file, is
 ## generated from the sample's trees by tools/masc/lexicon.py, which
@@ -47,15 +48,16 @@
 ##   expl    no | there            NP: expletive "there" or not
 ##   subj    no | there            VP, Pred: whether the subject must be "there"
 ##   vform   fin | base | ing | en | pass | to
-##   subcat  intr | tr | ditr | scomp | qcomp | vpto | vping | vpbase |
-##           npvpto | npvpbase | pred       (V);  none | vpto | deg  (A)
+##   subcat  intr | tr | ditr | scomp | qcomp | npscomp | npqcomp | vpto |
+##           vping | vpbase | npvpto | npvpbase | pred   (V);
+##           none | vpto | deg  (A)
 ##   comp    base | en | ing | pass | to   the VP form an Aux takes
 ##   ell     yes | no              Aux: can end an elliptical VP (do, modals, have)
 ##   cop     yes | no              VP: made by the copula
 ##   ell     yes | no              VP: elliptical
 ##   type    ev | op               Adv: modifies the event, or is an operator
 ##   pre     yes | no              Adv[type=ev]: can precede the VP (manner, not place or time)
-##   free    yes | no              Wh: can head a free relative ("what")
+##   free    yes | no              Wh: can head a free relative ("what"); NP: is one
 ##   restr   a property            QPro: the restriction of "everything", "those"
 
 ############################################################################
@@ -68,6 +70,9 @@ Top[sem=<?q>] -> Q[sem=<?q>]
 Top[sem=<?vp(hearer, \e.true)>] -> VP[vform=base, subj=no, sem=<?vp>]
 Top[sem=<?vp(speaker, \e.true)>] -> VP[vform=fin, subj=no, sem=<?vp>]
 Top[sem=<?vp(speaker, \e.true)>] -> VP[vform=ing, subj=no, sem=<?vp>]
+Top[sem=<?vp(speaker, \e.true)>] -> Conj[] VP[vform=fin, subj=no, sem=<?vp>]
+# headlines: "Mac OS X updating"
+Top[sem=<?np(\x.?vp(x, \e.true))>] -> NP[case=nom, expl=no, free=no, sem=<?np>] VP[vform=ing, subj=no, sem=<?vp>]
 
 S[sem=<\F.?np(\x.?vp(x, F))>] -> NP[case=nom, agr=?a, expl=?e, sem=<?np>] VP[vform=fin, agr=?a, subj=?e, sem=<?vp>]
 S[sem=<\F.?cj(?s1(F), ?s2(F))>] -> S[sem=<?s1>] Conj[sem=<?cj>] S[sem=<?s2>]
@@ -107,6 +112,9 @@ VP[vform=?f, agr=?a, sem=<?v(?np)>] -> V[vform=?f, agr=?a, subcat=tr, sem=<?v>] 
 VP[vform=?f, agr=?a, sem=<?v(?np1, ?np2)>] -> V[vform=?f, agr=?a, subcat=ditr, sem=<?v>] NP[case=acc, expl=no, sem=<?np1>] NP[case=acc, expl=no, sem=<?np2>]
 VP[vform=?f, agr=?a, sem=<?v(?s)>] -> V[vform=?f, agr=?a, subcat=scomp, sem=<?v>] Sbar[sem=<?s>]
 VP[vform=?f, agr=?a, sem=<?v(?q)>] -> V[vform=?f, agr=?a, subcat=qcomp, sem=<?v>] Qemb[sem=<?q>]
+# "thank god I can see", "asked him what he thought"
+VP[vform=?f, agr=?a, sem=<?v(?s, ?np)>] -> V[vform=?f, agr=?a, subcat=npscomp, sem=<?v>] NP[case=acc, expl=no, sem=<?np>] Sbar[sem=<?s>]
+VP[vform=?f, agr=?a, sem=<?v(?q, ?np)>] -> V[vform=?f, agr=?a, subcat=npqcomp, sem=<?v>] NP[case=acc, expl=no, sem=<?np>] Qemb[sem=<?q>]
 VP[vform=?f, agr=?a, sem=<?v(?vp)>] -> V[vform=?f, agr=?a, subcat=vpto, sem=<?v>] VP[vform=to, sem=<?vp>]
 VP[vform=?f, agr=?a, sem=<?v(?vp)>] -> V[vform=?f, agr=?a, subcat=vping, sem=<?v>] VP[vform=ing, sem=<?vp>]
 VP[vform=?f, agr=?a, sem=<?v(?vp)>] -> V[vform=?f, agr=?a, subcat=vpbase, sem=<?v>] VP[vform=base, sem=<?vp>]
@@ -194,8 +202,8 @@ NP[agr=?a, expl=no, sem=<?d(\x.(?r(x) & ?rc(x)))>] -> QPro[agr=?a, restr=<?r>, s
 # partitives: "some of the analysis"
 NP[expl=no, sem=<\Q.?d(\x.?np(\y.of(x, y)), Q)>] -> Det[sem=<?d>] "of" NP[case=acc, expl=no, sem=<?np>]
 # free relatives: "what she said"
-NP[agr=3sg, expl=no, sem=<\Q.exists x.((?w(x) & ?s(x, \e.true)) & Q(x))>] -> Wh[free=yes, sem=<?w>] Sgap[sem=<?s>]
-NP[agr=3sg, expl=no, sem=<\Q.exists x.((?w(x) & ?vp(x, \e.true)) & Q(x))>] -> Wh[free=yes, sem=<?w>] VP[vform=fin, sem=<?vp>]
+NP[agr=3sg, expl=no, free=yes, sem=<\Q.exists x.((?w(x) & ?s(x, \e.true)) & Q(x))>] -> Wh[free=yes, sem=<?w>] Sgap[sem=<?s>]
+NP[agr=3sg, expl=no, free=yes, sem=<\Q.exists x.((?w(x) & ?vp(x, \e.true)) & Q(x))>] -> Wh[free=yes, sem=<?w>] VP[vform=fin, sem=<?vp>]
 
 # possessives: "the guy's"
 Det[sem=<\P Q.?np(\y.exists x.((P(x) & of(x, y)) & Q(x)))>] -> NP[expl=no, sem=<?np>] Poss[]
@@ -320,8 +328,8 @@ PP[sem=<\x.?np(\y.?p(x, y))>] -> P[sem=<?p>] NP[case=acc, expl=no, sem=<?np>]
 "around": A[subcat=none, sem=<\x.around(x)>] | Adv[type=ev, pre=no, sem=<\e.around(e)>] | P[sem=<\x y.around(x, y)>]
 "arrest": N[agr=3sg, sem=<\x.arrest(x)>]
 "as": P[sem=<\x y.as(x, y)>] | Sub[sem=<\p q.as(q, p)>]
-"asked": V[vform=fin, subcat=tr, sem=<\X y F.X(\x.exists e.(ask(e) & Agent(e, y) & Theme(e, x) & F(e)))>] | V[vform=fin, subcat=vpto, sem=<\P x F.exists e.(ask(e) & Agent(e, x) & Theme(e, P(x, \e2.true)) & F(e))>]
-"asking": V[vform=ing, subcat=tr, sem=<\X y F.X(\x.exists e.(ask(e) & Agent(e, y) & Theme(e, x) & F(e)))>] | V[vform=ing, subcat=vpto, sem=<\P x F.exists e.(ask(e) & Agent(e, x) & Theme(e, P(x, \e2.true)) & F(e))>]
+"asked": V[vform=fin, subcat=npqcomp, sem=<\Q X y F.X(\x.exists e.(ask(e) & Agent(e, y) & Recipient(e, x) & Topic(e, Q) & F(e)))>] | V[vform=fin, subcat=vpto, sem=<\P x F.exists e.(ask(e) & Agent(e, x) & Theme(e, P(x, \e2.true)) & F(e))>]
+"asking": V[vform=ing, subcat=npqcomp, sem=<\Q X y F.X(\x.exists e.(ask(e) & Agent(e, y) & Recipient(e, x) & Topic(e, Q) & F(e)))>] | V[vform=ing, subcat=vpto, sem=<\P x F.exists e.(ask(e) & Agent(e, x) & Theme(e, P(x, \e2.true)) & F(e))>]
 "ASPCA": NP[agr=3sg, expl=no, sem=<\P.P(aspca)>] | N[agr=3sg, sem=<\x.aspca(x)>]
 "assistance": N[agr=3sg, sem=<\x.assistance(x)>]
 "associativity": N[agr=3sg, sem=<\x.associativity(x)>]
@@ -335,7 +343,7 @@ PP[sem=<\x.?np(\y.?p(x, y))>] -> P[sem=<?p>] NP[case=acc, expl=no, sem=<?np>]
 "automatically": Adv[type=ev, pre=yes, sem=<\e.automatically(e)>]
 "awful": A[subcat=none, sem=<\x.awful(x)>]
 "bachelor": N[agr=3sg, sem=<\x.bachelor(x)>]
-"back": A[subcat=none, sem=<\x.back(x)>] | Adv[type=ev, pre=no, sem=<\e.back(e)>] | N[agr=3sg, sem=<\x.back(x)>]
+"back": A[subcat=none, sem=<\x.back(x)>] | Adv[type=ev, pre=no, sem=<\e.back(e)>] | N[agr=3sg, sem=<\x.back(x)>] | Prt[sem=<\e.back(e)>]
 "background": N[agr=3sg, sem=<\x.background(x)>]
 "backing": N[agr=3sg, sem=<\x.backing(x)>]
 "ballot": N[agr=3sg, sem=<\x.ballot(x)>]
@@ -712,7 +720,7 @@ PP[sem=<\x.?np(\y.?p(x, y))>] -> P[sem=<?p>] NP[case=acc, expl=no, sem=<?np>]
 "I": NP[agr=non3sg, case=nom, expl=no, sem=<\P.P(speaker)>]
 "i": NP[agr=non3sg, case=nom, expl=no, sem=<\P.P(speaker)>]
 "idea": N[agr=3sg, sem=<\x.idea(x)>]
-"identified": V[vform=fin, subcat=intr, sem=<\x F.exists e.(identify(e) & Agent(e, x) & F(e))>]
+"identified": V[vform=en, subcat=tr, sem=<\X y F.X(\x.exists e.(identify(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
 "IETF": NP[agr=3sg, expl=no, sem=<\P.P(ietf)>] | N[agr=3sg, sem=<\x.ietf(x)>]
 "if": Sub[sem=<\p q.(p -> q)>]
 "ignored": V[vform=fin, subcat=tr, sem=<\X y F.X(\x.exists e.(ignore(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
@@ -745,7 +753,7 @@ PP[sem=<\x.?np(\y.?p(x, y))>] -> P[sem=<?p>] NP[case=acc, expl=no, sem=<?np>]
 "into": P[sem=<\x y.into(x, y)>]
 "invalid": A[subcat=none, sem=<\x.invalid(x)>]
 "invention": N[agr=3sg, sem=<\x.invention(x)>]
-"ios": N[agr=3sg, sem=<\x.io(x)>]
+"ios": N[agr=3sg, sem=<\x.ios(x)>]
 "ip": N[agr=3sg, sem=<\x.ip(x)>]
 "Iraq": NP[agr=3sg, expl=no, sem=<\P.P(iraq)>]
 "is": Aux[vform=fin, agr=3sg, comp=ing, ell=no, sem=<\p.prog(p)>] | Aux[vform=fin, agr=3sg, comp=pass, ell=no, sem=<\p.p>] | Be[vform=fin, agr=3sg]
@@ -927,7 +935,7 @@ PP[sem=<\x.?np(\y.?p(x, y))>] -> P[sem=<?p>] NP[case=acc, expl=no, sem=<?np>]
 "organization": N[agr=3sg, sem=<\x.organization(x)>]
 "organizing": V[vform=ing, subcat=tr, sem=<\X y F.X(\x.exists e.(organize(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
 "original": A[subcat=none, sem=<\x.original(x)>]
-"os": N[agr=3sg, sem=<\x.o_(x)>]
+"os": N[agr=3sg, sem=<\x.os(x)>]
 "Osama bin Laden": NP[agr=3sg, expl=no, sem=<\P.P(osama_bin_laden)>]
 "other": A[subcat=none, sem=<\x.other(x)>]
 "others": N[agr=non3sg, sem=<\x.other(x)>]
@@ -1220,7 +1228,7 @@ PP[sem=<\x.?np(\y.?p(x, y))>] -> P[sem=<?p>] NP[case=acc, expl=no, sem=<?np>]
 "test": V[vform=base, subcat=tr, sem=<\X y F.X(\x.exists e.(test(e) & Agent(e, y) & Theme(e, x) & F(e)))>] | V[vform=fin, agr=non3sg, subcat=tr, sem=<\X y F.X(\x.exists e.(test(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
 "testing": V[vform=ing, subcat=tr, sem=<\X y F.X(\x.exists e.(test(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
 "text": N[agr=3sg, sem=<\x.text(x)>]
-"thank": V[vform=fin, agr=non3sg, subcat=ditr, sem=<\X Y z F.X(\x.Y(\y.exists e.(thank(e) & Agent(e, z) & Recipient(e, x) & Theme(e, y) & F(e))))>] | V[vform=fin, agr=non3sg, subcat=tr, sem=<\X y F.X(\x.exists e.(thank(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
+"thank": V[vform=fin, agr=non3sg, subcat=ditr, sem=<\X Y z F.X(\x.Y(\y.exists e.(thank(e) & Agent(e, z) & Recipient(e, x) & Theme(e, y) & F(e))))>] | V[vform=fin, agr=non3sg, subcat=npscomp, sem=<\p X y F.X(\x.exists e.(thank(e) & Agent(e, y) & Recipient(e, x) & Topic(e, p) & F(e)))>] | V[vform=fin, agr=non3sg, subcat=tr, sem=<\X y F.X(\x.exists e.(thank(e) & Agent(e, y) & Theme(e, x) & F(e)))>]
 "that": Det[agr=3sg, sem=<\P Q.exists x.((P(x) & that(x)) & Q(x))>] | NP[agr=3sg, expl=no, sem=<\P.P(that)>] | Wh[free=no, sem=<\x.thing(x)>]
 "the": Det[sem=<\P Q.exists x.((P(x) & all y.(P(y) -> (x = y))) & Q(x))>]
 "theater": N[agr=3sg, sem=<\x.theater(x)>]

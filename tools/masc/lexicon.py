@@ -132,6 +132,12 @@ def const(word):
     return c
 
 
+def noun_lemma(word):
+    """A noun's lemma, or the word when the lemmatiser mangles it ("os" -> "o")."""
+    lem = lemma(word, 'NOUN')
+    return lem if len(lem) >= 3 else word.lower()
+
+
 def lemma(word, upos):
     ls = getLemma(word.lower(), upos=upos)
     return ls[0] if ls else word.lower()
@@ -203,6 +209,9 @@ def verb_frame(v):
             f = clause_frame(comps[1], 'np')
             if f in ('npvpto', 'npvpbase'):
                 return f
+        if len(comps) > 1 and comps[1].label == 'SBAR':
+            # "thank god I can see", "asked him what he thought"
+            return 'npqcomp' if comps[1].kids[0].label in ('WHNP', 'WHADVP') else 'npscomp'
         return 'tr'
     return 'intr'
 
@@ -234,6 +243,19 @@ def temporal(n):
     return n.label == 'NP' and words and all(w in TEMPORAL_NOUNS for w in words)
 
 
+def particle_like(n):
+    """Whether an adverb stands alone between a verb and its object, where
+    a particle would: "push back the tide". Only adverbs of place are
+    treated as particles, not "is certainly an important factor"."""
+    advp = n.parent
+    if advp.label != 'ADVP' or len(advp.kids) != 1 or advp.parent is None:
+        return False
+    sibs = advp.parent.kids
+    i = sibs.index(advp)
+    return 0 < i < len(sibs) - 1 and sibs[i - 1].leaf() and sibs[i - 1].label in VFORM \
+        and sibs[i + 1].label == 'NP'
+
+
 def in_adverb_phrase(n):
     """Whether a word is part of one of the ADVERB_PHRASES."""
     words = ' '.join(k.word.lower() for k in n.parent.kids if k.leaf())
@@ -244,10 +266,10 @@ def empty(n):
     return n.label == 'NP' and len(n.kids) == 1 and n.kids[0].label == '-NONE-'
 
 
-def is_passive(v):
+def is_passive(v, tags=('VBN',)):
     """A participle heading a VP that is the complement of be or get,
     possibly through a coordination of VPs."""
-    if v.label != 'VBN':
+    if v.label not in tags:
         return False
     outer = v.parent.parent
     while outer is not None and outer.label in ('VP', 'SQ'):
@@ -293,6 +315,8 @@ def verb_sem(frame, pred):
         'vpbase': r'\P x F.exists e.(%(v)s(e) & %(r)s(e, x) & Theme(e, P(x, \e2.true)) & F(e))',
         'npvpto': r'\P X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Patient(e, x) & Theme(e, P(x, \e2.true)) & F(e)))',
         'npvpbase': r'\P X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Patient(e, x) & Theme(e, P(x, \e2.true)) & F(e)))',
+        'npscomp': r'\p X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Recipient(e, x) & Topic(e, p) & F(e)))',
+        'npqcomp': r'\Q X y F.X(\x.exists e.(%(v)s(e) & %(r)s(e, y) & Recipient(e, x) & Topic(e, Q) & F(e)))',
         'pred': r'\P x F.exists e.(%(v)s(e) & Theme(e, x) & Result(e, P(x)) & F(e))',
     }[frame] % {'v': pred, 'r': role}
 
@@ -387,7 +411,7 @@ def main(out_dir):
                     add(w, fmap('QPro', agr='3sg', restr=r'<\x.%s(x)>' % r, sem=d))
                 else:
                     add(w, fmap('N', agr='3sg' if tag == 'NN' else 'non3sg',
-                                sem=r'\x.%s(x)' % const(lemma(w, 'NOUN'))))
+                                sem=r'\x.%s(x)' % const(noun_lemma(w))))
                 if lw in TEMPORAL_NOUNS:
                     add(w, adverb(lw))
             elif tag == 'NNP':
@@ -427,6 +451,8 @@ def main(out_dir):
                 if in_adverb_phrase(n):
                     continue
                 add(w, adverb(lw))
+                if lw in PLACE_ADVERBS and particle_like(n):
+                    add(w, fmap('Prt', sem=r'\e.%s(e)' % const(lw)))
                 if lw in LOCATIVES:
                     add(w, fmap('A', subcat='none', sem=r'\x.%s(x)' % const(lw)))
             elif tag == 'RP':
@@ -511,6 +537,8 @@ def verb_entries(v, add, verbs):
         return
     frame = verb_frame(v)
     vform, agr = VFORM[v.label]
+    if v.label == 'VBD' and is_passive(v, ('VBD',)):
+        vform, agr = 'en', None  # a participle tagged as a past tense: "was n't identified"
     pred = const(lemma(w, 'VERB'))
     if isinstance(frame, tuple):
         if lw in HAVE or lw in DO:
@@ -522,7 +550,7 @@ def verb_entries(v, add, verbs):
         return  # "they always have" is VP ellipsis
     forms, frames = verbs[pred]
     forms.add((w, vform, agr))
-    if is_passive(v):
+    if vform == 'en' and is_passive(v, ('VBN', 'VBD')):
         # the object has become the subject
         frame = {'intr': 'tr', 'vpto': 'npvpto', 'vpbase': 'npvpbase'}.get(frame, frame)
     frames.add(frame)
