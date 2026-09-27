@@ -46,20 +46,27 @@ goroutines without locks.
 ### Parallel parsing
 
 `Chart.Parse` is the Kotlin agenda algorithm. `Chart.ParseParallel` builds
-the same chart one span length at a time. A cell (the edges over words
-i..j) is made from shorter cells only: lexical entries, partial edges over
-i..k extended by complete edges over k..j, and then, within the cell, the
-rules its complete edges spawn. Cells of one length therefore depend only on
-finished cells and are built concurrently, without locks: edges over
-different spans are never equal, so each cell interns its own, and spawned
-zero-length edges are kept per start position, which the cells running
-together do not share.
+the same chart as a CYK-style table of cells, cell (i,j) holding the edges
+over words i..j. A cell is made from shorter cells only: lexical entries,
+partial edges over i..k extended by complete edges over k..j, and then,
+within the cell, the rules its complete edges spawn.
 
-Most of the work falls in the few widest cells, so when a span length has
-fewer cells than workers its cells are built one at a time, each spreading
-its fundamental-rule applications over all the workers. Results are added in
-the order a sequential build would add them, so the chart, down to the order
-of its edges, does not depend on scheduling.
+Each cell gets a goroutine that waits on the done channels of its left and
+lower neighbours, (i,j-1) and (i+1,j); by induction, once those are finished
+so is every cell it reads. A finished cell closes its own channel, waking
+the two cells waiting on it. Unlike building one span length at a time with
+a barrier between lengths, cheap parts of the table run ahead while
+expensive cells are still working. Cells need no locks: edges over different
+spans are never equal, so each cell interns its own, and the cells sharing a
+start position's spawned edges are ordered by their left-neighbour
+dependencies.
+
+Most of the work falls in the few widest cells, so each cell also spreads
+its fundamental-rule applications over up to `workers` goroutines, handing
+out chunks through an atomic counter (cheaper than a channel for items this
+small). Results are added in the order a sequential build would add them,
+so the chart, down to the order of its edges, does not depend on
+scheduling.
 
 Keeping the rules spawned at i to the cell that spawned them relies on
 `Spawn` returning every rule whose first category unifies with the edge, as
@@ -116,9 +123,9 @@ On 4 cores, best of three (`go test ./chart -bench .`):
 
 | | Kotlin | Go, agenda | Go, 4 workers | Go, 4 workers, `GOGC=400` |
 |---|---|---|---|---|
-| sem2, 12 PPs (40 words, 4,096 readings) | 74–82 ms | 90 ms | 61 ms | 54 ms |
-| sem2, 14 PPs (46 words, 16,384 readings) | 0.30–0.44 s | 0.40 s | 0.26 s | 0.23 s |
-| `TreeGrammar`, 170 words | ~2.1 s | 0.95 s | 0.63 s | 0.39 s |
+| sem2, 12 PPs (40 words, 4,096 readings) | 74–82 ms | 99 ms | 54 ms | 36 ms |
+| sem2, 14 PPs (46 words, 16,384 readings) | 0.30–0.44 s | 0.43 s | 0.22 s | 0.17 s |
+| `TreeGrammar`, 170 words | ~2.1 s | 0.97 s | 0.59 s | 0.35 s |
 
 Sequentially, Go and the JVM are close on sem2: the chart keeps every term
 alive, so each Go garbage collection re-marks a large, pointer-heavy heap,

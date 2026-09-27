@@ -7,31 +7,32 @@ import (
 	"sync/atomic"
 )
 
-// ParseParallel fills the chart like Parse, but builds it one span length
-// at a time, parsing the cells of each length concurrently on up to workers
-// goroutines (GOMAXPROCS if workers <= 0).
+// ParseParallel fills the chart like Parse, using up to workers goroutines
+// at a time for the fundamental rule within a cell (GOMAXPROCS if
+// workers <= 0).
 //
-// A cell holds the edges spanning words i..j. Everything in it is made from
-// shorter cells: lexical entries for the words, partial edges over i..k
-// extended by complete edges over k..j, and then, within the cell, the edges
-// that complete edges spawn. A spawned rule (a zero-length partial edge at
-// i) can only be extended, within i..j, by complete edges whose categories
-// would spawn it too, so it is combined with those alone. That holds when
-// Spawn returns every rule whose first category unifies with the edge, as
-// FeatureGrammar's and TreeGrammar's do.
+// The chart is a CYK-style table of cells: cell (i,j) holds the edges
+// spanning words i..j. Everything in it is made from shorter cells: lexical
+// entries for the words, partial edges over i..k extended by complete edges
+// over k..j, and then, within the cell, the edges that complete edges
+// spawn. A spawned rule (a zero-length partial edge at i) can only be
+// extended, within i..j, by complete edges whose categories would spawn it
+// too, so it is combined with those alone. That holds when Spawn returns
+// every rule whose first category unifies with the edge, as FeatureGrammar's
+// and TreeGrammar's do.
 //
-// So each cell needs only cells of shorter spans, which are finished and no
-// longer written: cells of one length run without locks. Edges in different
-// cells are never equal, so each cell interns its own; spawned edges are
-// interned per start position, and the cells running at once have
-// different starts.
-//
-// Work concentrates in the widest cells, of which there are few, so when a
-// span length has fewer cells than workers its cells are built one at a
-// time, each spreading its fundamental-rule applications over all the
-// workers. Their results are added to the cell in the order a sequential
-// build would add them, so the result, including the order of edges, does
-// not depend on how the goroutines are scheduled.
+// Each cell gets a goroutine, which waits for its left and lower neighbours,
+// (i,j-1) and (i+1,j): by induction, once they are finished so are all the
+// cells (i,k) and (k,j) it reads. Each finished cell closes its done
+// channel, waking the two cells that wait on it. Cells read only finished
+// cells, so they need no locks: edges in different cells are never equal,
+// so each cell interns its own, and cells with the same start, which share
+// that start's spawned edges, are ordered by their left-neighbour
+// dependencies. Most of the work falls in the few widest cells, so each
+// cell also spreads its fundamental-rule applications over up to workers
+// goroutines. Results are added to a cell in the order a sequential build
+// would add them, so the chart, including the order of its edges, does not
+// depend on how the goroutines are scheduled.
 func (c *Chart) ParseParallel(g Grammar, workers int) {
 	if workers <= 0 {
 		workers = runtime.GOMAXPROCS(0)
@@ -42,31 +43,38 @@ func (c *Chart) ParseParallel(g Grammar, workers int) {
 		w.cells[i] = make([]*cell, n+1)
 		w.zeros[i] = newTable()
 	}
-	for span := 1; span <= n; span++ {
-		count := n - span + 1
-		if workers == 1 || count < workers {
-			for i := 0; i < count; i++ {
-				w.build(i, i+span, workers)
+	if workers == 1 {
+		for span := 1; span <= n; span++ {
+			for i := 0; i+span <= n; i++ {
+				w.build(i, i+span, 1)
 			}
-			continue
 		}
-		starts := make(chan int, count)
-		for i := 0; i < count; i++ {
-			starts <- i
+		w.assemble()
+		return
+	}
+	done := make([][]chan struct{}, n+1)
+	for i := range done {
+		done[i] = make([]chan struct{}, n+1)
+		for j := i + 1; j <= n; j++ {
+			done[i][j] = make(chan struct{})
 		}
-		close(starts)
-		var wg sync.WaitGroup
-		for k := 0; k < min(workers, count); k++ {
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		for j := i + 1; j <= n; j++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				for i := range starts {
-					w.build(i, i+span, 1)
+				if j-i > 1 {
+					<-done[i][j-1]
+					<-done[i+1][j]
 				}
+				w.build(i, j, workers)
+				close(done[i][j])
 			}()
 		}
-		wg.Wait() // cells of this span are now finished
 	}
+	wg.Wait()
 	w.assemble()
 }
 
