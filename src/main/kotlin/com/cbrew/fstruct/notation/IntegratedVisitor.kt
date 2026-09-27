@@ -48,14 +48,38 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
     /**
      * One rule per alternative: A -> B C | D gives A -> B C and A -> D, as in
-     * FeatureNotationVisitor. Quoted words on the right go in the rule's words
-     * (and so into the lexicon); rules with no categories on the right are
-     * dropped by visitCfg.
+     * FeatureNotationVisitor.
+     *
+     * Quoted words are handled by what else the alternative contains:
+     * - words alone, A -> "New" "York", make a lexical entry for the phrase
+     *   "New York" (the rule, with no categories on the right, is dropped by
+     *   visitCfg);
+     * - words among categories, VP -> VP "and" VP, stay in place as a
+     *   category of their own, VP -> VP "and"[] VP, with "and"[] -> "and" in
+     *   the lexicon. The category's name is the quoted word, which no real
+     *   category can be, so rules using the same word share one entry.
      */
     override fun visitCfgrule(ctx: FeatParser.CfgruleContext?): Unifiable {
         val lhs: FeatureMap = visit(ctx?.featureMap()) as FeatureMap
-        val rules = ctx?.cfgrhs()?.rhspart()?.map { part ->
-            CfgRule(lhs, part.featureMap().map { visit(it) as FeatureMap }, part.word().map(::visit))
+        val rules = ctx?.cfgrhs()?.rhspart()?.flatMap { part ->
+            val words = part.word().map { it.text.substring(1, it.text.length - 1) }
+            if (part.featureMap().isEmpty())
+                listOf(CfgRule(lhs, listOf(), listOf(Constant(words.joinToString(" ")))))
+            else {
+                val wordRules = mutableListOf<CfgRule>()
+                val rhs = part.children.mapNotNull { child ->
+                    when (child) {
+                        is FeatParser.FeatureMapContext -> visit(child) as FeatureMap
+                        is FeatParser.WordContext -> {
+                            val cat = atomicMap(child.text)
+                            wordRules.add(CfgRule(cat, listOf(), listOf(visit(child))))
+                            cat
+                        }
+                        else -> null
+                    }
+                }
+                listOf(CfgRule(lhs, rhs, listOf())) + wordRules
+            }
         } ?: listOf()
         return FeatureList(rules)
     }

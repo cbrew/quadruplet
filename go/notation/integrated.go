@@ -1,16 +1,24 @@
 package notation
 
 import (
+	"strings"
+
 	"github.com/cbrew/quadruplet/go/grammar"
 	"github.com/cbrew/quadruplet/go/term"
 )
+
+// lexEntry is a word or phrase and a category for it.
+type lexEntry struct {
+	word string
+	cat  *term.Map
+}
 
 // ParseIntegratedGrammar parses a grammar in the IntegratedParser style
 // (patio.fcfg, sem2.fcfg):
 //
 //	"word": Cat[...] | Cat[...]            lexical entries
-//	Cat[...] -> Cat[...] "word" ... | ...  rules; quoted words on the
-//	                                       right go into the lexicon
+//	Cat[...] -> Cat[...] "word" ... | ...  rules (see integratedRHS for
+//	                                       quoted words on the right)
 //	Cat[...] => Cat[...] ... : <(0 1)(1 0)>, ...   multiple CFG rules
 //
 // Categories may be any capitalised name and always take brackets. Feature
@@ -27,10 +35,6 @@ func ParseIntegratedGrammar(s string) (*grammar.Grammar, error) {
 	}
 	p := &parser{toks: toks}
 	g := grammar.New()
-	type lexEntry struct {
-		word string
-		cat  *term.Map
-	}
 	var fromRules []lexEntry
 	for !p.at(tEOF) {
 		if p.at(tWord) {
@@ -62,7 +66,8 @@ func ParseIntegratedGrammar(s string) (*grammar.Grammar, error) {
 		}
 		for {
 			r := &grammar.Rule{LHS: lhs}
-			if err := p.integratedRHS(r, arrow.kind == tArrow2); err != nil {
+			wordEntries, err := p.integratedRHS(r, arrow.kind == tArrow2)
+			if err != nil {
 				return nil, err
 			}
 			if arrow.kind == tArrow2 {
@@ -86,6 +91,7 @@ func ParseIntegratedGrammar(s string) (*grammar.Grammar, error) {
 			for _, w := range r.Words {
 				fromRules = append(fromRules, lexEntry{w, lhs})
 			}
+			fromRules = append(fromRules, wordEntries...)
 			if len(r.RHS) > 0 {
 				g.AddRule(r)
 			}
@@ -104,36 +110,65 @@ func ParseIntegratedGrammar(s string) (*grammar.Grammar, error) {
 // integratedRHS parses the categories and words of one alternative,
 // stopping before the start of the next statement: a word followed by ':'
 // or a category followed by an arrow. A multiple CFG rule has no words.
-func (p *parser) integratedRHS(r *grammar.Rule, mcfg bool) error {
+//
+// Words alone, A -> "New" "York", become the phrase "New York" in r.Words.
+// Words among categories, VP -> VP "and" VP, keep their place as a category
+// of their own, VP -> VP "and"[] VP, and are returned as lexical entries
+// ("and" -> "and"[]). The category's name is the quoted word, which no
+// real category can be, so rules using the same word share one entry.
+func (p *parser) integratedRHS(r *grammar.Rule, mcfg bool) ([]lexEntry, error) {
+	type item struct {
+		cat  *term.Map
+		word string // quoted
+	}
+	var items []item
+	hasCat := false
+loop:
 	for {
 		switch {
 		case p.at(tWord) && !mcfg:
 			if p.peekAt(1) == tColon {
-				return p.checkRHS(r)
+				break loop
 			}
-			r.Words = append(r.Words, unquote(p.next().text))
+			items = append(items, item{word: p.next().text})
 		case p.at(tCategory):
 			save := p.i
 			m, err := p.integratedMap()
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if p.at(tArrow, tArrow2) && (len(r.RHS) > 0 || len(r.Words) > 0) {
+			if p.at(tArrow, tArrow2) && len(items) > 0 {
 				p.i = save
-				return nil
+				break loop
 			}
-			r.RHS = append(r.RHS, m)
+			items = append(items, item{cat: m})
+			hasCat = true
 		default:
-			return p.checkRHS(r)
+			break loop
 		}
 	}
-}
-
-func (p *parser) checkRHS(r *grammar.Rule) error {
-	if len(r.RHS) == 0 && len(r.Words) == 0 {
-		return p.errorf("expected a category or word, found %s", describe(p.peek()))
+	if len(items) == 0 {
+		return nil, p.errorf("expected a category or word, found %s", describe(p.peek()))
 	}
-	return nil
+	if !hasCat {
+		words := make([]string, len(items))
+		for i, it := range items {
+			words[i] = unquote(it.word)
+		}
+		r.Words = []string{strings.Join(words, " ")}
+		return nil, nil
+	}
+	var entries []lexEntry
+	for _, it := range items {
+		if it.cat != nil {
+			r.RHS = append(r.RHS, it.cat)
+			continue
+		}
+		cat := term.NewMap([]string{"cat"}, []term.Term{term.NewAtom(it.word)})
+		r.RHS = append(r.RHS, cat)
+		entries = append(entries, lexEntry{unquote(it.word), cat})
+	}
+	return entries, nil
 }
 
 // integratedMap parses Cat[mapping]. Features come in the order written,

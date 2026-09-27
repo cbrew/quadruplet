@@ -132,3 +132,26 @@ func loadTestGrammar(t *testing.T, file, notation string) *grammar.Grammar {
 	}
 	return g
 }
+
+func TestWordsAmongCategoriesKeepTheirPlace(t *testing.T) {
+	g, err := ParseIntegratedGrammar(`VP[] -> VP[] "and" VP[]
+Conj[] -> "and"
+Np[] -> "New" "York"
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(g.Rules) != 1 || g.Rules[0].String() != `VP[] -> VP[] "and"[] VP[]` {
+		t.Errorf("rules %v", g.Rules)
+	}
+	var and []string
+	for _, c := range g.Lexicon.Lookup("and") {
+		and = append(and, c.String())
+	}
+	if strings.Join(and, " ") != `"and"[] Conj[]` {
+		t.Errorf(`lexicon "and": %v`, and)
+	}
+	if len(g.Lexicon.Lookup("New York")) != 1 || len(g.Lexicon.Lookup("New")) != 0 {
+		t.Error("words alone make one phrase")
+	}
+}
