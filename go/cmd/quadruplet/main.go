@@ -16,6 +16,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -31,6 +32,8 @@ func main() {
 	style := flag.String("notation", "integrated", "grammar notation: integrated (patio.fcfg, sem2.fcfg) or features (demo.fcfg)")
 	trees := flag.Int("trees", 0, "print up to this many trees per reading")
 	workers := flag.Int("workers", 0, "goroutines for parsing: 0 for one per CPU, 1 for the sequential agenda parser")
+	startCat := flag.String("start", "", "count only readings of this category, such as Top")
+	quiet := flag.Bool("quiet", false, "print only the summary line for each sentence")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: quadruplet -grammar FILE [flags] [sentence ...]\n")
 		flag.PrintDefaults()
@@ -60,9 +63,24 @@ func main() {
 		}
 		elapsed := time.Since(start)
 		s := c.Stats()
+		solutions := c.Solutions()
+		if *startCat != "" {
+			solutions = solutions[:0:0]
+			s.Trees = new(big.Int)
+			for _, e := range c.Solutions() {
+				if term.Key(e.Cat) == *startCat {
+					solutions = append(solutions, e)
+					s.Trees.Add(s.Trees, c.CountTreesUnder(e))
+				}
+			}
+			s.Solutions = len(solutions)
+		}
 		fmt.Printf("%s\n  %d readings, %s trees, %d complete and %d partial edges, %v\n",
 			strings.Join(words, " "), s.Solutions, s.Trees, s.Completes, s.Partials, elapsed.Round(time.Microsecond))
-		for _, e := range c.Solutions() {
+		if *quiet {
+			return
+		}
+		for _, e := range solutions {
 			fmt.Printf("  %s\n", e.Cat)
 			n := 0
 			for t := range c.Trees(e) {
