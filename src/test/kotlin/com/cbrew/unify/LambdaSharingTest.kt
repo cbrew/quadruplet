@@ -136,9 +136,13 @@ class LambdaSharingTest {
             val x = normalTerm(r)
             same("substBoxes", withBoxes, { refSubstBoxes(withBoxes, x, 0, 0) }, { substBoxes(withBoxes, x) })
 
-            // a whole beta reduction, as createApp does it
+            // a whole beta reduction, as createApp does it (in one pass now),
+            // including bodies that already contain Boxes
             same("beta", t, { refSubstBoxes(refShift(refPlaceBoxes(t, 1), -1, 0), x, 0, 0) },
                     { createApp(Lam(t), x) })
+            same("beta with boxes", withBoxes,
+                    { refSubstBoxes(refShift(refPlaceBoxes(withBoxes, 1), -1, 0), x, 0, 0) },
+                    { createApp(Lam(withBoxes), x) })
         }
     }
 

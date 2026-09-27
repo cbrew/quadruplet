@@ -812,7 +812,7 @@ private fun betaReduce(ex: Lambda): Lambda =
                 val p = ex.e1
                 val arg = ex.e2
                 if (p is Lam) {
-                    substBoxes(shift(placeBoxes(p.body), -1), arg)
+                    Instantiation(arg).run(p.body, 0, 0)
 
                 } else if (p.betaReducible()) {
                     App(betaReduce(p), arg)
@@ -860,6 +860,91 @@ private fun betaReduce(ex: Lambda): Lambda =
             else -> throw Exception("unexpected: $ex")
         }
 
+
+/**
+ * Beta reduction of (λ.body) arg in a single pass over body. The variable
+ * bound by the removed λ, Var(d + 1) under d Lams inside body, is replaced by
+ * arg shifted over those d Lams and over the q quantifiers above it; free
+ * Vars beyond it move down by one. Any Box already in body is replaced by
+ * arg too, as substBoxes would.
+ *
+ * This is substBoxes(shift(placeBoxes(body), -1), arg), which built each
+ * changed node three times, fused into one traversal; LambdaSharingTest
+ * checks the two agree. As in the three-pass version, a node containing a
+ * replaced variable is rebuilt with the simplifying factories (substitution
+ * can create new redexes), one where Vars were only renumbered is rebuilt
+ * directly, and an unchanged node is shared.
+ */
+private class Instantiation(val arg: Lambda) {
+    // whether the subterm just processed contained a replaced variable
+    private var hit = false
+
+    private fun replacement(d: Int, q: Int): Lambda {
+        hit = true
+        return qshift(shift(arg, d), q)
+    }
+
+    fun run(e: Lambda, d: Int, q: Int): Lambda {
+        if (e.freeVarDepth <= d && !e.hasBox) {
+            hit = false
+            return e
+        }
+        return when (e) {
+            is Var ->
+                if (e.index == d + 1) replacement(d, q)
+                else {
+                    hit = false
+                    if (e.index > d + 1) Var(e.index - 1) else e
+                }
+            is Box -> replacement(d, q)
+            is Constant, is FstructVar, is QVar, is Empty -> {
+                hit = false
+                e
+            }
+            is Lam -> run(e.body, d + 1, q).let { b -> if (hit) createLam(b) else Lam(b) }
+            is Forall -> run(e.body, d, q + 1).let { b -> if (hit) createUniversal(b) else Forall(b) }
+            is Exists -> run(e.body, d, q + 1).let { b -> if (hit) createExistential(b) else Exists(b) }
+            is Not -> run(e.body, d, q).let { b -> if (hit) createNegation(b) else Not(b) }
+            is App -> {
+                val a = run(e.e1, d, q)
+                val h = hit
+                val b = run(e.e2, d, q)
+                hit = hit || h
+                if (hit) createApp(a, b) else App(a, b)
+            }
+            is Implies -> {
+                val a = run(e.e1, d, q)
+                val h = hit
+                val b = run(e.e2, d, q)
+                hit = hit || h
+                if (hit) createImplication(a, b) else Implies(a, b)
+            }
+            is Equiv -> {
+                val a = run(e.e1, d, q)
+                val h = hit
+                val b = run(e.e2, d, q)
+                hit = hit || h
+                if (hit) createEquiv(a, b) else Equiv(a, b)
+            }
+            is And -> {
+                val (items, h) = runAll(e.conjuncts, d, q)
+                hit = h
+                if (h) createAnd(items) else And(SmallSet.of(items))
+            }
+            is Or -> {
+                val (items, h) = runAll(e.disjuncts, d, q)
+                hit = h
+                if (h) createOr(items) else Or(SmallSet.of(items))
+            }
+        }
+    }
+
+    private fun runAll(xs: Set<Lambda>, d: Int, q: Int): Pair<List<Lambda>, Boolean> {
+        var any = false
+        val out = xs.map { x -> run(x, d, q).also { any = any || hit } }
+        return Pair(out, any)
+    }
+}
 
 /**
  * Place boxes (i.e. markers for substitution) in all the places
