@@ -1,0 +1,131 @@
+(\P . P(a))(x,y,z)	x(a, y, z)	x(a, y, z)
+(\P . P)(x,y,z)	x(y, z)	x(y, z)
+(jim | jonah | jeffy)	(jim ∨ jonah ∨ jeffy)	(jim ∨ jonah ∨ jeffy)
+?abc	?abc	?abc
+?x	?x	?x
+?x & ?x	(?x)	?x
+?x | ?x	(?x)	?x
+?x(?x)	?x(?x)	?x(?x)
+?y	?y	?y
+@x	@x	@x
+Abc	Abc	Abc
+P	P	P
+P(x)	P(x)	P(x)
+P(x,y,z)	P(x, y, z)	P(x, y, z)
+Q12	Q12	Q12
+\ P. P	λ.(v:1)	λ.(v:1)
+\ P. P (?x)	λ.(v:1(?x))	λ.(v:1(?x))
+\ a. a	λ.(v:1)	λ.(v:1)
+\ x . (a <-> x)	λ.(Equiv(e1=a, e2=v:1))	λ.(Equiv(e1=a, e2=v:1))
+\ x . (x <-> b)	λ.(Equiv(e1=v:1, e2=b))	λ.(Equiv(e1=v:1, e2=b))
+\ x y . (y <-> x)	λ.(λ.(Equiv(e1=v:1, e2=v:2)))	λ.(λ.(Equiv(e1=v:1, e2=v:2)))
+\P x . P(x)	λ.(λ.(v:2(v:1)))	λ.(λ.(v:2(v:1)))
+\x . x	λ.(v:1)	λ.(v:1)
+\x y . x	λ.(λ.(v:2))	λ.(λ.(v:2))
+a	a	a
+a & b	(a ∧ b)	(a ∧ b)
+a & b & c	(a ∧ b ∧ c)	(a ∧ b ∧ c)
+a & b | c	((a ∧ b) ∨ c)	((a ∧ b) ∨ c)
+a -> b	Implies(e1=a, e2=b)	Implies(e1=a, e2=b)
+a <-> b	Equiv(e1=a, e2=b)	Equiv(e1=a, e2=b)
+a == b	Equiv(e1=a, e2=b)	Equiv(e1=a, e2=b)
+a | b	(a ∨ b)	(a ∨ b)
+a | b & c	(a ∨ (b ∧ c))	(a ∨ (b ∧ c))
+a | b | c	(a ∨ b ∨ c)	(a ∨ b ∨ c)
+a ∧ b	(a ∧ b)	(a ∧ b)
+a ∨ b	(a ∨ b)	(a ∨ b)
+a(?x)	a(?x)	a(?x)
+a(a)	a(a)	a(a)
+a91	a91	a91
+abc	abc	abc
+a|b|c	(a ∨ b ∨ c)	(a ∨ b ∨ c)
+a|b|forall q . q	(a ∨ b ∨ ∀.(q:1))	(a ∨ b ∨ ∀.(q:1))
+exists a. a	∃.(q:1)	∃.(q:1)
+exists x . (a <-> x)	∃.(Equiv(e1=a, e2=q:1))	∃.(Equiv(e1=a, e2=q:1))
+exists x . (x <-> b)	∃.(Equiv(e1=q:1, e2=b))	∃.(Equiv(e1=q:1, e2=b))
+exists x . x	∃.(q:1)	∃.(q:1)
+exists x y . (y <-> x)	∃.(∃.(Equiv(e1=q:1, e2=q:2)))	∃.(∃.(Equiv(e1=q:1, e2=q:2)))
+exists x. x	∃.(q:1)	∃.(q:1)
+forall a. a	∀.(q:1)	∀.(q:1)
+forall x . (a <-> x)	∀.(Equiv(e1=a, e2=q:1))	∀.(Equiv(e1=a, e2=q:1))
+forall x . (x <-> b)	∀.(Equiv(e1=q:1, e2=b))	∀.(Equiv(e1=q:1, e2=b))
+forall x . x	∀.(q:1)	∀.(q:1)
+forall x y . (y <-> x)	∀.(∀.(Equiv(e1=q:1, e2=q:2)))	∀.(∀.(Equiv(e1=q:1, e2=q:2)))
+forall x y. y(x)	∀.(∀.(q:1(q:2)))	∀.(∀.(q:1(q:2)))
+jim & jonah & jeffy	(jim ∧ jonah ∧ jeffy)	(jim ∧ jonah ∧ jeffy)
+x	x	x
+x != y	Not(body=Equiv(e1=x, e2=y))	Not(body=Equiv(e1=x, e2=y))
+x -> y	Implies(e1=x, e2=y)	Implies(e1=x, e2=y)
+x <-> y	Equiv(e1=x, e2=y)	Equiv(e1=x, e2=y)
+x <>  y	Not(body=Equiv(e1=x, e2=y))	Not(body=Equiv(e1=x, e2=y))
+x = y	Equiv(e1=x, e2=y)	Equiv(e1=x, e2=y)
+x == y	Equiv(e1=x, e2=y)	Equiv(e1=x, e2=y)
+x → y	Implies(e1=x, e2=y)	Implies(e1=x, e2=y)
+x ↔ y	Equiv(e1=x, e2=y)	Equiv(e1=x, e2=y)
+x ≠ y	Not(body=Equiv(e1=x, e2=y))	Not(body=Equiv(e1=x, e2=y))
+zombie(?x)	zombie(?x)	zombie(?x)
+~ a	Not(body=a)	Not(body=a)
+~ x	Not(body=x)	Not(body=x)
+λ x . x	λ.(v:1)	λ.(v:1)
+∀ x . x	∀.(q:1)	∀.(q:1)
+∃ x . x	∃.(q:1)	∃.(q:1)
+a & b -> c	Implies(e1=(a ∧ b), e2=c)	Implies(e1=(a ∧ b), e2=c)
+a -> b & c	Implies(e1=a, e2=(b ∧ c))	Implies(e1=a, e2=(b ∧ c))
+a | b -> c | d	Implies(e1=(a ∨ b), e2=(c ∨ d))	Implies(e1=(a ∨ b), e2=(c ∨ d))
+a -> b -> c	Implies(e1=a, e2=Implies(e1=b, e2=c))	Implies(e1=a, e2=Implies(e1=b, e2=c))
+a <-> b -> c	Equiv(e1=a, e2=Implies(e1=b, e2=c))	Equiv(e1=a, e2=Implies(e1=b, e2=c))
+-a & b	Not(body=(a ∧ b))	Not(body=(a ∧ b))
+-(a & b)	Not(body=(a ∧ b))	Not(body=(a ∧ b))
+--a	Not(body=Not(body=a))	a
+- - a	Not(body=Not(body=a))	a
+-a | -b	Not(body=(a ∨ Not(body=b)))	Not(body=(a ∨ Not(body=b)))
+-(-a | -b)	Not(body=Not(body=(a ∨ Not(body=b))))	(a ∨ Not(body=b))
+a != b	Not(body=Equiv(e1=a, e2=b))	Not(body=Equiv(e1=a, e2=b))
+a <> b	Not(body=Equiv(e1=a, e2=b))	Not(body=Equiv(e1=a, e2=b))
+a ≠ b	Not(body=Equiv(e1=a, e2=b))	Not(body=Equiv(e1=a, e2=b))
+a = b	Equiv(e1=a, e2=b)	Equiv(e1=a, e2=b)
+a → b	Implies(e1=a, e2=b)	Implies(e1=a, e2=b)
+a ↔ b	Equiv(e1=a, e2=b)	Equiv(e1=a, e2=b)
+exists x . P(x) & Q(x)	∃.((P(q:1) ∧ Q(q:1)))	∃.((P(q:1) ∧ Q(q:1)))
+exists x. (P(x) & Q(x))	∃.((P(q:1) ∧ Q(q:1)))	∃.((P(q:1) ∧ Q(q:1)))
+all x . (P(x) -> Q(x))	∀.(Implies(e1=P(q:1), e2=Q(q:1)))	∀.(Implies(e1=P(q:1), e2=Q(q:1)))
+forall x y . R(x,y)	∀.(∀.(R(q:2, q:1)))	∀.(∀.(R(q:2, q:1)))
+\P Q . exists x . (P(x) & Q(x))	λ.(λ.(∃.((v:2(q:1) ∧ v:1(q:1)))))	λ.(λ.(∃.((v:2(q:1) ∧ v:1(q:1)))))
+\X y . X(\x . chase(y,x))	λ.(λ.(v:2(λ.(chase(v:2, v:1)))))	λ.(λ.(v:2(λ.(chase(v:2, v:1)))))
+\x . \y . f(x, y)	λ.(λ.(f(v:2, v:1)))	λ.(λ.(f(v:2, v:1)))
+(\x . f(x))(c)	f(c)	f(c)
+(\x . f(x, x))(g(c))	f(g(c), g(c))	f(g(c), g(c))
+(\P . P(john))(\x . walk(x))	walk(john)	walk(john)
+(\x y . f(x,y))(a)(b)	f(a, b)	f(a, b)
+(\x y . f(x,y))(a, b)	f(a, b)	f(a, b)
+(\P Q . all x . (P(x) -> Q(x)))(\x . dog(x))	λ.(∀.(Implies(e1=dog(q:1), e2=v:1(q:1))))	λ.(∀.(Implies(e1=dog(q:1), e2=v:1(q:1))))
+(\P Q . exists x . (P(x) & Q(x)))(\x . dog(x))(\y . bark(y))	∃.((dog(q:1) ∧ bark(q:1)))	∃.((dog(q:1) ∧ bark(q:1)))
+exists x . a	∃.(a)	a
+all x . a	∀.(a)	a
+exists x . (a & P(x))	∃.((a ∧ P(q:1)))	∃.((a ∧ P(q:1)))
+all x . (P(x) & Q(x))	∀.((P(q:1) ∧ Q(q:1)))	(∀.(P(q:1)) ∧ ∀.(Q(q:1)))
+exists x . (P(x) | Q(x))	∃.((P(q:1) ∨ Q(q:1)))	(∃.(P(q:1)) ∨ ∃.(Q(q:1)))
+exists x . -P(x)	∃.(Not(body=P(q:1)))	∃.(Not(body=P(q:1)))
+-(P & Q)	Not(body=(P ∧ Q))	Not(body=(P ∧ Q))
+-(-a & -b)	Not(body=Not(body=(a ∧ Not(body=b))))	(a ∧ Not(body=b))
+(-a & -b)	Not(body=(a ∧ Not(body=b)))	Not(body=(a ∧ Not(body=b)))
+(-a | -b)	Not(body=(a ∨ Not(body=b)))	Not(body=(a ∨ Not(body=b)))
+f(g(h(x)))	f(g(h(x)))	f(g(h(x)))
+f(x)(y)	f(x, y)	f(x, y)
+?x(?y, ?z)	?x(?y, ?z)	?x(?y, ?z)
+a & a	(a)	a
+a | a | b	(a ∨ b)	(a ∨ b)
+(a & b) & (c & a)	(a ∧ b ∧ c)	(a ∧ b ∧ c)
+☐	☐	☐
+p ∧ q ∨ r	((p ∧ q) ∨ r)	((p ∧ q) ∨ r)
+sarah_beth	sarah_beth	sarah_beth
+x1 & y2	(x1 ∧ y2)	(x1 ∧ y2)
+'quoted'	'quoted'	'quoted'
+a;b	a;b	a;b
+10	10	10
+%	%	%
+	ERROR
+(	ERROR
+a &	ERROR
+exists . a	ERROR
+\ . x	ERROR

@@ -1,0 +1,96 @@
+demo.fcfg	cat	stats	3	4	3	3
+demo.fcfg	cat	solution	Demo[sem=<cat>]
+demo.fcfg	cat	solution	Elem[sem=<cat>]
+demo.fcfg	cat	solution	List[sem=<cat>]
+demo.fcfg	cat	tree	Demo[null]| List[null]|  Elem[null]:cat|
+demo.fcfg	cat	tree	Elem[null]:cat|
+demo.fcfg	cat	tree	List[null]| Elem[null]:cat|
+demo.fcfg	cat cat dog	stats	15	12	2	2
+demo.fcfg	cat cat dog	solution	Demo[sem=<(cat ∧ dog)>]
+demo.fcfg	cat cat dog	solution	List[sem=<(cat ∧ dog)>]
+demo.fcfg	cat cat dog	tree	Demo[null]| List[null]|  Elem[null]:cat|  List[null]|   Elem[null]:cat|   List[null]|    Elem[null]:dog|
+demo.fcfg	cat cat dog	tree	List[null]| Elem[null]:cat| List[null]|  Elem[null]:cat|  List[null]|   Elem[null]:dog|
+demo.fcfg	dog cat dog cat cat dog	stats	48	24	2	2
+demo.fcfg	dog cat dog cat cat dog	solution	Demo[sem=<(dog ∧ cat)>]
+demo.fcfg	dog cat dog cat cat dog	solution	List[sem=<(dog ∧ cat)>]
+demo.fcfg	dog cat dog cat cat dog	tree	Demo[null]| List[null]|  Elem[null]:dog|  List[null]|   Elem[null]:cat|   List[null]|    Elem[null]:dog|    List[null]|     Elem[null]:cat|     List[null]|      Elem[null]:cat|      List[null]|       Elem[null]:dog|
+demo.fcfg	dog cat dog cat cat dog	tree	List[null]| Elem[null]:dog| List[null]|  Elem[null]:cat|  List[null]|   Elem[null]:dog|   List[null]|    Elem[null]:cat|    List[null]|     Elem[null]:cat|     List[null]|      Elem[null]:dog|
+demo.fcfg	bird	stats	0	0	0	0
+patio.fcfg	I need an umbrella	stats	9	10	1	1
+patio.fcfg	I need an umbrella	solution	S[sem=<∃.((product_type(umbrella, q:1) ∧ need(speaker, q:1)))>]
+patio.fcfg	I need an umbrella	tree	S[null]| NP[null]|  Pn[null]:I| VP[null]|  Tvb[null]:need|  NP[null]|   Det[null]:an|   NBAR[null]|    N[null]:umbrella|
+patio.fcfg	I want a umbrella	stats	9	10	1	1
+patio.fcfg	I want a umbrella	solution	S[sem=<∃.((product_type(umbrella, q:1) ∧ need(speaker, q:1)))>]
+patio.fcfg	I want a umbrella	tree	S[null]| NP[null]|  Pn[null]:I| VP[null]|  Tvb[null]:want|  NP[null]|   Det[null]:a|   NBAR[null]|    N[null]:umbrella|
+patio.fcfg	I need I	stats	7	8	1	1
+patio.fcfg	I need I	solution	S[sem=<need(speaker, speaker)>]
+patio.fcfg	I need I	tree	S[null]| NP[null]|  Pn[null]:I| VP[null]|  Tvb[null]:need|  NP[null]|   Pn[null]:I|
+patio.fcfg	an umbrella	stats	4	5	1	1
+patio.fcfg	an umbrella	solution	NP[sem=<λ.(∃.((product_type(umbrella, q:1) ∧ v:1(q:1))))>]
+patio.fcfg	an umbrella	tree	NP[null]| Det[null]:an| NBAR[null]|  N[null]:umbrella|
+sem2.fcfg	John sees a dog	stats	9	14	1	1
+sem2.fcfg	John sees a dog	solution	S[sem=<∃.((dog(q:1) ∧ see(john, q:1)))>]
+sem2.fcfg	John sees a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  TV[null]:sees|  NP[null]|   Det[null]:a|   Nom[null]|    N[null]:dog|
+sem2.fcfg	every boy chases a dog with Fido	stats	21	26	2	2
+sem2.fcfg	every boy chases a dog with Fido	solution	S[sem=<∀.(Implies(e1=boy(q:1), e2=(∃.((dog(q:1) ∧ chase(q:2, q:1))) ∧ with(q:1, fido))))>]
+sem2.fcfg	every boy chases a dog with Fido	solution	S[sem=<∀.(Implies(e1=boy(q:1), e2=∃.((dog(q:1) ∧ with(q:1, fido) ∧ chase(q:2, q:1)))))>]
+sem2.fcfg	every boy chases a dog with Fido	tree	S[null]| NP[null]|  Det[null]:every|  Nom[null]|   N[null]:boy| VP[null]|  TV[null]:chases|  NP[null]|   Det[null]:a|   Nom[null]|    N[null]:dog|    PP[null]|     P[null]:with|     NP[null]|      PropN[null]:Fido|
+sem2.fcfg	every boy chases a dog with Fido	tree	S[null]| NP[null]|  Det[null]:every|  Nom[null]|   N[null]:boy| VP[null]|  VP[null]|   TV[null]:chases|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|  PP[null]|   P[null]:with|   NP[null]|    PropN[null]:Fido|
+sem2.fcfg	Mary walks in Noosa	stats	11	12	1	1
+sem2.fcfg	Mary walks in Noosa	solution	S[sem=<(walk(mary) ∧ in(mary, noosa))>]
+sem2.fcfg	Mary walks in Noosa	tree	S[null]| NP[null]|  PropN[null]:Mary| VP[null]|  VP[null]|   IV[null]:walks|  PP[null]|   P[null]:in|   NP[null]|    PropN[null]:Noosa|
+sem2.fcfg	all dogs bark	stats	7	10	1	1
+sem2.fcfg	all dogs bark	solution	S[sem=<∀.(Implies(e1=dog(q:1), e2=bark(q:1)))>]
+sem2.fcfg	all dogs bark	tree	S[null]| NP[null]|  Det[null]:all|  Nom[null]|   N[null]:dogs| VP[null]|  IV[null]:bark|
+sem2.fcfg	a dog bark	stats	6	10	0	0
+sem2.fcfg	some girls see Suzie	stats	9	14	1	1
+sem2.fcfg	some girls see Suzie	solution	S[sem=<∃.((girl(q:1) ∧ see(q:1, suzie)))>]
+sem2.fcfg	some girls see Suzie	tree	S[null]| NP[null]|  Det[null]:some|  Nom[null]|   N[null]:girls| VP[null]|  TV[null]:see|  NP[null]|   PropN[null]:Suzie|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	stats	70	61	8	8
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((dog(q:1) ∧ ∃.((girl(q:1) ∧ ∃.((boy(q:1) ∧ ∃.((dog(q:1) ∧ see(john, q:1))) ∧ with(john, q:1))) ∧ with(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((dog(q:1) ∧ ∃.((girl(q:1) ∧ ∃.((∃.((boy(q:1) ∧ dog(q:2) ∧ with(q:2, q:1))) ∧ see(john, q:1))) ∧ with(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((dog(q:1) ∧ ∃.((∃.((girl(q:1) ∧ boy(q:2) ∧ with(q:2, q:1))) ∧ ∃.((dog(q:1) ∧ see(john, q:1))) ∧ with(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((dog(q:1) ∧ ∃.((∃.((∃.((girl(q:1) ∧ boy(q:2) ∧ with(q:2, q:1))) ∧ dog(q:2) ∧ with(q:2, q:1))) ∧ see(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((∃.((dog(q:1) ∧ girl(q:2) ∧ with(q:2, q:1))) ∧ ∃.((boy(q:1) ∧ ∃.((dog(q:1) ∧ see(john, q:1))) ∧ with(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((∃.((dog(q:1) ∧ girl(q:2) ∧ with(q:2, q:1))) ∧ ∃.((∃.((boy(q:1) ∧ dog(q:2) ∧ with(q:2, q:1))) ∧ see(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((∃.((∃.((dog(q:1) ∧ girl(q:2) ∧ with(q:2, q:1))) ∧ boy(q:2) ∧ with(q:2, q:1))) ∧ ∃.((dog(q:1) ∧ see(john, q:1))) ∧ with(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	solution	S[sem=<∃.((∃.((∃.((∃.((dog(q:1) ∧ girl(q:2) ∧ with(q:2, q:1))) ∧ boy(q:2) ∧ with(q:2, q:1))) ∧ dog(q:2) ∧ with(q:2, q:1))) ∧ see(john, q:1)))>]
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  TV[null]:sees|  NP[null]|   Det[null]:a|   Nom[null]|    N[null]:dog|    PP[null]|     P[null]:with|     NP[null]|      Det[null]:a|      Nom[null]|       N[null]:boy|       PP[null]|        P[null]:with|        NP[null]|         Det[null]:a|         Nom[null]|          N[null]:girl|          PP[null]|           P[null]:with|           NP[null]|            Det[null]:a|            Nom[null]|             N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   TV[null]:sees|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|     PP[null]|      P[null]:with|      NP[null]|       Det[null]:a|       Nom[null]|        N[null]:boy|        PP[null]|         P[null]:with|         NP[null]|          Det[null]:a|          Nom[null]|           N[null]:girl|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   TV[null]:sees|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|     PP[null]|      P[null]:with|      NP[null]|       Det[null]:a|       Nom[null]|        N[null]:boy|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:girl|     PP[null]|      P[null]:with|      NP[null]|       Det[null]:a|       Nom[null]|        N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   TV[null]:sees|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:boy|     PP[null]|      P[null]:with|      NP[null]|       Det[null]:a|       Nom[null]|        N[null]:girl|        PP[null]|         P[null]:with|         NP[null]|          Det[null]:a|          Nom[null]|           N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   VP[null]|    TV[null]:sees|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:dog|      PP[null]|       P[null]:with|       NP[null]|        Det[null]:a|        Nom[null]|         N[null]:boy|   PP[null]|    P[null]:with|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:girl|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   VP[null]|    TV[null]:sees|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:dog|   PP[null]|    P[null]:with|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:boy|      PP[null]|       P[null]:with|       NP[null]|        Det[null]:a|        Nom[null]|         N[null]:girl|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   VP[null]|    TV[null]:sees|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:dog|   PP[null]|    P[null]:with|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:boy|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:girl|     PP[null]|      P[null]:with|      NP[null]|       Det[null]:a|       Nom[null]|        N[null]:dog|
+sem2.fcfg	John sees a dog with a boy with a girl with a dog	tree	S[null]| NP[null]|  PropN[null]:John| VP[null]|  VP[null]|   VP[null]|    VP[null]|     TV[null]:sees|     NP[null]|      Det[null]:a|      Nom[null]|       N[null]:dog|    PP[null]|     P[null]:with|     NP[null]|      Det[null]:a|      Nom[null]|       N[null]:boy|   PP[null]|    P[null]:with|    NP[null]|     Det[null]:a|     Nom[null]|      N[null]:girl|  PP[null]|   P[null]:with|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|
+sem2.fcfg	who walks	stats	4	5	1	1
+sem2.fcfg	who walks	solution	S[sem=<λ.(walk(v:1))>]
+sem2.fcfg	who walks	tree	S[null]| NP[null]:who| VP[null]|  IV[null]:walks|
+sem2.fcfg	Fido walks in a dog	stats	13	16	1	1
+sem2.fcfg	Fido walks in a dog	solution	S[sem=<∃.((dog(q:1) ∧ walk(fido) ∧ in(fido, q:1)))>]
+sem2.fcfg	Fido walks in a dog	tree	S[null]| NP[null]|  PropN[null]:Fido| VP[null]|  VP[null]|   IV[null]:walks|  PP[null]|   P[null]:in|   NP[null]|    Det[null]:a|    Nom[null]|     N[null]:dog|
+tiny.cfg	John	stats	1	6	1	1
+tiny.cfg	John	solution	Np[num=sing, sem=<john>]
+tiny.cfg	John	tree	Np[null]:John|
+tiny.cfg	John and Mary	stats	4	16	1	1
+tiny.cfg	John and Mary	solution	Np[sem=<(john ∧ mary)>, num=pl]
+tiny.cfg	John and Mary	tree	Np[null]| Np[null]:John| Conj[null]:and| Np[null]:Mary|
+tiny.cfg	Sarah Beth or dogs	stats	5	19	1	1
+tiny.cfg	Sarah Beth or dogs	solution	Np[sem=<(sarah_beth ∨ ∀.(dog(q:1)))>, num=pl]
+tiny.cfg	Sarah Beth or dogs	tree	Np[null]| Np[null]:SarahBeth| Conj[null]:or| Np[null]:dogs|
+tiny.cfg	a dog and a cat or Tina	stats	9	33	2	2
+tiny.cfg	a dog and a cat or Tina	solution	Np[sem=<((∃.(dog(q:1)) ∧ ∃.(cat(q:1))) ∨ tina)>, num=sing]
+tiny.cfg	a dog and a cat or Tina	solution	Np[sem=<(∃.(dog(q:1)) ∧ (∃.(cat(q:1)) ∨ tina))>, num=pl]
+tiny.cfg	a dog and a cat or Tina	tree	Np[null]| Np[null]:adog| Conj[null]:and| Np[null]|  Np[null]:acat|  Conj[null]:or|  Np[null]:Tina|
+tiny.cfg	a dog and a cat or Tina	tree	Np[null]| Np[null]|  Np[null]:adog|  Conj[null]:and|  Np[null]:acat| Conj[null]:or| Np[null]:Tina|
+tiny2.cfg	John and Mary	stats	4	16	1	1
+tiny2.cfg	John and Mary	solution	Np[sem=<(john ∧ mary)>, num=pl]
+tiny2.cfg	John and Mary	tree	Np[null]| Np[null]:John| Conj[null]:and| Np[null]:Mary|
+tiny2.cfg	Sarah Beth or dogs	stats	5	19	1	1
+tiny2.cfg	Sarah Beth or dogs	solution	Np[sem=<(sarah_beth ∨ ∀.(dog(q:1)))>, num=pl]
+tiny2.cfg	Sarah Beth or dogs	tree	Np[null]| Np[null]:SarahBeth| Conj[null]:or| Np[null]:dogs|
+tiny2.cfg	dogs or cats and Chloe	stats	9	33	2	2
+tiny2.cfg	dogs or cats and Chloe	solution	Np[sem=<((∀.(dog(q:1)) ∨ ∀.(cat(q:1))) ∧ chloe)>, num=pl]
+tiny2.cfg	dogs or cats and Chloe	solution	Np[sem=<(∀.(dog(q:1)) ∨ (∀.(cat(q:1)) ∧ chloe))>, num=pl]
+tiny2.cfg	dogs or cats and Chloe	tree	Np[null]| Np[null]:dogs| Conj[null]:or| Np[null]|  Np[null]:cats|  Conj[null]:and|  Np[null]:Chloe|
+tiny2.cfg	dogs or cats and Chloe	tree	Np[null]| Np[null]|  Np[null]:dogs|  Conj[null]:or|  Np[null]:cats| Conj[null]:and| Np[null]:Chloe|
