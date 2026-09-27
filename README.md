@@ -5,6 +5,25 @@ Now with added CI
 
 Modeled on NLTK's FeatureParser.
 
+## Scope
+
+Feature values may be atoms, `?x` variables, lists and tuples, or
+semantic terms in `<...>`. **Nested feature maps (a feature whose value is
+itself a feature map) are not supported, and there are no current plans to
+support them.**
+
+* The `FeatureNotation` notation (`FeatureTerms.g4`) cannot express them.
+* The `IntegratedParser` notation (`FeatParser.g4`) accepts them
+  syntactically, but no grammar or test uses them and they are not tested.
+* The unifier happens to handle them structurally, but nothing relies on
+  that and it may change.
+
+Unification is term unification with named variables: reentrancy is written
+by repeating a variable, e.g. `S[num=?n] -> Np[num=?n] Vp[num=?n]`.
+
+A Go prototype of the chart parser core, used to explore parallel parsing,
+is in [`go/`](go/README.md).
+
 
 
 

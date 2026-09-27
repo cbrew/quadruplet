@@ -16,6 +16,11 @@
 - **Error handling**: Use nullable types with safe calls (`?.`), elvis operator (`?:`)
 - **Documentation**: KDoc style comments for public API methods
 
+## Scope
+- Nested feature maps (a feature whose value is a feature map) are not
+  supported and not planned; don't add tests or features that rely on them.
+  Use lists, or flatten into separate features. See README.md.
+
 ## Patterns
 - Prefer immutable data when possible
 - Use functional programming style with higher-order functions
