@@ -4,9 +4,10 @@ package com.cbrew.unify
  * In the following functions we spell out exactly how unification works.
  * For feature structures, this is term unification with named variables:
  * reentrancy is expressed by using the same ?x variable in several places,
- * and bindings are an immutable map from variable names to values that is
- * threaded through the computation. Failure is signalled by null, so no
- * binding ever needs to be undone. A bound variable's value is unified with
+ * and bindings are an immutable association list (Bindings) from variable
+ * names to values that is threaded through the computation; each new binding
+ * shares the list it extends. Failure is signalled by null, so no binding
+ * ever needs to be undone. A bound variable's value is unified with
  * whatever it meets, so bindings can be refined, and an occurs check keeps
  * bindings acyclic.
  * For semantic terms, things are more restricted: we can bind a semantic
@@ -28,6 +29,9 @@ package com.cbrew.unify
 private typealias UM = Map<CharSequence, Unifiable>
 
 typealias UR = Pair<Unifiable, UM>
+
+// what the unifier returns internally: a UR whose bindings are a Bindings list
+private typealias BR = Pair<Unifiable, Bindings>
 
 fun Unifiable.unify(other: Unifiable): Unifiable? =
         unify(this, other)?.subst()?.canonicalize()
@@ -151,44 +155,44 @@ private fun subterms(item: Unifiable): List<Unifiable> =
 
 
 fun unify(uf1: Unifiable, uf2: Unifiable): UR? =
-        unify(uf1, uf2, mapOf())
+        unify(uf1, uf2, Bindings.EMPTY)
 
-private fun unify(uf1: Unifiable, uf2: Unifiable, bindings: UM): UR? =
+private fun unify(uf1: Unifiable, uf2: Unifiable, bindings: Bindings): BR? =
         when (uf1) {
-            is FstructVar -> bindings.checkBinding(uf1, uf2)
-            is QueryVariable -> bindings.checkBinding(uf1, uf2)
+            is FstructVar -> bindings.bindVariable(uf1, uf2)
+            is QueryVariable -> bindings.bindVariable(uf1, uf2)
             is Lambda -> unifyLU(uf1, uf2, bindings)
             is FeatureStructure -> unifyFU(uf1, uf2, bindings)
         }
 
 
-private fun unifyLU(uf1: Lambda, uf2: Unifiable, bindings: UM): UR? =
+private fun unifyLU(uf1: Lambda, uf2: Unifiable, bindings: Bindings): BR? =
         when (uf2) {
-            is FstructVar -> bindings.checkBinding(uf2, uf1)
-            is QueryVariable -> bindings.checkBinding(uf2, uf1)
+            is FstructVar -> bindings.bindVariable(uf2, uf1)
+            is QueryVariable -> bindings.bindVariable(uf2, uf1)
             is Lambda -> unifyLL(uf1, uf2, bindings)
             is FeatureStructure -> unifyLF(uf1, uf2, bindings)
         }
 
-private fun unifyFU(uf1: FeatureStructure, uf2: Unifiable, bindings: UM): UR? =
+private fun unifyFU(uf1: FeatureStructure, uf2: Unifiable, bindings: Bindings): BR? =
         when (uf2) {
-            is FstructVar -> bindings.checkBinding(uf2, uf1)
-            is QueryVariable -> bindings.checkBinding(uf2, uf1)
+            is FstructVar -> bindings.bindVariable(uf2, uf1)
+            is QueryVariable -> bindings.bindVariable(uf2, uf1)
             is Lambda -> unifyFL(uf1, uf2, bindings)
             is FeatureStructure -> unifyFF(uf1, uf2, bindings)
         }
 
-private fun unifyLL(uf1: Lambda, uf2: Lambda, bindings: UM): UR? =
-        if (uf1 == uf2) UR(uf1, bindings) else null
+private fun unifyLL(uf1: Lambda, uf2: Lambda, bindings: Bindings): BR? =
+        if (uf1 == uf2) BR(uf1, bindings) else null
 @Suppress("UNUSED_PARAMETER")
-private fun unifyLF(uf1: Lambda, uf2: FeatureStructure, bindings: UM): UR? = null
+private fun unifyLF(uf1: Lambda, uf2: FeatureStructure, bindings: Bindings): BR? = null
 @Suppress("UNUSED_PARAMETER")
-private fun unifyFL(uf1: FeatureStructure, uf2: Lambda, bindings: UM): UR? = null
-private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM): UR? =
+private fun unifyFL(uf1: FeatureStructure, uf2: Lambda, bindings: Bindings): BR? = null
+private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: Bindings): BR? =
         if (fs1 is QueryVariable || fs2 is QueryVariable)
             throw Exception("variables should have been caught earlier")
         else if (fs1 == fs2)
-            UR(fs1, bindings)
+            BR(fs1, bindings)
         else if (fs1 is FeatureMap && fs2 is FeatureMap)
             unifyMaps(fs1, fs2, bindings)
         else if (fs1 is FeatureList && fs2 is FeatureList && fs1.elements.size == fs2.elements.size) {
@@ -209,10 +213,10 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM):
 
             }
 
-            UR(FeatureList(newElements), newBindings)
+            BR(FeatureList(newElements), newBindings)
 
         } else if (fs1 is SemanticValue && fs2 is SemanticValue)
-            unify(fs1.value, fs2.value, bindings)?.let { (v, bs) -> UR(SemanticValue(v as Lambda), bs) }
+            unify(fs1.value, fs2.value, bindings)?.let { (v, bs) -> BR(SemanticValue(v as Lambda), bs) }
         else
             null
 
@@ -220,7 +224,7 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM):
 // The result is built in a local map that never escapes except inside the
 // (immutable) FeatureMap. Features only in fs1 come first, then those only in
 // fs2, then shared ones, as in earlier versions.
-private fun unifyMaps(fs1: FeatureMap, fs2: FeatureMap, bindings: UM): UR? {
+private fun unifyMaps(fs1: FeatureMap, fs2: FeatureMap, bindings: Bindings): BR? {
     val result = LinkedHashMap<String, Unifiable>(fs1.size + fs2.size)
     for ((k, v) in fs1) if (k !in fs2) result[k] = v
     for ((k, v) in fs2) if (k !in fs1) result[k] = v
@@ -231,12 +235,12 @@ private fun unifyMaps(fs1: FeatureMap, fs2: FeatureMap, bindings: UM): UR? {
         newBindings = bs
         result[k] = fs
     }
-    return UR(FeatureMap(result), newBindings)
+    return BR(FeatureMap(result), newBindings)
 }
 
-fun UM.checkBinding(uf1: FstructVar, uf2: Unifiable): UR? = bindVariable(uf1, uf2)
+fun UM.checkBinding(uf1: FstructVar, uf2: Unifiable): UR? = Bindings.of(this).bindVariable(uf1, uf2)
 
-fun UM.checkBinding(uf1: QueryVariable, uf2: Unifiable): UR? = bindVariable(uf1, uf2)
+fun UM.checkBinding(uf1: QueryVariable, uf2: Unifiable): UR? = Bindings.of(this).bindVariable(uf1, uf2)
 
 /**
  * Unify the variable [v] with [other]. Both are dereferenced first, so chains
@@ -246,7 +250,7 @@ fun UM.checkBinding(uf1: QueryVariable, uf2: Unifiable): UR? = bindVariable(uf1,
  * QueryVariables range over feature structures and FstructVars over semantic
  * terms; a binding that crosses the two fails.
  */
-private fun UM.bindVariable(v: Unifiable, other: Unifiable): UR? {
+private fun Bindings.bindVariable(v: Unifiable, other: Unifiable): BR? {
     val value = deref(v)
     val target = deref(other)
     return if (!inDomain(v, value) || !inDomain(v, target))
@@ -254,11 +258,11 @@ private fun UM.bindVariable(v: Unifiable, other: Unifiable): UR? {
     else if (!isVariable(value))
         unify(value, other, this)
     else if (value == target)
-        UR(value, this)
+        BR(value, this)
     else if (occurs(value, target))
         null
     else
-        UR(target, this + Pair(name(value), target))
+        BR(target, bind(name(value), target))
 }
 
 private fun inDomain(v: Unifiable, value: Unifiable): Boolean =
@@ -284,16 +288,14 @@ private fun UM.occurs(v: Unifiable, term: Unifiable): Boolean =
 // term, never a bound variable.
 tailrec fun UM.deref(v: Unifiable): Unifiable =
         when (v) {
-            is FstructVar ->
-                if (v.name in this)
-                    deref(this[v.name]!!)
-                else
-                    v
-            is QueryVariable ->
-                if (v.name in this)
-                    deref(this[v.name]!!)
-                else
-                    v
+            is FstructVar -> {
+                val bound = this[v.name]
+                if (bound == null) v else deref(bound)
+            }
+            is QueryVariable -> {
+                val bound = this[v.name]
+                if (bound == null) v else deref(bound)
+            }
             else -> v
         }
 
