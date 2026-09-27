@@ -377,7 +377,32 @@ class IntegratedParserTest {
 
     }
 
+    @Test
+    fun testAlternativesAreSeparateRules() {
+        val g = IntegratedParser.toGrammar(
+                "A[] -> B[] C[] | D[]\n" +
+                "E[f=x] -> \"x\" | \"y\" F[]\n") as Grammar
+        assertEquals(listOf("A[] -> B[] C[]", "A[] -> D[]", "E[f=x] -> \"y\"[] F[]"), g.rules.map { it.toString() },
+                "each alternative is a rule of its own, not merged into one right-hand side")
+        assertEquals(setOf("x", "y"), g.lexicon.keys, "quoted words from every alternative enter the lexicon")
+    }
 
+    @Test
+    fun testWordsAmongCategoriesKeepTheirPlace() {
+        val g = IntegratedParser.toGrammar(
+                "VP[] -> VP[] \"and\" VP[]\n" +
+                "Conj[] -> \"and\"\n" +
+                "Np[] -> \"New\" \"York\"\n") as Grammar
+        assertEquals(listOf("VP[] -> VP[] \"and\"[] VP[]"), g.rules.map { it.toString() },
+                "a word among categories becomes a category of its own, not dropped")
+        assertEquals(setOf("\"and\"[]", "Conj[]"), g.lexicon["and"]!!.map { it.toString() }.toSet())
+        assertEquals(listOf("Np[]"), g.lexicon["New York"]!!.map { it.toString() },
+                "words alone make one phrase")
+        assertEquals(null, g.lexicon["New"])
 
-
+        val chart = Chart(arrayOf("New", "York", "and", "New", "York"))
+        chart.parse(FeatureGrammar(IntegratedParser.toGrammar(
+                "Np[] -> Np[] \"and\" Np[]\nNp[] -> \"New\" \"York\"\n") as Grammar))
+        assertEquals(1, chart.solutions().size)
+    }
 }

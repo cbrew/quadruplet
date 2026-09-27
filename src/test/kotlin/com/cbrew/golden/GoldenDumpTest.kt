@@ -94,7 +94,8 @@ class GoldenDumpTest {
 
         File(dir, "grammar.golden").printWriter().use { out ->
             for ((file, notation) in listOf("demo.fcfg" to "features", "patio.fcfg" to "integrated",
-                    "sem2.fcfg" to "integrated", "tiny.cfg" to "integrated", "tiny2.cfg" to "integrated")) {
+                    "sem2.fcfg" to "integrated", "tiny.cfg" to "integrated", "tiny2.cfg" to "integrated",
+                    "alternatives.fcfg" to "integrated")) {
                 val g = grammar(file, notation)
                 for (r in g.rules) out.println("$file\trule\t${show(r)}\t${show((r as Unifiable).normalized())}")
                 for ((word, entries) in g.lexicon)

@@ -1,0 +1,8 @@
+# Rules with alternatives: each alternative is a separate rule.
+S[sem=<?np(?vp)>] -> NP[sem=<?np>] VP[sem=<?vp>] | VP[sem=<?vp>] NP[sem=<?np>]
+NP[sem=<\P.P(john)>] -> "John" | "Johnny"
+NP[sem=<\P.P(mary)>] -> "Mary"
+VP[sem=<\x.walk(x)>] -> "walks" | "strolls"
+VP[sem=<\x.(walk(x) & talk(x))>] -> VP[sem=<\x.walk(x)>] "and" VP[sem=<\x.talk(x)>] | "walktalks"
+VP[sem=<\x.talk(x)>] -> "talks"
+NP[sem=<\P.P(mary_jane)>] -> "Mary" "Jane"
