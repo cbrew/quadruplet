@@ -520,8 +520,8 @@ private fun createQuantified(isUniversal: Boolean, body: Lambda): Lambda =
 // possibly the quantifier would not bind anything.
 // if so we omit it
         if (!quantifierBinds(body, 1)) shiftQuantifiers(body, 1)
-        else if (body is And && isUniversal) And(body.conjuncts.map(::createUniversal).toSet())
-        else if (body is Or && !isUniversal) Or(body.disjuncts.map(::createExistential).toSet())
+        else if (body is And && isUniversal) And(SmallSet.of(body.conjuncts.map(::createUniversal)))
+        else if (body is Or && !isUniversal) Or(SmallSet.of(body.disjuncts.map(::createExistential)))
         else if (isUniversal) Forall(body)
         else Exists(body)
 
@@ -683,13 +683,17 @@ fun createAnd(conjunct: Lambda, vararg conjuncts: Lambda): Lambda =
             createAnd(listOf(conjunct) + conjuncts.toList())
 
 fun createAnd(conjuncts: List<Lambda>): Lambda {
-    // flatten nested Ands straight into the result set; when there are none
-    // (the usual case, since Ands are built flat) this is a single copy
-    val flat = LinkedHashSet<Lambda>(maxOf(16, conjuncts.size * 2))
-    fun add(item: Lambda) {
-        if (item is And) item.conjuncts.forEach(::add) else flat.add(item)
-    }
-    conjuncts.forEach(::add)
+    // flatten nested Ands, then drop duplicates keeping the first
+    val flat: Set<Lambda> =
+            if (conjuncts.none { it is And }) SmallSet.of(conjuncts)
+            else {
+                val items = ArrayList<Lambda>(conjuncts.size * 2)
+                fun add(item: Lambda) {
+                    if (item is And) item.conjuncts.forEach(::add) else items.add(item)
+                }
+                conjuncts.forEach(::add)
+                SmallSet.of(items)
+            }
 
     return if (flat.size == 1)
         flat.single()
@@ -721,13 +725,17 @@ fun createOr(disjunct: Lambda, vararg disjuncts: Lambda): Lambda =
  */
 
 fun createOr(disjuncts: List<Lambda>): Lambda {
-    // flatten nested Ors straight into the result set; when there are none
-    // (the usual case, since Ors are built flat) this is a single copy
-    val flat = LinkedHashSet<Lambda>(maxOf(16, disjuncts.size * 2))
-    fun add(item: Lambda) {
-        if (item is Or) item.disjuncts.forEach(::add) else flat.add(item)
-    }
-    disjuncts.forEach(::add)
+    // flatten nested Ors, then drop duplicates keeping the first
+    val flat: Set<Lambda> =
+            if (disjuncts.none { it is Or }) SmallSet.of(disjuncts)
+            else {
+                val items = ArrayList<Lambda>(disjuncts.size * 2)
+                fun add(item: Lambda) {
+                    if (item is Or) item.disjuncts.forEach(::add) else items.add(item)
+                }
+                disjuncts.forEach(::add)
+                SmallSet.of(items)
+            }
 
     return if (flat.size == 1)
         flat.single()
@@ -903,7 +911,7 @@ private fun placeBoxes(e: Lambda, bvi: Int): Lambda {
 private inline fun Set<Lambda>.mapSharedSet(f: (Lambda) -> Lambda): Set<Lambda>? {
     var changed = false
     val out = map { x -> f(x).also { if (it !== x) changed = true } }
-    return if (changed) out.toSet() else null
+    return if (changed) SmallSet.of(out) else null
 }
 
 
@@ -1007,8 +1015,8 @@ private fun shift(e: Lambda, amount: Int, bvi: Int): Lambda =
         // unchanged unless some Var(i) under d Lams has i - d > bvi
         if (amount == 0 || e.freeVarDepth <= bvi) e
         else when (e) {
-            is And -> And(e.conjuncts.map { it -> shift(it, amount, bvi) }.toSet())
-            is Or -> Or(e.disjuncts.map { it -> shift(it, amount, bvi) }.toSet())
+            is And -> And(SmallSet.of(e.conjuncts.map { it -> shift(it, amount, bvi) }))
+            is Or -> Or(SmallSet.of(e.disjuncts.map { it -> shift(it, amount, bvi) }))
             is Constant -> e
             is FstructVar -> e
             is Var -> if (e.index > bvi) Var(e.index + amount) else e
