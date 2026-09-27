@@ -53,10 +53,17 @@ func loadGrammar(t testing.TB, file string) *grammar.Grammar {
 	return g
 }
 
+// parsers are the ways a chart can be filled; each must match the goldens.
+var parsers = map[string]func(c *Chart, g Grammar){
+	"agenda":     func(c *Chart, g Grammar) { c.Parse(g) },
+	"wave":       func(c *Chart, g Grammar) { c.ParseParallel(g, 1) },
+	"wave-par-4": func(c *Chart, g Grammar) { c.ParseParallel(g, 4) },
+}
+
 // parseRecord renders a parse the way parse.golden records it.
-func parseRecord(g Grammar, file, sentence string) []string {
+func parseRecord(g Grammar, parse func(*Chart, Grammar), file, sentence string) []string {
 	c := New(strings.Split(sentence, " "))
-	c.Parse(g)
+	parse(c, g)
 	s := c.Stats()
 	out := []string{strings.Join([]string{file, sentence, "stats", strconv.Itoa(s.Completes),
 		strconv.Itoa(s.Partials), strconv.Itoa(s.Solutions), s.Trees.String()}, "\t")}
@@ -99,9 +106,12 @@ func TestParseGolden(t *testing.T) {
 		if grammars[file] == nil {
 			grammars[file] = NewFeatureGrammar(loadGrammar(t, file))
 		}
-		got := parseRecord(grammars[file], file, sentence)
-		if !slices.Equal(got, want[key]) {
-			t.Errorf("%s:\n got  %s\n want %s", key, strings.Join(got, "\n      "), strings.Join(want[key], "\n      "))
+		for name, parse := range parsers {
+			got := parseRecord(grammars[file], parse, file, sentence)
+			if !slices.Equal(got, want[key]) {
+				t.Errorf("%s %s:\n got  %s\n want %s", name, key,
+					strings.Join(got, "\n      "), strings.Join(want[key], "\n      "))
+			}
 		}
 	}
 }
@@ -109,12 +119,14 @@ func TestParseGolden(t *testing.T) {
 func TestTreeGrammarGolden(t *testing.T) {
 	for _, rec := range readGolden(t, "treeas.golden") {
 		n, _ := strconv.Atoi(rec[0])
-		c := New(slices.Repeat([]string{"a"}, n))
-		c.Parse(TreeGrammar{})
-		s := c.Stats()
-		got := []string{rec[0], strconv.Itoa(s.Completes), strconv.Itoa(s.Partials), s.Trees.String()}
-		if !slices.Equal(got, rec) {
-			t.Errorf("n=%d: got %v, want %v", n, got, rec)
+		for name, parse := range parsers {
+			c := New(slices.Repeat([]string{"a"}, n))
+			parse(c, TreeGrammar{})
+			s := c.Stats()
+			got := []string{rec[0], strconv.Itoa(s.Completes), strconv.Itoa(s.Partials), s.Trees.String()}
+			if !slices.Equal(got, rec) {
+				t.Errorf("%s n=%d: got %v, want %v", name, n, got, rec)
+			}
 		}
 	}
 }
