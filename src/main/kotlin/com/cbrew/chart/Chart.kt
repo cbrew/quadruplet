@@ -23,7 +23,7 @@ import kotlin.collections.set
 
 class Chart(val completes: Array<MutableSet<Complete>>,
             val partials: Array<MutableSet<Partial>>,
-            val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>,
+            val predecessors: MutableMap<Edge, MutableList<Pair<Partial, Complete>>>,
             val spans: MutableList<Span>,
             val sentence: Array<String>) {
 
@@ -57,14 +57,12 @@ class Chart(val completes: Array<MutableSet<Complete>>,
     fun pairwithcompletes(p: Partial): List<Edge> =
             completes[p.end].mapNotNull { c -> fundamental(p, c)?.let { e -> recordPredecessors(p, c, e); e } }
 
-    // record a predecessor relationship.
+    // Record a predecessor relationship. Each (partial, complete) pair is
+    // formed exactly once, when the later of the two enters the chart, so a
+    // list holds an edge's predecessors without duplicates.
 
     private fun recordPredecessors(p: Partial, c: Complete, created: Edge) {
-        val pair = Pair(p, c)
-        if (created in predecessors)
-            predecessors[created]?.add(pair)
-        else
-            predecessors[created] = mutableSetOf(pair)
+        predecessors.getOrPut(created) { ArrayList(2) }.add(Pair(p, c))
     }
 
     // count the number of distinct trees under an edge. Sub-forests are
@@ -156,7 +154,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
 
 
     // comparator that puts complete edges first
-    class CompleteComparator(val predecessors: MutableMap<Edge, MutableSet<Pair<Partial, Complete>>>): Comparator<Complete> {
+    class CompleteComparator(val predecessors: MutableMap<Edge, MutableList<Pair<Partial, Complete>>>): Comparator<Complete> {
         fun creates(e1: Complete, e2: Complete): Boolean {
             // read as e1 creates e2
             val pairs = predecessors[e2]

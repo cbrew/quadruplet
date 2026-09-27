@@ -218,4 +218,16 @@ class ChartTest {
         assertEquals(8, sems.toSet().size)
         assertEquals(8, sems.map { it.hashCode() }.toSet().size)
     }
+
+    @Test
+    fun testPredecessorPairsAreDistinct() {
+        // predecessors are kept in lists, relying on each pair being formed once
+        val charts = listOf(
+                Chart(Array(12) { "a" }).also { it.parse(TreeAsFeatureGrammar()) },
+                parseSem2("John sees a dog with a boy with a girl with a dog"))
+        for (chart in charts) {
+            for ((edge, pairs) in chart.predecessors)
+                assertEquals(pairs.size, pairs.toSet().size, "duplicate predecessor pair for $edge")
+        }
+    }
 }
