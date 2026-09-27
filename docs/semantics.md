@@ -86,6 +86,59 @@ found" is
 And predicative "be" is identity: "Dublin is a young city" says Dublin
 is identical to some young city (inside a state, as section 2 explains).
 
+### Scope, and scope ambiguity
+
+The *scope* of a quantifier, a negation or a modal is the part of the
+formula it governs. In logic the order of quantifiers matters:
+∀x∃y.loves(x, y) says everyone loves someone or other, while
+∃y∀x.loves(x, y) says there is one person everyone loves. The second
+entails the first, but not the other way round.
+
+A sentence is *scope ambiguous* when one syntactic structure allows more
+than one order of this kind. "every architect found a house" has two
+readings:
+
+    ∀x.(architect(x) → ∃y.(house(y) ∧ find(x, y)))     each architect found some house or other
+    ∃y.(house(y) ∧ ∀x.(architect(x) → find(x, y)))     there is one house every architect found
+
+The first is the *surface scope* reading, since the quantifiers come in
+the order of the words; the second is the *inverse scope* reading.
+Negation does the same. "Dave didn't find a book" can mean that he found
+no book (¬∃) or that there is a book he didn't find (∃¬).
+
+This is not the kind of ambiguity a parser usually finds. In "a guy walks
+into a bar with a small dog" the two readings come from two trees, with
+the PP attached in different places. In "every architect found a house"
+there is only one tree, and the ambiguity is in how the meanings of its
+parts are put together. So a theory has to add something to produce the
+inverse reading. Montague added *quantifying-in*: a rule that builds the
+sentence around a placeholder pronoun and brings the quantifier in at the
+end, outside everything else. Cooper (1983) put quantifiers in a store
+and let them out later, in any order, when a clause is complete.
+Transformational grammar moves them, at an abstract level of syntax
+called Logical Form, by "quantifier raising" (May 1977; Heim and Kratzer
+1998). Continuations do it by letting any expression take
+scope over a larger stretch of the sentence (section 4). And much
+grammar-based NLP, such as the English Resource Grammar's Minimal
+Recursion Semantics (Copestake et al. 2005), does not choose at all: it
+outputs one underspecified representation that leaves the order open.
+
+With *n* quantifiers there can be up to *n*! orders, and some of them are
+logically equivalent, so producing every scoping multiplies the readings
+quickly. A benchmark that enumerated them would be a very different
+benchmark.
+
+quadruplet's grammars have none of these devices. Each tree gets exactly
+one meaning, and that meaning has surface scope:
+
+    every architect found a house
+    ∀x1.(architect(x1) → ∃x2.(house(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ find(x3))))
+
+    Dave did n't find a book
+    ¬∃x1.(book(x1) ∧ ∃x2.(Agent(x2, dave) ∧ Theme(x2, x1) ∧ find(x2)))
+
+(The `∃x3` and `∃x2` over events are explained in sections 2 and 3.)
+
 ### What we leave out of PTQ
 
 Enough that "Montague-style" alone oversells the grammar:
@@ -97,11 +150,9 @@ Enough that "Montague-style" alone oversells the grammar:
   operators.
 * **No tense.** Past and present forms mean the same. The perfect and the
   progressive are uninterpreted operators, `perf(…)` and `prog(…)`.
-* **No quantifying-in, so no scope ambiguity.** PTQ derives both scopes
-  of "every guy saw a dog" by letting a quantifier bind a pronoun from
-  outside. We have no such rule, no Cooper storage and no quantifier
-  raising. Every reading has surface scope, section 4 says why, and
-  every ambiguity the parser finds is structural or lexical.
+* **No quantifying-in, so no scope ambiguity.** As the previous section
+  says, every reading has surface scope. Section 4 says why, and every
+  ambiguity the parser finds is structural or lexical.
 * **No bound pronouns or anaphora.** Pronouns are constants: "every Japan
   veteran has his list" gives `of(x2, he)`, not the veteran's list.
 
@@ -388,6 +439,7 @@ Collected from above, for anyone deciding what version 1 should be:
 | continuation, continuized | a meaning that takes "the rest of the sentence" as an argument. Our NPs (Montague) and verbs (Champollion) are continuized individuals and events. We do not use continuations for scope-taking |
 | closure | applying a sentence to `\e.true` at the top, or in embedded clauses and relative clauses |
 | slash category (`VPgap`, `Sgap`) | a constituent missing an NP, whose meaning abstracts over it (GPSG) |
+| scope, scope ambiguity | the part of a formula a quantifier, negation or modal governs; a sentence is scope ambiguous when one structure allows several orders. We give only the surface order |
 | reading | a distinct meaning of a whole sentence: a complete `Top` edge |
 | tree | one derivation of a whole sentence; several trees may share a reading |
 
@@ -401,10 +453,12 @@ Collected from above, for anyone deciding what version 1 should be:
 * Bos, J. (2023). The sequence notation: catching complex meanings in simple graphs. *IWCS 2023*, 195–208.
 * Champollion, L. (2015). The interaction of compositional semantics and event semantics. *Linguistics and Philosophy* 38, 31–66.
 * Cooper, R. (1983). *Quantification and Syntactic Theory*. Reidel.
+* Copestake, A., Flickinger, D., Pollard, C. and Sag, I. (2005). Minimal Recursion Semantics: an introduction. *Research on Language and Computation* 3, 281–332.
 * Davidson, D. (1967). The logical form of action sentences. In N. Rescher (ed.), *The Logic of Decision and Action*.
 * Gazdar, G. (1981). Unbounded dependencies and coordinate structure. *Linguistic Inquiry* 12, 155–184.
 * Gazdar, G., Klein, E., Pullum, G. and Sag, I. (1985). *Generalized Phrase Structure Grammar*. Blackwell.
 * Heim, I. and Kratzer, A. (1998). *Semantics in Generative Grammar*. Blackwell.
+* May, R. (1977). *The Grammar of Quantification*. PhD thesis, MIT.
 * Montague, R. (1973). The proper treatment of quantification in ordinary English. In J. Hintikka et al. (eds.), *Approaches to Natural Language*.
 * Parsons, T. (1990). *Events in the Semantics of English*. MIT Press.
 * Russell, B. (1905). On denoting. *Mind* 14, 479–493.
