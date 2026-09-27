@@ -79,7 +79,8 @@ A grammar whose categories have no features to unify is context-free, and
 package `cfg` parses it without the feature machinery. The method is that
 of the LCFRS parser in
 [cbrew/odd_one_out](https://github.com/cbrew/odd_one_out) (`internal/lcfrs`),
-specialised to context-free rules:
+specialised to context-free rules
+([`docs/fast-parser.md`](../docs/fast-parser.md) explains it at length):
 
 * symbols are integers, and rules of more than two daughters are binarized
   left to right, with the prefixes shared between rules (`|NP VP`);

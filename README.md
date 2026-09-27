@@ -28,6 +28,7 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/masc/masc.fcfg -start Top
 | [`src/test/resources/masc`](src/test/resources/masc/README.md) | the MASC grammar v0 and its benchmark: 299 treebank sentences, 284 of which it parses, and a held-out sample of 299 more |
 | `tools/masc` | the scripts that chose the MASC sample and generate the grammar's lexicon and correctness suite |
 | [`docs/semantics.md`](docs/semantics.md) | what kind of semantics the grammars have, and where the ideas come from |
+| [`docs/fast-parser.md`](docs/fast-parser.md) | how the fast context-free parser (`go/cfg`) works, and what a hyperedge is |
 
 ## Building and testing
 
