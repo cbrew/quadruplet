@@ -1,7 +1,7 @@
 # MASC grammar v0
 
-A grammar with Montague-style event semantics, and 299 real sentences to
-parse with it, for testing and timing the parser on something bigger than a
+A grammar with an extensional Montague semantics and quantificational event
+semantics, and 299 real sentences to parse with it, for testing and timing the parser on something bigger than a
 toy. This is version 0 of the grammar: it parses 284 of the sentences (95%),
 and the [known failures](#known-failures) are listed below.
 
@@ -39,7 +39,10 @@ Words are lower-cased unless tagged NNP; PTB tokenisation (`do n't`,
 The rules, at the top of `masc.fcfg`, are written by hand for these
 sentences. The notes there give the semantic types and features.
 
-The semantics is Montague's with neo-Davidsonian events, following
+[`docs/semantics.md`](../../../../docs/semantics.md) explains the ideas
+behind the grammar, and what it does and doesn't take from each. In
+brief, the semantics is Montague's, extensional and without quantifying-in,
+with neo-Davidsonian events, following
 Champollion's quantificational event semantics (*The interaction of
 compositional semantics and event semantics*, Linguistics and Philosophy
 38, 2015), and in the spirit of the Parallel Meaning Bank (Johan Bos, *The
@@ -50,8 +53,8 @@ its subject and then a condition on its event:
 
     walks            \x F.exists e.(walk(e) & Agent(e, x) & F(e))
 
-so the event quantifier takes scope below every noun phrase, negation and
-modal. PPs, manner, place and time adverbs, particles and purpose clauses
+so the event quantifier takes scope below the verb's arguments, negation
+and modals. PPs, manner, place and time adverbs, particles and purpose clauses
 are predicates of the event; other adverbs, negation, auxiliaries and
 subordinating conjunctions are operators on propositions. A sentence is
 closed with `\e.true`, which conjunction drops. Predicates are lemmas,

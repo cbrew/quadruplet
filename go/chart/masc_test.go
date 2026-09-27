@@ -15,7 +15,7 @@ import (
 )
 
 // The MASC benchmark: sentences from the MASC Penn Treebank and a grammar
-// with Montague-style semantics written for them, in
+// with Montague and event semantics written for them, in
 // src/test/resources/masc (see the README there).
 
 type mascSentence struct {
