@@ -1,6 +1,7 @@
-## masc.fcfg, version 0: a benchmark grammar with Montague-style event
-## semantics, written for sentences sampled from the MASC Penn Treebank
-## (see README.md).
+## masc.fcfg, version 0: a benchmark grammar with an extensional Montague
+## semantics and quantificational event semantics, written for sentences
+## sampled from the MASC Penn Treebank (see README.md). docs/semantics.md
+## explains the ideas behind it.
 ##
 ## The rules are written by hand. The lexicon, at the end of the file, is
 ## generated from the sample's trees by tools/masc/lexicon.py, which
@@ -15,8 +16,8 @@
 ##   walks            \x F.exists e.(walk(e) & Agent(e, x) & F(e))
 ##   sees every dog   \x F.all y.(dog(y) -> exists e.(see(e) & Agent(e, x) & Theme(e, y) & F(e)))
 ##
-## so the event quantifier always takes lowest scope, below quantified
-## noun phrases, negation and modals. Modifiers of the event (PPs, manner
+## so the event quantifier takes scope below the verb's arguments,
+## negation and modals (but above quantifiers inside modifiers). Modifiers of the event (PPs, manner
 ## and place adverbs, particles, purpose clauses) are added to F; a
 ## sentence is closed with \e.true, which conjunction drops.
 ##
