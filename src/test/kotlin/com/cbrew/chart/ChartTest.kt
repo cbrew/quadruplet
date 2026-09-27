@@ -190,4 +190,32 @@ class ChartTest {
                 Pair("x", com.cbrew.unify.AtomicValue("u")),
                 Pair("sem", com.cbrew.unify.SemanticValue(com.cbrew.unify.Constant("p"))))), 0, 1), result)
     }
+
+    private val sem2 by lazy {
+        FeatureGrammar(IntegratedParser.toGrammar(
+                Chart::class.java.getResource("/sem2.fcfg").readText()) as Grammar)
+    }
+
+    private fun parseSem2(sentence: String): Chart =
+            Chart(sentence.split(" ").toTypedArray()).also { it.parse(sem2) }
+
+    @Test
+    fun testSem2() {
+        val chart = parseSem2("John sees a dog")
+        assertEquals(listOf("<∃.((dog(q:1) ∧ see(john, q:1)))>"),
+                chart.solutions().map { (it.category as com.cbrew.unify.FeatureMap)["sem"].toString() })
+        assertEquals(0, parseSem2("a dog bark").solutions().size, "number agreement")
+        assertEquals(1, parseSem2("Mary walks in Noosa").solutions().size, "in needs a +loc object")
+    }
+
+    @Test
+    fun testSem2PPAttachment() {
+        // Each PP attaches to the verb phrase or to the preceding noun, giving
+        // 2^k readings, each with its own semantics (and its own hash code).
+        val chart = parseSem2("John sees a dog with a boy with a girl with a dog")
+        val sems = chart.solutions().map { (it.category as com.cbrew.unify.FeatureMap)["sem"]!! }
+        assertEquals(8, sems.size)
+        assertEquals(8, sems.toSet().size)
+        assertEquals(8, sems.map { it.hashCode() }.toSet().size)
+    }
 }
