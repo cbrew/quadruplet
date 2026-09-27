@@ -1,0 +1,24 @@
+demo.fcfg	features	cat
+demo.fcfg	features	cat cat dog
+demo.fcfg	features	dog cat dog cat cat dog
+demo.fcfg	features	bird
+patio.fcfg	integrated	I need an umbrella
+patio.fcfg	integrated	I want a umbrella
+patio.fcfg	integrated	I need I
+patio.fcfg	integrated	an umbrella
+sem2.fcfg	integrated	John sees a dog
+sem2.fcfg	integrated	every boy chases a dog with Fido
+sem2.fcfg	integrated	Mary walks in Noosa
+sem2.fcfg	integrated	all dogs bark
+sem2.fcfg	integrated	a dog bark
+sem2.fcfg	integrated	some girls see Suzie
+sem2.fcfg	integrated	John sees a dog with a boy with a girl with a dog
+sem2.fcfg	integrated	who walks
+sem2.fcfg	integrated	Fido walks in a dog
+tiny.cfg	integrated	John
+tiny.cfg	integrated	John and Mary
+tiny.cfg	integrated	Sarah Beth or dogs
+tiny.cfg	integrated	a dog and a cat or Tina
+tiny2.cfg	integrated	John and Mary
+tiny2.cfg	integrated	Sarah Beth or dogs
+tiny2.cfg	integrated	dogs or cats and Chloe

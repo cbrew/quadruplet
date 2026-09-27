@@ -1,0 +1,131 @@
+(\P . P(a))(x,y,z)
+(\P . P)(x,y,z)
+(jim | jonah | jeffy)
+?abc
+?x
+?x & ?x
+?x | ?x
+?x(?x)
+?y
+@x
+Abc
+P
+P(x)
+P(x,y,z)
+Q12
+\ P. P
+\ P. P (?x)
+\ a. a
+\ x . (a <-> x)
+\ x . (x <-> b)
+\ x y . (y <-> x)
+\P x . P(x)
+\x . x
+\x y . x
+a
+a & b
+a & b & c
+a & b | c
+a -> b
+a <-> b
+a == b
+a | b
+a | b & c
+a | b | c
+a ∧ b
+a ∨ b
+a(?x)
+a(a)
+a91
+abc
+a|b|c
+a|b|forall q . q
+exists a. a
+exists x . (a <-> x)
+exists x . (x <-> b)
+exists x . x
+exists x y . (y <-> x)
+exists x. x
+forall a. a
+forall x . (a <-> x)
+forall x . (x <-> b)
+forall x . x
+forall x y . (y <-> x)
+forall x y. y(x)
+jim & jonah & jeffy
+x
+x != y
+x -> y
+x <-> y
+x <>  y
+x = y
+x == y
+x → y
+x ↔ y
+x ≠ y
+zombie(?x)
+~ a
+~ x
+λ x . x
+∀ x . x
+∃ x . x
+a & b -> c
+a -> b & c
+a | b -> c | d
+a -> b -> c
+a <-> b -> c
+-a & b
+-(a & b)
+--a
+- - a
+-a | -b
+-(-a | -b)
+a != b
+a <> b
+a ≠ b
+a = b
+a → b
+a ↔ b
+exists x . P(x) & Q(x)
+exists x. (P(x) & Q(x))
+all x . (P(x) -> Q(x))
+forall x y . R(x,y)
+\P Q . exists x . (P(x) & Q(x))
+\X y . X(\x . chase(y,x))
+\x . \y . f(x, y)
+(\x . f(x))(c)
+(\x . f(x, x))(g(c))
+(\P . P(john))(\x . walk(x))
+(\x y . f(x,y))(a)(b)
+(\x y . f(x,y))(a, b)
+(\P Q . all x . (P(x) -> Q(x)))(\x . dog(x))
+(\P Q . exists x . (P(x) & Q(x)))(\x . dog(x))(\y . bark(y))
+exists x . a
+all x . a
+exists x . (a & P(x))
+all x . (P(x) & Q(x))
+exists x . (P(x) | Q(x))
+exists x . -P(x)
+-(P & Q)
+-(-a & -b)
+(-a & -b)
+(-a | -b)
+f(g(h(x)))
+f(x)(y)
+?x(?y, ?z)
+a & a
+a | a | b
+(a & b) & (c & a)
+☐
+p ∧ q ∨ r
+sarah_beth
+x1 & y2
+'quoted'
+a;b
+10
+%
+
+(
+a &
+exists . a
+\ . x
