@@ -6,10 +6,13 @@ sealed class Unifiable {
      * True if the term contains no variables, so that substitution and
      * renaming can return it unchanged. Composite terms compute this once,
      * when they are built (terms are immutable), and also cache their hash
-     * codes. The cached hash is the one the data class would generate, so
-     * hashing behaves exactly as before, just without re-walking the term.
-     * List and tuple expressions are never ground, since substitution may
-     * still simplify them.
+     * codes, so hashing never re-walks the term. Feature structures use the
+     * hash the data class would generate. Composite lambda terms mix in a
+     * per-constructor salt, and And/Or scramble each element's hash before
+     * summing, because the generated hashes made Exists(b), Forall(b), Lam(b)
+     * and Not(b) all collide with b, and PP-attachment variants of the same
+     * formula then share buckets. List and tuple expressions are never
+     * ground, since substitution may still simplify them.
      */
     open val ground: Boolean get() = true
 
@@ -217,7 +220,7 @@ data class QVar(val index: Int) : Lambda() {
 
 data class Lam(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
-    private val hash: Int = body.hashCode()
+    private val hash: Int = body.hashCode() * 31 + 1
     override fun hashCode(): Int = hash
 
     override fun toString(): String {
@@ -227,7 +230,7 @@ data class Lam(val body: Lambda) : Lambda() {
 
 data class Forall(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
-    private val hash: Int = body.hashCode()
+    private val hash: Int = body.hashCode() * 31 + 2
     override fun hashCode(): Int = hash
 
     override fun toString(): String = "\u2200.(${body})"
@@ -237,7 +240,7 @@ data class Forall(val body: Lambda) : Lambda() {
 
 data class Exists(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
-    private val hash: Int = body.hashCode()
+    private val hash: Int = body.hashCode() * 31 + 3
     override fun hashCode(): Int = hash
 
     override fun toString(): String = "\u2203.(${body})"
@@ -247,7 +250,7 @@ data class Exists(val body: Lambda) : Lambda() {
 
 data class App(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val ground: Boolean = e1.ground && e2.ground
-    private val hash: Int = e1.hashCode() * 31 + e2.hashCode()
+    private val hash: Int = (e1.hashCode() * 31 + e2.hashCode()) * 31 + 7
     override fun hashCode(): Int = hash
 
     override fun toString(): String {
@@ -268,12 +271,12 @@ data class App(val e1: Lambda, val e2: Lambda) : Lambda() {
 
 data class Not(val body: Lambda) : Lambda() {
     override val ground: Boolean = body.ground
-    private val hash: Int = body.hashCode()
+    private val hash: Int = body.hashCode() * 31 + 4
     override fun hashCode(): Int = hash
 }
 data class And(val conjuncts: Set<Lambda>) : Lambda() {
     override val ground: Boolean = conjuncts.all { it.ground }
-    private val hash: Int = conjuncts.hashCode()
+    private val hash: Int = conjuncts.sumOf { mixHash(it.hashCode()) } * 31 + 8
     override fun hashCode(): Int = hash
 
     override fun toString(): String {
@@ -283,7 +286,7 @@ data class And(val conjuncts: Set<Lambda>) : Lambda() {
 
 data class Or(val disjuncts: Set<Lambda>) : Lambda() {
     override val ground: Boolean = disjuncts.all { it.ground }
-    private val hash: Int = disjuncts.hashCode()
+    private val hash: Int = disjuncts.sumOf { mixHash(it.hashCode()) } * 31 + 9
     override fun hashCode(): Int = hash
 
     override fun toString(): String {
@@ -293,12 +296,12 @@ data class Or(val disjuncts: Set<Lambda>) : Lambda() {
 
 data class Implies(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val ground: Boolean = e1.ground && e2.ground
-    private val hash: Int = e1.hashCode() * 31 + e2.hashCode()
+    private val hash: Int = (e1.hashCode() * 31 + e2.hashCode()) * 31 + 5
     override fun hashCode(): Int = hash
 }
 data class Equiv(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val ground: Boolean = e1.ground && e2.ground
-    private val hash: Int = e1.hashCode() * 31 + e2.hashCode()
+    private val hash: Int = (e1.hashCode() * 31 + e2.hashCode()) * 31 + 6
     override fun hashCode(): Int = hash
 }
 
@@ -321,3 +324,13 @@ data class Integer(val value: Int) : FeatureStructure() {
 
 fun atomicMap(atom: String): FeatureMap =
         FeatureMap(mapOf(Pair("cat", AtomicValue(atom))))
+
+// MurmurHash3 finalizer: spreads the bits of a hash before it is summed.
+internal fun mixHash(h0: Int): Int {
+    var h = h0
+    h = h xor (h ushr 16)
+    h *= -0x7a143595
+    h = h xor (h ushr 13)
+    h *= -0x3d4d51cb
+    return h xor (h ushr 16)
+}

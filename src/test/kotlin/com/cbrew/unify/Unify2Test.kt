@@ -6,6 +6,7 @@ import com.cbrew.unify.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -363,5 +364,13 @@ class Unify2Test {
         assertEquals(SemanticValue(App(Constant("f"), Constant("c"))), norm,
                 "double negation removed and the beta redex reduced")
         assertEquals(norm, norm.normalized(), "normalization is idempotent")
+    }
+
+    @Test
+    fun testLambdaHashesDistinguishConstructors() {
+        val b = App(Constant("f"), QVar(1))
+        val hashes = listOf(b, Exists(b), Forall(b), Lam(b), Not(b)).map { it.hashCode() }
+        assertEquals(5, hashes.toSet().size)
+        assertNotEquals(And(setOf(b, Exists(b))).hashCode(), Or(setOf(b, Exists(b))).hashCode())
     }
 }
