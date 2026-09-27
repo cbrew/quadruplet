@@ -3,6 +3,7 @@ package com.cbrew.chart
 
 import com.cbrew.unify.FeatureMap
 import com.cbrew.unify.FeatureStructure
+import com.cbrew.unify.Unifiable
 import com.cbrew.unify.renamedApartFrom
 import com.cbrew.unify.subst
 import com.cbrew.unify.unify
@@ -26,7 +27,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
             val spans: MutableList<Span>,
             val sentence: Array<String>) {
 
-    private val agenda: PriorityQueue<Edge> = PriorityQueue(edgeComparator)
+    private val agenda: PriorityQueue<Edge> = PriorityQueue(agendaOrder)
 
     constructor(sentence: Array<String>) : this(
             completes = Array(sentence.size + 1, { _ -> mutableSetOf<Complete>() }),
@@ -128,6 +129,17 @@ class Chart(val completes: Array<MutableSet<Complete>>,
         }
 
 
+
+    /**
+     * Agenda order: left to right by start, then end. The order in which
+     * edges come off the agenda does not change the finished chart, so ties
+     * are left to the queue rather than broken by comparing (expensive)
+     * printed categories, as edgeComparator does for display.
+     */
+    object agendaOrder : Comparator<Edge> {
+        override fun compare(o1: Edge, o2: Edge): Int =
+                if (o1.start != o2.start) o1.start - o2.start else o1.end - o2.end
+    }
 
     object edgeComparator : Comparator<Edge> {
         override fun compare(o1: Edge?, o2: Edge?): Int =
@@ -253,8 +265,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
      * first, since a shared name does not mean a shared variable.
      */
     fun fundamental(partial: Partial, complete: Complete): Edge? =
-            unify(partial.needed.first(),
-                    complete.category.renamedApartFrom(partial.category, *partial.needed.toTypedArray()))
+            unify(partial.needed.first(), renamedApart(complete.category, partial.category, partial.needed))
                     ?.let { (_, bindings) ->
                         makeEdge(bindings.subst(partial.category),
                                 partial.start,
@@ -263,6 +274,10 @@ class Chart(val completes: Array<MutableSet<Complete>>,
                     }
 
 
+
+    // checks ground first, so the common case allocates nothing
+    private fun renamedApart(term: Unifiable, category: Unifiable, needed: List<Unifiable>): Unifiable =
+            if (term.ground) term else term.renamedApartFrom(listOf(category) + needed)
 
     fun nonterminals(): List<Span> {
         return sortedEdges().filter {predecessors.containsKey(it)}.map {Span((it.category as FeatureMap)["cat"].toString(),it.start,it.end)}

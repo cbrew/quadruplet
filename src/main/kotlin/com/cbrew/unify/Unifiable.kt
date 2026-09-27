@@ -2,6 +2,17 @@ package com.cbrew.unify
 
 sealed class Unifiable {
 
+    /**
+     * True if the term contains no variables, so that substitution and
+     * renaming can return it unchanged. Composite terms compute this once,
+     * when they are built (terms are immutable), and also cache their hash
+     * codes. The cached hash is the one the data class would generate, so
+     * hashing behaves exactly as before, just without re-walking the term.
+     * List and tuple expressions are never ground, since substitution may
+     * still simplify them.
+     */
+    open val ground: Boolean get() = true
+
 
     fun label(): String =
             when (this) {
@@ -27,23 +38,37 @@ data class AtomicValue(val value: String) : FeatureStructure() {
     }
 }
 data class SemanticValue(val value: Lambda) : FeatureStructure() {
+    override val ground: Boolean = value.ground
+    private val hash: Int = value.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return "<${value}>"
     }
 }
 
 data class QueryVariable(val name: String) : FeatureStructure() {
+    override val ground: Boolean get() = false
+
     override fun toString(): String {
         return name
     }
 }
 
 data class FeatureList(val elements: List<Unifiable>) : FeatureStructure() {
+    override val ground: Boolean = elements.all { it.ground }
+    private val hash: Int = elements.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String = "[${elements.joinToString()}]"
 }
 
 
 data class FeatureListExpression(val elements: List<Unifiable>) : FeatureStructure() {
+    override val ground: Boolean = false
+    private val hash: Int = elements.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String = "[${elements.joinToString()}]"
 
     fun simplify(): FeatureStructure {
@@ -76,11 +101,19 @@ data class FeatureListExpression(val elements: List<Unifiable>) : FeatureStructu
 
 
 data class FeatureTuple(val elements: List<Unifiable>) : FeatureStructure() {
+    override val ground: Boolean = elements.all { it.ground }
+    private val hash: Int = elements.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String = "[${elements.joinToString()}]"
 }
 
 
 data class FeatureTupleExpression(val elements: List<Unifiable>) : FeatureStructure() {
+    override val ground: Boolean = false
+    private val hash: Int = elements.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String = "[${elements.joinToString()}]"
     fun simplify(): FeatureStructure {
 
@@ -114,6 +147,10 @@ fun emptyFeatureList(): FeatureList = FeatureList(listOf())
 
 data class FeatureMap(private val delegate: Map<String, Unifiable>) :
         FeatureStructure(), Map<String, Unifiable> by delegate {
+    override val ground: Boolean = delegate.values.all { it.ground }
+    private val hash: Int = delegate.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return if ("cat" in this)
             "${this["cat"]}${(this - "cat").asIterable()}"
@@ -124,6 +161,9 @@ data class FeatureMap(private val delegate: Map<String, Unifiable>) :
 
 
 data class Grammar(val rules: Set<Rule>, val lexicon: Map<String, Set<FeatureMap>>) : FeatureStructure() {
+    // not ground, so that substituting into a grammar still reports an error
+    override val ground: Boolean get() = false
+
     override fun toString(): String =
             "rules\n${rules.joinToString(separator = "\n")}\nlexicon\n${lexicon.asIterable()
                     .joinToString(separator = "\n")}"
@@ -134,6 +174,10 @@ fun emptyGrammar(): Grammar = Grammar(setOf(), mapOf())
 interface Rule
 
 data class CfgRule(val lhs: FeatureMap, val rhs: List<FeatureMap>, val words: List<Unifiable>) : Rule, FeatureStructure() {
+    override val ground: Boolean = lhs.ground && rhs.all { it.ground }
+    private val hash: Int = (lhs.hashCode() * 31 + rhs.hashCode()) * 31 + words.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return "${lhs} -> ${rhs.joinToString(separator = " ")}"
     }
@@ -143,6 +187,10 @@ data class CfgRule(val lhs: FeatureMap, val rhs: List<FeatureMap>, val words: Li
 data class McfgRule(val lhs: FeatureMap,
                     val rhs: List<FeatureMap>,
                     val linseq: FeatureList) : FeatureStructure(), Rule {
+    override val ground: Boolean = lhs.ground && rhs.all { it.ground }
+    private val hash: Int = (lhs.hashCode() * 31 + rhs.hashCode()) * 31 + linseq.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return "${lhs} => ${rhs.joinToString(separator = " ")}: <${linseq.elements.joinToString()}>"
     }
@@ -168,24 +216,40 @@ data class QVar(val index: Int) : Lambda() {
 }
 
 data class Lam(val body: Lambda) : Lambda() {
+    override val ground: Boolean = body.ground
+    private val hash: Int = body.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return "\u03BB.($body)"
     }
 }
 
 data class Forall(val body: Lambda) : Lambda() {
+    override val ground: Boolean = body.ground
+    private val hash: Int = body.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String = "\u2200.(${body})"
     // TODO hide DeBruijn notation
 
 }
 
 data class Exists(val body: Lambda) : Lambda() {
+    override val ground: Boolean = body.ground
+    private val hash: Int = body.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String = "\u2203.(${body})"
     // TODO hide DeBruijn notation
 
 }
 
 data class App(val e1: Lambda, val e2: Lambda) : Lambda() {
+    override val ground: Boolean = e1.ground && e2.ground
+    private val hash: Int = e1.hashCode() * 31 + e2.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         val acc = uncurry()
         return "${acc.get(0)}(${acc.subList(1,acc.size).joinToString(", ")})"
@@ -202,23 +266,45 @@ data class App(val e1: Lambda, val e2: Lambda) : Lambda() {
     }
 }
 
-data class Not(val body: Lambda) : Lambda()
+data class Not(val body: Lambda) : Lambda() {
+    override val ground: Boolean = body.ground
+    private val hash: Int = body.hashCode()
+    override fun hashCode(): Int = hash
+}
 data class And(val conjuncts: Set<Lambda>) : Lambda() {
+    override val ground: Boolean = conjuncts.all { it.ground }
+    private val hash: Int = conjuncts.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return "(${conjuncts.joinToString(separator = " \u2227 ")})"
     }
 }
 
 data class Or(val disjuncts: Set<Lambda>) : Lambda() {
+    override val ground: Boolean = disjuncts.all { it.ground }
+    private val hash: Int = disjuncts.hashCode()
+    override fun hashCode(): Int = hash
+
     override fun toString(): String {
         return "(${disjuncts.joinToString(separator = " \u2228 ")})"
     }
 }
 
-data class Implies(val e1: Lambda, val e2: Lambda) : Lambda()
-data class Equiv(val e1: Lambda, val e2: Lambda) : Lambda()
+data class Implies(val e1: Lambda, val e2: Lambda) : Lambda() {
+    override val ground: Boolean = e1.ground && e2.ground
+    private val hash: Int = e1.hashCode() * 31 + e2.hashCode()
+    override fun hashCode(): Int = hash
+}
+data class Equiv(val e1: Lambda, val e2: Lambda) : Lambda() {
+    override val ground: Boolean = e1.ground && e2.ground
+    private val hash: Int = e1.hashCode() * 31 + e2.hashCode()
+    override fun hashCode(): Int = hash
+}
 
 data class FstructVar(val name: String) : Lambda() {
+    override val ground: Boolean get() = false
+
     override fun toString(): String {
         return name
     }

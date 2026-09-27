@@ -46,7 +46,8 @@ Parse time only, TreeAsFeatureGrammar:
 
 | n=170 | time |
 |---|---|
-| Kotlin `Chart.parse` | 7–10 s |
+| Kotlin `Chart.parse`, originally | 7–10 s |
+| Kotlin, with shared structure and cached hashes | 2.1 s |
 | Go `agenda` | 0.63 s |
 | Go `wave` | 0.24 s |
 | Go `wave-par` | 0.12 s |

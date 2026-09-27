@@ -7,6 +7,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 
 class Unify2Test {
@@ -320,5 +323,45 @@ class Unify2Test {
                 Pair("a", QueryVariable("?s1")), Pair("sem", SemanticValue(FstructVar("?s1"))))),
                 mixed.renamedApartFrom(QueryVariable("?s")),
                 "a syntactic and a semantic variable sharing a name each keep their kind")
+    }
+
+    @Test
+    fun testSubstSharesUnchangedStructure() {
+        val term = fs("X[a=?x, b=[p, q], c=[r, ?y]]") as FeatureMap
+        val bindings = mapOf<CharSequence, Unifiable>(Pair("?x", AtomicValue("sg")))
+        val result = bindings.subst(term) as FeatureMap
+        assertEquals(fs("X[a=sg, b=[p, q], c=[r, ?y]]"), result)
+        assertSame(term["b"], result["b"], "ground subterms are shared, not copied")
+        assertSame(term["c"], result["c"], "subterms whose variables are unbound are shared")
+        assertSame(term, mapOf<CharSequence, Unifiable>(Pair("?z", AtomicValue("pl"))).subst(term),
+                "a term untouched by the bindings is returned as is")
+        val sem = SemanticValue(App(Constant("f"), Constant("c")))
+        assertSame(sem, bindings.subst(sem))
+    }
+
+    @Test
+    fun testGroundAndCachedHash() {
+        assertTrue(fs("X[a=p, b=[q, r]]").ground)
+        assertFalse(fs("X[a=p, b=[q, ?r]]").ground)
+        assertTrue(SemanticValue(App(Constant("f"), Var(1))).ground, "de Bruijn variables are not unification variables")
+        assertFalse(SemanticValue(App(Constant("f"), FstructVar("?g"))).ground)
+        assertFalse(FeatureListExpression(listOf(FeatureList(listOf(AtomicValue("a"))))).ground,
+                "expressions are never ground, so substitution still simplifies them")
+
+        // separately built equal terms hash equally, as before
+        val a = And(setOf(App(Constant("f"), Constant("c")), Not(Constant("d"))))
+        val b = And(setOf(Not(Constant("d")), App(Constant("f"), Constant("c"))))
+        assertEquals(a, b)
+        assertEquals(a.hashCode(), b.hashCode())
+        assertEquals(fs("X[a=p, b=[q, ?r]]").hashCode(), fs("X[b=[q, ?r], a=p]").hashCode())
+    }
+
+    @Test
+    fun testNormalized() {
+        val raw = SemanticValue(Not(Not(App(Lam(App(Constant("f"), Var(1))), Constant("c")))))
+        val norm = raw.normalized()
+        assertEquals(SemanticValue(App(Constant("f"), Constant("c"))), norm,
+                "double negation removed and the beta redex reduced")
+        assertEquals(norm, norm.normalized(), "normalization is idempotent")
     }
 }

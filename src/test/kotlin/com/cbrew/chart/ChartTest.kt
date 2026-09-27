@@ -169,4 +169,25 @@ class ChartTest {
         chart.add(Complete(toFs("S[f=?s, g=b]"), 0, 1))
         assertEquals(1, chart.solutions(toFs("S[f=a, g=?s]")).size)
     }
+
+    @Test
+    fun testFeatureGrammarNormalizesRules() {
+        // A ground but unsimplified semantic term in a rule (the parsers build
+        // Not(Not(...)) directly). Substitution now shares ground subterms, so
+        // the grammar simplifies its rules once when it is built.
+        val lhs = com.cbrew.unify.FeatureMap(mapOf(
+                Pair("cat", com.cbrew.unify.AtomicValue("Z")),
+                Pair("x", com.cbrew.unify.QueryVariable("?x")),
+                Pair("sem", com.cbrew.unify.SemanticValue(
+                        com.cbrew.unify.Not(com.cbrew.unify.Not(com.cbrew.unify.Constant("p")))))))
+        val rule = com.cbrew.unify.CfgRule(lhs, listOf(toFs("Y[x=?x]") as com.cbrew.unify.FeatureMap), listOf())
+        val grammar = FeatureGrammar(Grammar(setOf(rule), mapOf()))
+        val complete = Complete(toFs("Y[x=u]"), 0, 1)
+        val spawned = grammar.spawn(complete).single() as Partial
+        val result = Chart(arrayOf("w")).fundamental(spawned, complete)
+        assertEquals(Complete(com.cbrew.unify.FeatureMap(mapOf(
+                Pair("cat", com.cbrew.unify.AtomicValue("Z")),
+                Pair("x", com.cbrew.unify.AtomicValue("u")),
+                Pair("sem", com.cbrew.unify.SemanticValue(com.cbrew.unify.Constant("p"))))), 0, 1), result)
+    }
 }

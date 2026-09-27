@@ -69,7 +69,10 @@ fun Unifiable.renameVariables(renaming: Map<CharSequence, Unifiable>): Unifiable
  * happen to share a name ("standardizing apart"). Variables that do not
  * clash keep their names.
  */
-fun Unifiable.renamedApartFrom(vararg others: Unifiable): Unifiable {
+fun Unifiable.renamedApartFrom(vararg others: Unifiable): Unifiable = renamedApartFrom(others.asList())
+
+fun Unifiable.renamedApartFrom(others: Iterable<Unifiable>): Unifiable {
+    if (ground || others.all { it.ground }) return this
     val taken = mutableSetOf<Unifiable>()
     others.forEach { findVariables(it, taken) }
     if (taken.isEmpty()) return this
@@ -103,7 +106,9 @@ private fun name(v: Unifiable): CharSequence =
 
 
 fun findVariables(item: Unifiable, variables: MutableSet<Unifiable>) {
-    if (isVariable(item))
+    if (item.ground)
+        return
+    else if (isVariable(item))
         variables.add(item)
     else
         subterms(item).forEach { findVariables(it, variables) }
@@ -184,30 +189,9 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM):
             throw Exception("variables should have been caught earlier")
         else if (fs1 == fs2)
             UR(fs1, bindings)
-        else if (fs1 is FeatureMap && fs2 is FeatureMap) {
-            val sharedFromFs1: Map<String, Unifiable> = fs1.filterKeys { k -> k in fs2 }
-            val sharedFromBoth: Map<String, Pair<Unifiable, Unifiable>> =
-                    sharedFromFs1.mapValues { (k, v1) -> Pair(v1, fs2[k]!!) }
-            val symdiff: Map<String, Unifiable> =
-                    (fs1.filterKeys { k -> !(k in fs2) }) +
-                            (fs2.filterKeys { k -> !(k in fs1) })
-
-            var result = symdiff
-            var newBindings = bindings
-
-            sharedFromBoth.forEach {
-                val subresult: UR? = unify(it.value.first, it.value.second, newBindings)
-                if (subresult == null)
-                    return null
-                else {
-                    val (fs, bs) = subresult
-                    newBindings = bs
-                    result += Pair(it.key, fs)
-                }
-            }
-
-            UR(FeatureMap(result), newBindings)
-        } else if (fs1 is FeatureList && fs2 is FeatureList && fs1.elements.size == fs2.elements.size) {
+        else if (fs1 is FeatureMap && fs2 is FeatureMap)
+            unifyMaps(fs1, fs2, bindings)
+        else if (fs1 is FeatureList && fs2 is FeatureList && fs1.elements.size == fs2.elements.size) {
 
 
             var newBindings = bindings
@@ -220,7 +204,7 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM):
                     return null
                 else {
                     newElements.add(x12.first as FeatureStructure)
-                    newBindings += x12.second
+                    newBindings = x12.second
                 }
 
             }
@@ -232,6 +216,23 @@ private fun unifyFF(fs1: FeatureStructure, fs2: FeatureStructure, bindings: UM):
         else
             null
 
+
+// The result is built in a local map that never escapes except inside the
+// (immutable) FeatureMap. Features only in fs1 come first, then those only in
+// fs2, then shared ones, as in earlier versions.
+private fun unifyMaps(fs1: FeatureMap, fs2: FeatureMap, bindings: UM): UR? {
+    val result = LinkedHashMap<String, Unifiable>(fs1.size + fs2.size)
+    for ((k, v) in fs1) if (k !in fs2) result[k] = v
+    for ((k, v) in fs2) if (k !in fs1) result[k] = v
+    var newBindings = bindings
+    for ((k, v1) in fs1) {
+        val v2 = fs2[k] ?: continue
+        val (fs, bs) = unify(v1, v2, newBindings) ?: return null
+        newBindings = bs
+        result[k] = fs
+    }
+    return UR(FeatureMap(result), newBindings)
+}
 
 fun UM.checkBinding(uf1: FstructVar, uf2: Unifiable): UR? = bindVariable(uf1, uf2)
 
@@ -269,7 +270,9 @@ private fun inDomain(v: Unifiable, value: Unifiable): Boolean =
 
 // does the (unbound) variable v occur in term under these bindings?
 private fun UM.occurs(v: Unifiable, term: Unifiable): Boolean =
-        if (isVariable(term)) {
+        if (term.ground)
+            false
+        else if (isVariable(term)) {
             val t = deref(term)
             if (isVariable(t)) name(t) == name(v) else occurs(v, t)
         } else
@@ -309,9 +312,9 @@ fun UM.subst(uf: Unifiable): Unifiable = mapVariables(uf) { resolve(it) }
 
 fun UM.subst(ufs: List<Unifiable>): List<Unifiable> = ufs.map { subst(it) }
 
-fun UM.subst(fs: FeatureStructure): FeatureStructure = mapVariablesFs(fs) { resolve(it) }
+fun UM.subst(fs: FeatureStructure): FeatureStructure = mapVariablesFs(fs, { resolve(it) }, share = true)
 
-fun UM.subst(lam: Lambda): Lambda = mapVariablesLam(lam) { resolve(it) }
+fun UM.subst(lam: Lambda): Lambda = mapVariablesLam(lam, { resolve(it) }, share = true)
 
 // the fully substituted value of a variable; an unbound variable is itself
 private fun UM.resolve(v: Unifiable): Unifiable {
@@ -321,22 +324,61 @@ private fun UM.resolve(v: Unifiable): Unifiable {
 
 /**
  * Rebuild a term, replacing every variable v by onVar(v). Used both for
- * applying bindings (subst) and for renaming variables. Lambda terms are
- * rebuilt with the factory functions, so the result is simplified.
+ * applying bindings (subst) and for renaming variables.
+ *
+ * Structure is shared: a ground subterm, or one in which no variable was
+ * replaced, is returned as the same object rather than copied. Nodes that do
+ * change are rebuilt with the factory functions, so lambda terms stay
+ * simplified. This relies on lambda terms already being in the simplified
+ * form the factories produce (see normalized()); FeatureGrammar ensures that
+ * for its rules.
  */
 private fun mapVariables(uf: Unifiable, onVar: (Unifiable) -> Unifiable): Unifiable =
         when (uf) {
-            is FeatureStructure -> mapVariablesFs(uf, onVar)
-            is Lambda -> mapVariablesLam(uf, onVar)
+            is FeatureStructure -> mapVariablesFs(uf, onVar, share = true)
+            is Lambda -> mapVariablesLam(uf, onVar, share = true)
         }
 
-private fun mapVariablesFs(fs: FeatureStructure, onVar: (Unifiable) -> Unifiable): FeatureStructure {
-    fun map(u: Unifiable) = mapVariables(u, onVar)
-    fun mapFs(u: FeatureStructure) = mapVariablesFs(u, onVar)
+/**
+ * Rebuild every node of a term with the factory functions, simplifying any
+ * lambda terms that were built directly with constructors (as the notation
+ * parsers do). Idempotent.
+ */
+fun Unifiable.normalized(): Unifiable =
+        when (this) {
+            is FeatureStructure -> mapVariablesFs(this, { it }, share = false)
+            is Lambda -> mapVariablesLam(this, { it }, share = false)
+        }
+
+// map f over a list, returning the original list if no element changed
+private inline fun <T> List<T>.mapShared(f: (T) -> T): List<T> {
+    var out: MutableList<T>? = null
+    for ((i, x) in withIndex()) {
+        val y = f(x)
+        if (out == null && y !== x) {
+            out = ArrayList(size)
+            out.addAll(subList(0, i))
+        }
+        out?.add(y)
+    }
+    return out ?: this
+}
+
+private fun mapVariablesFs(fs: FeatureStructure, onVar: (Unifiable) -> Unifiable, share: Boolean): FeatureStructure {
+    if (share && fs.ground) return fs
+    fun map(u: Unifiable) = when (u) {
+        is FeatureStructure -> mapVariablesFs(u, onVar, share)
+        is Lambda -> mapVariablesLam(u, onVar, share)
+    }
+    fun mapMap(m: FeatureMap) = mapVariablesFs(m, onVar, share) as FeatureMap
+    fun <T> same(old: List<T>, new: List<T>) = share && old === new
     return when (fs) {
         is AtomicValue -> fs
         is Integer -> fs
-        is SemanticValue -> SemanticValue(mapVariablesLam(fs.value, onVar))
+        is SemanticValue -> {
+            val v = mapVariablesLam(fs.value, onVar, share)
+            if (share && v === fs.value) fs else SemanticValue(v)
+        }
         is QueryVariable -> {
             val r = onVar(fs)
             when (r) {
@@ -344,13 +386,26 @@ private fun mapVariablesFs(fs: FeatureStructure, onVar: (Unifiable) -> Unifiable
                 is Lambda -> throw Exception("Trying to substitute sem term into syn variable")
             }
         }
-        is FeatureList -> FeatureList(fs.elements.map(::map))
-        is FeatureTuple -> FeatureTuple(fs.elements.map(::map))
-        is FeatureListExpression -> FeatureListExpression(fs.elements.map(::map)).simplify()
-        is FeatureTupleExpression -> FeatureTupleExpression(fs.elements.map(::map)).simplify()
-        is CfgRule -> CfgRule(mapFs(fs.lhs) as FeatureMap, fs.rhs.map { mapFs(it) as FeatureMap }, listOf())
-        is McfgRule -> McfgRule(mapFs(fs.lhs) as FeatureMap, fs.rhs.map { mapFs(it) as FeatureMap }, fs.linseq)
-        is FeatureMap -> FeatureMap(fs.mapValues { map(it.value) })
+        is FeatureList -> fs.elements.mapShared(::map).let { if (same(fs.elements, it)) fs else FeatureList(it) }
+        is FeatureTuple -> fs.elements.mapShared(::map).let { if (same(fs.elements, it)) fs else FeatureTuple(it) }
+        // expressions are always rebuilt, so that they get simplified
+        is FeatureListExpression -> FeatureListExpression(fs.elements.mapShared(::map)).simplify()
+        is FeatureTupleExpression -> FeatureTupleExpression(fs.elements.mapShared(::map)).simplify()
+        is CfgRule -> {
+            val lhs = mapMap(fs.lhs)
+            val rhs = fs.rhs.mapShared(::mapMap)
+            if (share && lhs === fs.lhs && same(fs.rhs, rhs)) fs else CfgRule(lhs, rhs, fs.words)
+        }
+        is McfgRule -> {
+            val lhs = mapMap(fs.lhs)
+            val rhs = fs.rhs.mapShared(::mapMap)
+            if (share && lhs === fs.lhs && same(fs.rhs, rhs)) fs else McfgRule(lhs, rhs, fs.linseq)
+        }
+        is FeatureMap -> {
+            var changed = !share
+            val m = fs.mapValues { (_, v) -> map(v).also { if (it !== v) changed = true } }
+            if (changed) FeatureMap(m) else fs
+        }
         is Grammar -> throw Exception("does not make sense to call subst on Grammar")
     }
 }
@@ -359,8 +414,10 @@ private fun mapVariablesFs(fs: FeatureStructure, onVar: (Unifiable) -> Unifiable
  * substitution for lambda terms, with automatic
  * simplifications.
  */
-private fun mapVariablesLam(lam: Lambda, onVar: (Unifiable) -> Unifiable): Lambda {
-    fun map(l: Lambda) = mapVariablesLam(l, onVar)
+private fun mapVariablesLam(lam: Lambda, onVar: (Unifiable) -> Unifiable, share: Boolean): Lambda {
+    if (share && lam.ground) return lam
+    fun map(l: Lambda) = mapVariablesLam(l, onVar, share)
+    fun unchanged(vararg pairs: Pair<Lambda, Lambda>) = share && pairs.all { (a, b) -> a === b }
     return when (lam) {
         is Constant -> lam
         is QVar -> lam
@@ -374,15 +431,32 @@ private fun mapVariablesLam(lam: Lambda, onVar: (Unifiable) -> Unifiable): Lambd
         is Empty -> lam
         is Box -> lam
         is Var -> lam
-        is Lam -> createLam(map(lam.body))
-        is Exists -> createExistential(map(lam.body))
-        is Not -> createNegation(map(lam.body))
-        is Forall -> createUniversal(map(lam.body))
-        is Implies -> createImplication(map(lam.e1), map(lam.e2))
-        is Equiv -> createEquiv(map(lam.e1), map(lam.e2))
-        is App -> createApp(map(lam.e1), map(lam.e2))
-        is Or -> createOr(lam.disjuncts.map(::map))
-        is And -> createAnd(lam.conjuncts.map(::map))
+        is Lam -> map(lam.body).let { if (unchanged(lam.body to it)) lam else createLam(it) }
+        is Exists -> map(lam.body).let { if (unchanged(lam.body to it)) lam else createExistential(it) }
+        is Not -> map(lam.body).let { if (unchanged(lam.body to it)) lam else createNegation(it) }
+        is Forall -> map(lam.body).let { if (unchanged(lam.body to it)) lam else createUniversal(it) }
+        is Implies -> {
+            val a = map(lam.e1); val b = map(lam.e2)
+            if (unchanged(lam.e1 to a, lam.e2 to b)) lam else createImplication(a, b)
+        }
+        is Equiv -> {
+            val a = map(lam.e1); val b = map(lam.e2)
+            if (unchanged(lam.e1 to a, lam.e2 to b)) lam else createEquiv(a, b)
+        }
+        is App -> {
+            val a = map(lam.e1); val b = map(lam.e2)
+            if (unchanged(lam.e1 to a, lam.e2 to b)) lam else createApp(a, b)
+        }
+        is Or -> {
+            val ds = lam.disjuncts.toList()
+            val mapped = ds.mapShared(::map)
+            if (share && mapped === ds) lam else createOr(mapped)
+        }
+        is And -> {
+            val cs = lam.conjuncts.toList()
+            val mapped = cs.mapShared(::map)
+            if (share && mapped === cs) lam else createAnd(mapped)
+        }
     }
 }
 

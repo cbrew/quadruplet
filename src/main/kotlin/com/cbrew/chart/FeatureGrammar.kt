@@ -10,11 +10,15 @@ class FeatureGrammar : ChartGrammar {
 
     constructor(g: Grammar) {
         grammar = g
+        // Rules are normalized once here, so that substitution, which shares
+        // unchanged subterms instead of rebuilding them, still yields the
+        // simplified lambda terms that a full rebuild would produce.
         grammar.rules.forEach {
-            val k = it.firstNeeded().key()
+            val rule = (it as Unifiable).normalized() as Rule
+            val k = rule.firstNeeded().key()
 
-            if (leftCorner[k]?.add(it) == null)
-                leftCorner[k] = mutableSetOf(it)
+            if (leftCorner[k]?.add(rule) == null)
+                leftCorner[k] = mutableSetOf(rule)
         }
     }
 
@@ -46,7 +50,8 @@ class FeatureGrammar : ChartGrammar {
         // same test as Chart.fundamental, so a spawned edge always combines
         // with the edge that spawned it
         val rules = leftCorner[k]?.filter { r: Rule ->
-            unify(r.firstNeeded(), cat.renamedApartFrom(r.lhs(), *r.rhs().toTypedArray())) != null
+            val renamed = if (cat.ground) cat else cat.renamedApartFrom(listOf(r.lhs()) + r.rhs())
+            unify(r.firstNeeded(), renamed) != null
         } ?: listOf()
         return rules.map { r -> emptyEdge(r.lhs(), lc.start, r.rhs()) }
     }
