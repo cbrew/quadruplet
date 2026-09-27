@@ -377,7 +377,13 @@ class IntegratedParserTest {
 
     }
 
-
-
-
+    @Test
+    fun testAlternativesAreSeparateRules() {
+        val g = IntegratedParser.toGrammar(
+                "A[] -> B[] C[] | D[]\n" +
+                "E[f=x] -> \"x\" | \"y\" F[]\n") as Grammar
+        assertEquals(listOf("A[] -> B[] C[]", "A[] -> D[]", "E[f=x] -> F[]"), g.rules.map { it.toString() },
+                "each alternative is a rule of its own, not merged into one right-hand side")
+        assertEquals(setOf("x", "y"), g.lexicon.keys, "quoted words from every alternative enter the lexicon")
+    }
 }

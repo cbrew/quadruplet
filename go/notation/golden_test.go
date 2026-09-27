@@ -84,6 +84,7 @@ var grammarFiles = []struct{ file, notation string }{
 	{"sem2.fcfg", "integrated"},
 	{"tiny.cfg", "integrated"},
 	{"tiny2.cfg", "integrated"},
+	{"alternatives.fcfg", "integrated"},
 }
 
 func TestGrammarGolden(t *testing.T) {

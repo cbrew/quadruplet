@@ -94,3 +94,17 @@ tiny2.cfg	dogs or cats and Chloe	solution	Np[sem=<((∀.(dog(q:1)) ∨ ∀.(cat(
 tiny2.cfg	dogs or cats and Chloe	solution	Np[sem=<(∀.(dog(q:1)) ∨ (∀.(cat(q:1)) ∧ chloe))>, num=pl]
 tiny2.cfg	dogs or cats and Chloe	tree	Np[null]| Np[null]:dogs| Conj[null]:or| Np[null]|  Np[null]:cats|  Conj[null]:and|  Np[null]:Chloe|
 tiny2.cfg	dogs or cats and Chloe	tree	Np[null]| Np[null]|  Np[null]:dogs|  Conj[null]:or|  Np[null]:cats| Conj[null]:and| Np[null]:Chloe|
+alternatives.fcfg	John walks	stats	3	6	1	1
+alternatives.fcfg	John walks	solution	S[sem=<walk(john)>]
+alternatives.fcfg	John walks	tree	S[null]| NP[null]:John| VP[null]:walks|
+alternatives.fcfg	walks Johnny	stats	3	6	1	1
+alternatives.fcfg	walks Johnny	solution	S[sem=<walk(john)>]
+alternatives.fcfg	walks Johnny	tree	S[null]| VP[null]:walks| NP[null]:Johnny|
+alternatives.fcfg	Mary strolls	stats	3	6	1	1
+alternatives.fcfg	Mary strolls	solution	S[sem=<walk(mary)>]
+alternatives.fcfg	Mary strolls	tree	S[null]| NP[null]:Mary| VP[null]:strolls|
+alternatives.fcfg	John walktalks	stats	3	4	1	1
+alternatives.fcfg	John walktalks	solution	S[sem=<(walk(john) ∧ talk(john))>]
+alternatives.fcfg	John walktalks	tree	S[null]| NP[null]:John| VP[null]:walktalks|
+alternatives.fcfg	John walks and talks	stats	5	10	0	0
+alternatives.fcfg	talks and walks Mary	stats	5	10	0	0

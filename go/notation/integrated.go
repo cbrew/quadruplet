@@ -18,9 +18,7 @@ import (
 // [a + b], semantics <...> in the logic language, or (unsupported, see the
 // README) nested feature maps; +f and -f abbreviate f=true and f=false.
 //
-// Each alternative of a rule becomes a separate rule. (The Kotlin
-// IntegratedVisitor merges the alternatives of a rule into one right-hand
-// side; FeatureNotationVisitor separates them, as here.) Lexical entries
+// Each alternative of a rule becomes a separate rule. Lexical entries
 // written "word": Cat come first in the lexicon, then words from rules.
 func ParseIntegratedGrammar(s string) (*grammar.Grammar, error) {
 	toks, err := lex(s, modeIntegrated)

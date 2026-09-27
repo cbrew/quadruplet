@@ -77,10 +77,6 @@ Keeping the rules spawned at i to the cell that spawned them relies on
 * **Parsers are strict.** They are hand-written recursive descent following
   the ANTLR grammars token for token, but they report any syntax error or
   leftover input where ANTLR would recover or stop early.
-* **Alternatives in the IntegratedParser notation are separate rules.**
-  `A -> B | C` gives two rules, as in the FeatureNotation style; the Kotlin
-  `IntegratedVisitor` merges them into `A -> B C`. None of the test grammars
-  are affected.
 * **Multiple CFG rules (`=>`) are kept** in the IntegratedParser notation;
   the Kotlin `IntegratedVisitor` drops them.
 * **`NormalOrderReduce` handles negation**; the Kotlin `betaReduce` throws on

@@ -22,3 +22,9 @@ tiny.cfg	integrated	a dog and a cat or Tina
 tiny2.cfg	integrated	John and Mary
 tiny2.cfg	integrated	Sarah Beth or dogs
 tiny2.cfg	integrated	dogs or cats and Chloe
+alternatives.fcfg	integrated	John walks
+alternatives.fcfg	integrated	walks Johnny
+alternatives.fcfg	integrated	Mary strolls
+alternatives.fcfg	integrated	John walktalks
+alternatives.fcfg	integrated	John walks and talks
+alternatives.fcfg	integrated	talks and walks Mary
