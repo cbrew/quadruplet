@@ -5,7 +5,10 @@
 //	quadruplet -grammar demo.fcfg -notation features -trees 3 < sentences.txt
 //
 // Sentences are given as arguments, or read one per line from standard
-// input. Words are separated by spaces.
+// input. Words are separated by spaces. Parsing uses all CPUs (see
+// -workers); setting the GOGC environment variable above its default of 100,
+// for example GOGC=400, trades memory for less garbage collection and helps
+// long sentences.
 package main
 
 import (
@@ -27,6 +30,7 @@ func main() {
 	grammarFile := flag.String("grammar", "", "grammar file (required)")
 	style := flag.String("notation", "integrated", "grammar notation: integrated (patio.fcfg, sem2.fcfg) or features (demo.fcfg)")
 	trees := flag.Int("trees", 0, "print up to this many trees per reading")
+	workers := flag.Int("workers", 0, "goroutines for parsing: 0 for one per CPU, 1 for the sequential agenda parser")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: quadruplet -grammar FILE [flags] [sentence ...]\n")
 		flag.PrintDefaults()
@@ -49,7 +53,11 @@ func main() {
 		}
 		start := time.Now()
 		c := chart.New(words)
-		c.Parse(fg)
+		if *workers == 1 {
+			c.Parse(fg)
+		} else {
+			c.ParseParallel(fg, *workers)
+		}
 		elapsed := time.Since(start)
 		s := c.Stats()
 		fmt.Printf("%s\n  %d readings, %s trees, %d complete and %d partial edges, %v\n",

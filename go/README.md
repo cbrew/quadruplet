@@ -19,8 +19,8 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 | `term` | feature structures and lambda terms, the simplifying constructors, beta reduction, bindings, substitution and unification |
 | `grammar` | rules, grammars and lexicons |
 | `notation` | parsers for the logic language, the FeatureNotation style (`demo.fcfg`) and the IntegratedParser style (`patio.fcfg`, `sem2.fcfg`) |
-| `chart` | the chart parser, tree counting and enumeration, `FeatureGrammar`, and the `TreeGrammar` benchmark grammar |
-| `cmd/quadruplet` | command-line parser |
+| `chart` | the chart parser (sequential agenda, or parallel wavefront), tree counting and enumeration, `FeatureGrammar`, and the `TreeGrammar` benchmark grammar |
+| `cmd/quadruplet` | command-line parser (`-workers`, `-trees`) |
 | `cmd/prototype` | the earlier prototype comparing agenda and wavefront parsing, with and without goroutines ([below](#prototype)) |
 
 ## Design
@@ -42,6 +42,35 @@ The design follows the Kotlin version after its unifier work:
 
 Because nothing is mutated, terms and edges can be shared between
 goroutines without locks.
+
+### Parallel parsing
+
+`Chart.Parse` is the Kotlin agenda algorithm. `Chart.ParseParallel` builds
+the same chart as a CYK-style table of cells, cell (i,j) holding the edges
+over words i..j. A cell is made from shorter cells only: lexical entries,
+partial edges over i..k extended by complete edges over k..j, and then,
+within the cell, the rules its complete edges spawn.
+
+Each cell gets a goroutine that waits on the done channels of its left and
+lower neighbours, (i,j-1) and (i+1,j); by induction, once those are finished
+so is every cell it reads. A finished cell closes its own channel, waking
+the two cells waiting on it. Unlike building one span length at a time with
+a barrier between lengths, cheap parts of the table run ahead while
+expensive cells are still working. Cells need no locks: edges over different
+spans are never equal, so each cell interns its own, and the cells sharing a
+start position's spawned edges are ordered by their left-neighbour
+dependencies.
+
+Most of the work falls in the few widest cells, so each cell also spreads
+its fundamental-rule applications over up to `workers` goroutines, handing
+out chunks through an atomic counter (cheaper than a channel for items this
+small). Results are added in the order a sequential build would add them,
+so the chart, down to the order of its edges, does not depend on
+scheduling.
+
+Keeping the rules spawned at i to the cell that spawned them relies on
+`Spawn` returning every rule whose first category unifies with the edge, as
+`FeatureGrammar` and `TreeGrammar` do.
 
 ## Differences from the Kotlin version
 
@@ -90,17 +119,19 @@ tests for bindings, equality, hashing and normalization.
 
 ## Performance
 
-Sequential parsing with the same algorithm as the tuned Kotlin, on 4 cores:
+On 4 cores, best of three (`go test ./chart -bench .`):
 
-| | Kotlin | Go |
-|---|---|---|
-| sem2, 12 PPs (40 words, 4,096 readings) | 74–82 ms | ~85 ms |
-| sem2, 14 PPs (46 words, 16,384 readings) | 0.30–0.44 s | 0.40–0.53 s |
-| `TreeGrammar`, 170 words | ~2.1 s | ~1.0 s |
+| | Kotlin | Go, agenda | Go, 4 workers | Go, 4 workers, `GOGC=400` |
+|---|---|---|---|---|
+| sem2, 12 PPs (40 words, 4,096 readings) | 74–82 ms | 99 ms | 54 ms | 36 ms |
+| sem2, 14 PPs (46 words, 16,384 readings) | 0.30–0.44 s | 0.43 s | 0.22 s | 0.17 s |
+| `TreeGrammar`, 170 words | ~2.1 s | 0.97 s | 0.59 s | 0.35 s |
 
-(`go test ./chart -bench .` runs these.) On sem2 the two are close: the chart
-keeps every term alive, so each Go garbage collection cycle re-marks a large,
-pointer-heavy heap, where the JVM's generational collector does less work.
+Sequentially, Go and the JVM are close on sem2: the chart keeps every term
+alive, so each Go garbage collection re-marks a large, pointer-heavy heap,
+where the JVM's generational collector does less work. The collector also
+competes with parsing for cores, which is why a higher `GOGC` (less frequent
+collection, more memory) helps the parallel parser most.
 
 ## Prototype
 

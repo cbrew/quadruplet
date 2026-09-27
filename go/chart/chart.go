@@ -25,8 +25,7 @@ type Edge struct {
 	Start, End int
 	Needed     []term.Term
 
-	hash  uint64
-	added bool // in the chart (not just on the agenda)
+	hash uint64
 }
 
 // NewEdge builds an edge; it is complete when needed is empty.
@@ -182,7 +181,6 @@ func (c *Chart) Done() bool { return len(c.agenda) == 0 }
 // combines it with the edges there. It returns the edge.
 func (c *Chart) Step(g Grammar) *Edge {
 	e := c.agenda.pop().edge
-	e.added = true
 	if e.Complete() {
 		c.completes[e.Start] = append(c.completes[e.Start], e)
 		for _, s := range g.Spawn(e) {
