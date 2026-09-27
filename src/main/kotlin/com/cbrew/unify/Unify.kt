@@ -683,18 +683,17 @@ fun createAnd(conjunct: Lambda, vararg conjuncts: Lambda): Lambda =
             createAnd(listOf(conjunct) + conjuncts.toList())
 
 fun createAnd(conjuncts: List<Lambda>): Lambda {
-    fun andYield(item: Lambda): List<Lambda> =
-            when (item) {
-                is And -> item.conjuncts.flatMap(::andYield)
-                else -> listOf(item)
-            }
+    // flatten nested Ands straight into the result set; when there are none
+    // (the usual case, since Ands are built flat) this is a single copy
+    val flat = LinkedHashSet<Lambda>(maxOf(16, conjuncts.size * 2))
+    fun add(item: Lambda) {
+        if (item is And) item.conjuncts.forEach(::add) else flat.add(item)
+    }
+    conjuncts.forEach(::add)
 
-    val newConjuncts = conjuncts.flatMap(::andYield).toSet()
-
-    return if (newConjuncts.size == 1)
-        newConjuncts.single()
-    else And(newConjuncts)
-
+    return if (flat.size == 1)
+        flat.single()
+    else And(flat)
 }
 
 /**
@@ -722,18 +721,17 @@ fun createOr(disjunct: Lambda, vararg disjuncts: Lambda): Lambda =
  */
 
 fun createOr(disjuncts: List<Lambda>): Lambda {
-    fun orYield(item: Lambda): List<Lambda> =
-            when (item) {
-                is Or -> item.disjuncts.flatMap(::orYield)
-                else -> listOf(item)
-            }
+    // flatten nested Ors straight into the result set; when there are none
+    // (the usual case, since Ors are built flat) this is a single copy
+    val flat = LinkedHashSet<Lambda>(maxOf(16, disjuncts.size * 2))
+    fun add(item: Lambda) {
+        if (item is Or) item.disjuncts.forEach(::add) else flat.add(item)
+    }
+    disjuncts.forEach(::add)
 
-    val newDisjuncts = disjuncts.flatMap(::orYield).toSet()
-
-    return if (newDisjuncts.size == 1)
-        newDisjuncts.single()
-    else Or(newDisjuncts)
-
+    return if (flat.size == 1)
+        flat.single()
+    else Or(flat)
 }
 
 /**

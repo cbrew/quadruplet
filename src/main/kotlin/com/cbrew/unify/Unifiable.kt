@@ -313,12 +313,34 @@ data class Not(val body: Lambda) : Lambda() {
     override val hasBox: Boolean = body.hasBox
 }
 data class And(val conjuncts: Set<Lambda>) : Lambda() {
-    override val ground: Boolean = conjuncts.all { it.ground }
-    private val hash: Int = conjuncts.sumOf { mixHash(it.hashCode()) } * 31 + 8
+    override val ground: Boolean
+    private val hash: Int
+    override val freeVarDepth: Int
+    override val freeQVarDepth: Int
+    override val hasBox: Boolean
+
+    // all the cached facts in one pass over the elements
+    init {
+        var g = true
+        var h = 0
+        var fv = 0
+        var fq = 0
+        var box = false
+        for (x in conjuncts) {
+            g = g && x.ground
+            h += mixHash(x.hashCode())
+            fv = maxOf(fv, x.freeVarDepth)
+            fq = maxOf(fq, x.freeQVarDepth)
+            box = box || x.hasBox
+        }
+        ground = g
+        hash = h * 31 + 8
+        freeVarDepth = fv
+        freeQVarDepth = fq
+        hasBox = box
+    }
+
     override fun hashCode(): Int = hash
-    override val freeVarDepth: Int = conjuncts.maxOfOrNull { it.freeVarDepth } ?: 0
-    override val freeQVarDepth: Int = conjuncts.maxOfOrNull { it.freeQVarDepth } ?: 0
-    override val hasBox: Boolean = conjuncts.any { it.hasBox }
 
     override fun toString(): String {
         return "(${conjuncts.joinToString(separator = " \u2227 ")})"
@@ -326,12 +348,34 @@ data class And(val conjuncts: Set<Lambda>) : Lambda() {
 }
 
 data class Or(val disjuncts: Set<Lambda>) : Lambda() {
-    override val ground: Boolean = disjuncts.all { it.ground }
-    private val hash: Int = disjuncts.sumOf { mixHash(it.hashCode()) } * 31 + 9
+    override val ground: Boolean
+    private val hash: Int
+    override val freeVarDepth: Int
+    override val freeQVarDepth: Int
+    override val hasBox: Boolean
+
+    // all the cached facts in one pass over the elements
+    init {
+        var g = true
+        var h = 0
+        var fv = 0
+        var fq = 0
+        var box = false
+        for (x in disjuncts) {
+            g = g && x.ground
+            h += mixHash(x.hashCode())
+            fv = maxOf(fv, x.freeVarDepth)
+            fq = maxOf(fq, x.freeQVarDepth)
+            box = box || x.hasBox
+        }
+        ground = g
+        hash = h * 31 + 9
+        freeVarDepth = fv
+        freeQVarDepth = fq
+        hasBox = box
+    }
+
     override fun hashCode(): Int = hash
-    override val freeVarDepth: Int = disjuncts.maxOfOrNull { it.freeVarDepth } ?: 0
-    override val freeQVarDepth: Int = disjuncts.maxOfOrNull { it.freeQVarDepth } ?: 0
-    override val hasBox: Boolean = disjuncts.any { it.hasBox }
 
     override fun toString(): String {
         return "(${disjuncts.joinToString(separator = " \u2228 ")})"
