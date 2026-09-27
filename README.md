@@ -21,8 +21,8 @@ support them.**
 Unification is term unification with named variables: reentrancy is written
 by repeating a variable, e.g. `S[num=?n] -> Np[num=?n] Vp[num=?n]`.
 
-A Go prototype of the chart parser core, used to explore parallel parsing,
-is in [`go/`](go/README.md).
+A Go port of the parser, checked against this implementation with golden
+files, is in [`go/`](go/README.md).
 
 
 
