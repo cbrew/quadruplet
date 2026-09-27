@@ -16,7 +16,7 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 
 | package | contents |
 |---|---|
-| `term` | feature structures and lambda terms, the simplifying constructors, beta reduction, bindings, substitution and unification |
+| `term` | feature structures and lambda terms, the simplifying constructors, beta reduction, bindings, substitution and unification, and `Pretty` for reading terms |
 | `grammar` | rules, grammars and lexicons |
 | `notation` | parsers for the logic language, the FeatureNotation style (`demo.fcfg`) and the IntegratedParser style (`patio.fcfg`, `sem2.fcfg`) |
 | `chart` | the chart parser (sequential agenda, or parallel wavefront), tree counting and enumeration, `FeatureGrammar`, and the `TreeGrammar` benchmark grammar |
@@ -95,12 +95,13 @@ implementation, in `testdata/golden`:
 
 | file | contents |
 |---|---|
-| `logic.golden` | 131 logic expressions: parsed, and normalized |
+| `logic.golden` | 136 logic expressions: parsed, and normalized |
 | `fs.golden` | feature terms in the FeatureNotation style |
 | `unify.golden` | unification of pairs of feature terms |
-| `grammar.golden` | the rules and lexicons of the five test grammars, raw and normalized |
-| `parse.golden` | 24 sentences over the five grammars: edge counts, tree counts, readings, and trees |
+| `grammar.golden` | the rules and lexicons of the six test grammars, raw and normalized |
+| `parse.golden` | 31 sentences over the six grammars: edge counts, tree counts, readings, and trees |
 | `treeas.golden` | `TreeGrammar` edge and tree counts for 1 to 20 words |
+| `masc.golden` | the MASC benchmark ([`src/test/resources/masc`](../src/test/resources/masc)): chart sizes and readings for 299 treebank sentences, printed by `term.Pretty` |
 
 To regenerate them after changing the inputs (`*.in`) or the Kotlin code:
 
@@ -122,6 +123,7 @@ On 4 cores, best of three (`go test ./chart -bench .`):
 | sem2, 12 PPs (40 words, 4,096 readings) | 74–82 ms | 99 ms | 54 ms | 36 ms |
 | sem2, 14 PPs (46 words, 16,384 readings) | 0.30–0.44 s | 0.43 s | 0.22 s | 0.17 s |
 | `TreeGrammar`, 170 words | ~2.1 s | 0.97 s | 0.59 s | 0.35 s |
+| MASC sample, 299 sentences | 0.90 s | 1.44 s | 0.83 s | 0.58 s |
 
 Sequentially, Go and the JVM are close on sem2: the chart keeps every term
 alive, so each Go garbage collection re-marks a large, pointer-heavy heap,

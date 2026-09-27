@@ -1,0 +1,53 @@
+# Sentences that are not in the MASC sample, made from words in its
+# lexicon, with every reading the grammar gives them, checked by hand. The
+# format is that of readings.txt: the intended reading is marked "*", and
+# MascTest and masc_test.go check that the parsers give exactly these
+# readings.
+
+> every architect who knows Dave found a house
+* ∀x1.((architect(x1) ∧ ∃x2.(Experiencer(x2, x1) ∧ Theme(x2, dave) ∧ know(x2))) → ∃x2.(house(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ find(x3))))
+
+> the company expected every customer to find a house
+# The intended reading has the customers find houses; the others read "to find a house" as an infinitival relative on "customer" or as a purpose clause of the company's.
+  ∃x1.(company(x1) ∧ ∀x2.((Purpose(x2, ∃x3.(house(x3) ∧ ∃x4.(Agent(x4, x2) ∧ Theme(x4, x3) ∧ find(x4)))) ∧ customer(x2)) → ∃x3.(Experiencer(x3, x1) ∧ Theme(x3, x2) ∧ expect(x3))) ∧ ∀x2.(company(x2) → (x1 = x2)))
+* ∃x1.(company(x1) ∧ ∀x2.(company(x2) → (x1 = x2)) ∧ ∀x2.(customer(x2) → ∃x3.(Experiencer(x3, x1) ∧ Patient(x3, x2) ∧ Theme(x3, ∃x4.(house(x4) ∧ ∃x5.(Agent(x5, x2) ∧ Theme(x5, x4) ∧ find(x5)))) ∧ expect(x3))))
+  ∃x1.(company(x1) ∧ ∀x2.(company(x2) → (x1 = x2)) ∧ ∀x2.(customer(x2) → ∃x3.(Experiencer(x3, x1) ∧ Purpose(x3, ∃x4.(house(x4) ∧ ∃x5.(Agent(x5, x1) ∧ Theme(x5, x4) ∧ find(x5)))) ∧ Theme(x3, x2) ∧ expect(x3))))
+
+> a guy with a dog looked at the house in Dublin
+# "in Dublin" modifies the house or the looking.
+  ∃x1.(guy(x1) ∧ ∃x2.(Agent(x2, x1) ∧ in(x2, dublin) ∧ look(x2) ∧ ∃x3.(at(x2, x3) ∧ house(x3) ∧ ∀x4.(house(x4) → (x3 = x4)))) ∧ ∃x2.(dog(x2) ∧ with(x1, x2)))
+* ∃x1.(guy(x1) ∧ ∃x2.(Agent(x2, x1) ∧ look(x2) ∧ ∃x3.(at(x2, x3) ∧ house(x3) ∧ in(x3, dublin) ∧ ∀x4.((house(x4) ∧ in(x4, dublin)) → (x3 = x4)))) ∧ ∃x2.(dog(x2) ∧ with(x1, x2)))
+
+> the book was found by a guy in the house
+# "by a guy" is the agent or an adjunct; "in the house" modifies the guy or the finding.
+  ∃x1.(book(x1) ∧ ∀x2.(book(x2) → (x1 = x2)) ∧ ∃x2.(guy(x2) ∧ ∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ find(x3) ∧ ∃x4.(house(x4) ∧ in(x3, x4) ∧ ∀x5.(house(x5) → (x4 = x5))))))
+* ∃x1.(book(x1) ∧ ∀x2.(book(x2) → (x1 = x2)) ∧ ∃x2.(guy(x2) ∧ ∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ find(x3)) ∧ ∃x3.(house(x3) ∧ in(x2, x3) ∧ ∀x4.(house(x4) → (x3 = x4)))))
+  ∃x1.(book(x1) ∧ ∀x2.(book(x2) → (x1 = x2)) ∧ ∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ find(x3) ∧ ∃x4.(by(x3, x4) ∧ guy(x4) ∧ ∃x5.(house(x5) ∧ in(x4, x5) ∧ ∀x6.(house(x6) → (x5 = x6))))))
+  ∃x1.(book(x1) ∧ ∀x2.(book(x2) → (x1 = x2)) ∧ ∃x2.∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ find(x3) ∧ ∃x4.(by(x3, x4) ∧ guy(x4)) ∧ ∃x4.(house(x4) ∧ in(x3, x4) ∧ ∀x5.(house(x5) → (x4 = x5)))))
+
+> the elephant was not seen by the family
+# "by the family" is the agent, or an adjunct.
+* ∃x1.(elephant(x1) ∧ ¬∃x2.(family(x2) ∧ ∀x3.(family(x3) → (x2 = x3)) ∧ ∃x3.(Experiencer(x3, x2) ∧ Theme(x3, x1) ∧ see(x3))) ∧ ∀x2.(elephant(x2) → (x1 = x2)))
+  ∃x1.(elephant(x1) ∧ ¬∃x2.∃x3.(Experiencer(x3, x2) ∧ Theme(x3, x1) ∧ see(x3) ∧ ∃x4.(by(x3, x4) ∧ family(x4) ∧ ∀x5.(family(x5) → (x4 = x5)))) ∧ ∀x2.(elephant(x2) → (x1 = x2)))
+
+> Dave thought that no customer noticed the change
+* ∃x1.(Experiencer(x1, dave) ∧ Topic(x1, ¬∃x2.(customer(x2) ∧ ∃x3.(change(x3) ∧ ∀x4.(change(x4) → (x3 = x4)) ∧ ∃x4.(Experiencer(x4, x2) ∧ Theme(x4, x3) ∧ notice(x4))))) ∧ think(x1))
+
+> the guy that the company ignored knew the answer
+* ∃x1.(guy(x1) ∧ ∀x2.((guy(x2) ∧ ∃x3.(company(x3) ∧ ∀x4.(company(x4) → (x3 = x4)) ∧ ∃x4.(Agent(x4, x3) ∧ Theme(x4, x2) ∧ ignore(x4)))) → (x1 = x2)) ∧ ∃x2.(answer(x2) ∧ ∀x3.(answer(x3) → (x2 = x3)) ∧ ∃x3.(Experiencer(x3, x1) ∧ Theme(x3, x2) ∧ know(x3))) ∧ ∃x2.(company(x2) ∧ ∀x3.(company(x3) → (x2 = x3)) ∧ ∃x3.(Agent(x3, x2) ∧ Theme(x3, x1) ∧ ignore(x3))))
+
+> there is a dog in the house
+* ∃x1.(dog(x1) ∧ ∃x2.(Theme(x2, x1) ∧ be(x2)) ∧ ∃x2.(house(x2) ∧ in(x1, x2) ∧ ∀x3.(house(x3) → (x2 = x3))))
+
+> Dave and Bruce heard a holler
+# Conjoined names distribute: each heard a holler.
+* (∃x1.(holler(x1) ∧ ∃x2.(Experiencer(x2, bruce) ∧ Theme(x2, x1) ∧ hear(x2))) ∧ ∃x1.(holler(x1) ∧ ∃x2.(Experiencer(x2, dave) ∧ Theme(x2, x1) ∧ hear(x2))))
+
+> who knows Dave
+* λv1.(person(v1) ∧ ∃x1.(Experiencer(x1, v1) ∧ Theme(x1, dave) ∧ know(x1)))
+
+> what did the architect say
+* λv1.(thing(v1) ∧ ∃x1.(architect(x1) ∧ ∀x2.(architect(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, x1) ∧ Theme(x2, v1) ∧ say(x2))))
+
+> where did Dave find the book
+* λv1.∃x1.(book(x1) ∧ ∀x2.(book(x2) → (x1 = x2)) ∧ ∃x2.(Agent(x2, dave) ∧ Location(x2, v1) ∧ Theme(x2, x1) ∧ find(x2)))

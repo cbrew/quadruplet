@@ -129,3 +129,8 @@ a;b
 a &
 exists . a
 \ . x
+p & true
+true & true
+true
+(\F.exists e.(walk(e) & F(e)))(\e.true)
+\x F.exists e.(walk(e) & Agent(e, x) & F(e))

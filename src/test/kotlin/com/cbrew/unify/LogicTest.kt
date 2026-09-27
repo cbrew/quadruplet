@@ -40,6 +40,30 @@ class LogicTest {
     }
 
     @Test
+    fun testTrueIsTheUnitOfConjunction() {
+        assertEquals(Constant("a"), createAnd(Constant("a"), TRUE))
+        assertEquals(TRUE, createAnd(TRUE, TRUE))
+        assertEquals(createAnd(Constant("a"), Constant("b")),
+                createAnd(Constant("a"), createAnd(TRUE, Constant("b"))))
+        // closing an event quantifier with \e.true
+        val walks = Lam(Exists(createAnd(App(Constant("walk"), QVar(1)), App(Var(1), QVar(1)))))
+        assertEquals(Exists(App(Constant("walk"), QVar(1))), createApp(walks, Lam(TRUE)))
+    }
+
+    @Test
+    fun testPretty() {
+        // \x.exists e.(walk(e) & Agent(e, x)), with the conjuncts in either order
+        val a = Lam(Exists(createAnd(App(Constant("walk"), QVar(1)),
+                App(App(Constant("Agent"), QVar(1)), Var(1)))))
+        val b = Lam(Exists(createAnd(App(App(Constant("Agent"), QVar(1)), Var(1)),
+                App(Constant("walk"), QVar(1)))))
+        assertEquals("λv1.∃x1.(Agent(x1, v1) ∧ walk(x1))", a.pretty())
+        assertEquals(a.pretty(), b.pretty())
+        assertEquals("∀x1.(dog(x1) → ¬∃x2.(x1 = x2))", Forall(Implies(App(Constant("dog"), QVar(1)),
+                Not(Exists(Equiv(QVar(2), QVar(1)))))).pretty())
+    }
+
+    @Test
     fun testSingleDisjunct() {
         assertEquals(Constant("a"), createOr(Constant("a")))
     }

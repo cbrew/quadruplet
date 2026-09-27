@@ -1,6 +1,9 @@
 package term
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // The Create... functions build lambda terms in simplified form: nested
 // conjunctions and disjunctions are flattened, vacuous quantifiers dropped,
@@ -15,7 +18,8 @@ func CreateLam(body Lambda) Lambda { return NewLam(body) }
 func CreateEquiv(e1, e2 Lambda) Lambda { return NewEquiv(e1, e2) }
 
 // CreateAnd builds a conjunction, flattening nested conjunctions and
-// dropping duplicates. A single distinct conjunct is returned by itself.
+// dropping duplicates and true. A single distinct conjunct is returned by
+// itself, and true when none is left.
 func CreateAnd(conjuncts ...Lambda) Lambda {
 	flat := flatten(conjuncts, func(l Lambda) []Lambda {
 		if a, ok := l.(*And); ok {
@@ -23,11 +27,37 @@ func CreateAnd(conjuncts ...Lambda) Lambda {
 		}
 		return nil
 	})
+	flat = dropTrue(flat)
+	if len(flat) == 0 {
+		return True
+	}
 	flat = distinct(flat)
 	if len(flat) == 1 {
 		return flat[0]
 	}
 	return &And{termFacts: setFacts(tagAnd, flat), elems: flat}
+}
+
+// True is the constant true, the unit of conjunction: CreateAnd drops it.
+var True = NewConst("true")
+
+func isTrue(l Lambda) bool {
+	c, ok := l.(*Const)
+	return ok && c.name == "true"
+}
+
+// dropTrue returns xs without true, sharing xs when there is none.
+func dropTrue(xs []Lambda) []Lambda {
+	if !slices.ContainsFunc(xs, isTrue) {
+		return xs
+	}
+	var out []Lambda
+	for _, x := range xs {
+		if !isTrue(x) {
+			out = append(out, x)
+		}
+	}
+	return out
 }
 
 // CreateOr is CreateAnd for disjunctions.
