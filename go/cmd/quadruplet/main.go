@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cbrew/quadruplet/go/cfg"
 	"github.com/cbrew/quadruplet/go/chart"
 	"github.com/cbrew/quadruplet/go/grammar"
 	"github.com/cbrew/quadruplet/go/notation"
@@ -36,6 +37,7 @@ func main() {
 	startCat := flag.String("start", "", "count only readings of this category, such as Top")
 	quiet := flag.Bool("quiet", false, "print only the summary line for each sentence")
 	pretty := flag.Bool("pretty", false, "print readings' semantics with named variables and sorted conjuncts")
+	fast := flag.Bool("fast", false, "parse with the fast context-free parser (package cfg); needs -start, and a grammar whose categories are plain")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: quadruplet -grammar FILE [flags] [sentence ...]\n")
 		flag.PrintDefaults()
@@ -49,6 +51,39 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "quadruplet: %s: %v\n", *grammarFile, err)
 		os.Exit(1)
+	}
+	if *fast {
+		if *startCat == "" {
+			fmt.Fprintln(os.Stderr, "quadruplet: -fast needs -start")
+			os.Exit(2)
+		}
+		start := time.Now()
+		cg, err := cfg.FromGrammar(g, *startCat)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "quadruplet: %s: %v\n", *grammarFile, err)
+			os.Exit(1)
+		}
+		symbols, rules, steps := cg.Size()
+		fmt.Fprintf(os.Stderr, "%d symbols, %d rules, %d binary steps, compiled in %v\n",
+			symbols, rules, steps, time.Since(start).Round(time.Millisecond))
+		each(func(words []string) {
+			start := time.Now()
+			f := cg.Parse(words)
+			elapsed := time.Since(start)
+			items, own, edges := f.Stats()
+			fmt.Printf("%s\n  %s trees, %d items (%d not prefixes), %d hyperedges, %d derivable, %v (recognise %v, build %v)\n",
+				strings.Join(words, " "), f.Count(), items, own, edges, f.Derivable, elapsed.Round(time.Microsecond),
+				f.Recognise.Round(time.Microsecond), f.Build.Round(time.Microsecond))
+			n := 0
+			for t := range f.Trees() {
+				if n == *trees {
+					break
+				}
+				fmt.Printf("    %s\n", t)
+				n++
+			}
+		})
+		return
 	}
 	fg := chart.NewFeatureGrammar(g)
 	parse := func(sentence string) {
@@ -107,15 +142,26 @@ func main() {
 			}
 		}
 	}
+	each(func(words []string) { parse(strings.Join(words, " ")) })
+}
+
+// each calls f with the words of each sentence: the arguments, or else the
+// lines of standard input.
+func each(f func(words []string)) {
 	if flag.NArg() > 0 {
 		for _, s := range flag.Args() {
-			parse(s)
+			if words := strings.Fields(s); len(words) > 0 {
+				f(words)
+			}
 		}
 		return
 	}
 	in := bufio.NewScanner(os.Stdin)
+	in.Buffer(make([]byte, 1<<20), 1<<20)
 	for in.Scan() {
-		parse(in.Text())
+		if words := strings.Fields(in.Text()); len(words) > 0 {
+			f(words)
+		}
 	}
 	if err := in.Err(); err != nil && err != io.EOF {
 		fmt.Fprintf(os.Stderr, "quadruplet: %v\n", err)

@@ -20,6 +20,7 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 | `grammar` | rules, grammars and lexicons |
 | `notation` | parsers for the logic language, the FeatureNotation style (`demo.fcfg`) and the IntegratedParser style (`patio.fcfg`, `sem2.fcfg`) |
 | `chart` | the chart parser (sequential agenda, or parallel wavefront), tree counting and enumeration, `FeatureGrammar`, and the `TreeGrammar` benchmark grammar |
+| `cfg` | a fast parser for context-free grammars, whose categories are plain symbols ([below](#context-free-grammars)) |
 | `cmd/quadruplet` | command-line parser (`-workers`, `-trees`) |
 | `cmd/prototype` | the earlier prototype comparing agenda and wavefront parsing, with and without goroutines ([below](#prototype)) |
 
@@ -71,6 +72,41 @@ scheduling.
 Keeping the rules spawned at i to the cell that spawned them relies on
 `Spawn` returning every rule whose first category unifies with the edge, as
 `FeatureGrammar` and `TreeGrammar` do.
+
+## Context-free grammars
+
+A grammar whose categories have no features to unify is context-free, and
+package `cfg` parses it without the feature machinery. The method is that
+of the LCFRS parser in
+[cbrew/odd_one_out](https://github.com/cbrew/odd_one_out) (`internal/lcfrs`),
+specialised to context-free rules:
+
+* symbols are integers, and rules of more than two daughters are binarized
+  left to right, with the prefixes shared between rules (`|NP VP`);
+* a bottom-up pass (CKY) records, for every span, the set of symbols
+  derivable over it as a bitset;
+* a top-down pass from the start symbol keeps only the items on a
+  derivation of the whole input, and records every way of building each
+  as a hyperedge. No dead-end item is ever stored.
+
+The forest's tree counts are those of the grammar's own rules;
+`Forest.Trees` enumerates trees with the prefixes spliced out, and
+`Forest.Contains` checks a given tree without enumerating. Its tests compare
+it with package `chart` on random grammars (the same items, reachable from a
+parse, and the same tree counts) and with `treeas.golden`.
+
+`cfg.FromGrammar` compiles a grammar in either notation, provided its
+categories are ground and no two different ones unify. On the command line,
+`-fast -start SYMBOL` uses it. On a treebank grammar read off all of MASC
+(21,273 rules; 45,029 binary steps), one core:
+
+| tokens | package `chart` | package `cfg` | trees |
+|---|---|---|---|
+| 5 | 0.9 s | 4 ms | 675,831 |
+| 10 | 7.6 s | 14 ms | 6.8 × 10¹² |
+| 15 | 49 s | 0.13 s | 3.6 × 10²³ |
+| 30 | | 2.2 s | 2.2 × 10⁵¹ |
+| 60 | | 23 s, 57 million hyperedges, 3.4 GB | 3.3 × 10¹¹⁰ |
 
 ## Differences from the Kotlin version
 
