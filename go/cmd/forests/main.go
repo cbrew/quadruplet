@@ -107,7 +107,9 @@ func main() {
 	var parsed, inGold, notInGold int
 	var slowest time.Duration
 	var slowestID string
+	reported := time.Now()
 	for k, s := range todo {
+		sentenceBegan := time.Now()
 		f := cg.Parse(s.words)
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
@@ -136,11 +138,13 @@ func main() {
 		if took := f.Recognise + f.Build; took > slowest {
 			slowest, slowestID = took, s.id
 		}
-		n := len(s.words)
-		if n >= 40 || (k+1)%1000 == 0 || k+1 == len(todo) {
-			out.Flush()
-			fmt.Fprintf(os.Stderr, "%d/%d: %d words, %d hyperedges, %.1f s; %v so far\n", k+1, len(todo), n, edges,
-				(f.Recognise + f.Build).Seconds(), time.Since(began).Round(time.Second))
+		out.Flush() // each line as it is done, for watching the output and for resuming
+		// progress for every long sentence, and otherwise every ten seconds
+		if n := len(s.words); n >= 40 || time.Since(reported) >= 10*time.Second || k+1 == len(todo) {
+			reported = time.Now()
+			fmt.Fprintf(os.Stderr, "%d/%d: %d words, %d hyperedges, parsed in %.1f s, %.1f s in all; %v so far\n",
+				k+1, len(todo), n, edges, (f.Recognise + f.Build).Seconds(), time.Since(sentenceBegan).Seconds(),
+				time.Since(began).Round(time.Second))
 		}
 		if edges > 10_000_000 {
 			debug.FreeOSMemory() // give a big forest's memory back before the next
