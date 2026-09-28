@@ -29,6 +29,8 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/masc/masc.fcfg -start Top
 | `tools/masc` | the scripts that chose the MASC sample and generate the grammar's lexicon and correctness suite |
 | [`docs/semantics.md`](docs/semantics.md) | what kind of semantics the grammars have, and where the ideas come from |
 | [`docs/fast-parser.md`](docs/fast-parser.md) | how the fast context-free parser (`go/cfg`) works, and what a hyperedge is |
+| [`docs/flat-semantics.md`](docs/flat-semantics.md) | meanings read off parse trees by folds: heads, learned function tags, flat neo-Davidsonian forms |
+| [`docs/ambiguity.md`](docs/ambiguity.md) | why a treebank grammar is so ambiguous, what sets the attested tree apart, and ideas to follow up |
 
 ## Building and testing
 
