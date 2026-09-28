@@ -82,8 +82,9 @@ of the LCFRS parser in
 specialised to context-free rules
 ([`docs/fast-parser.md`](../docs/fast-parser.md) explains it at length):
 
-* symbols are integers, and rules of more than two daughters are binarized
-  left to right, with the prefixes shared between rules (`|NP VP`);
+* symbols are integers, and rules are binarized
+  by pairing up the daughters that occur together most often, as in
+  BitPar, with the pairs shared between rules (`{DT {JJ NN}}`);
 * a bottom-up pass (CKY) records, for every span, the set of symbols
   derivable over it as a bitset;
 * a top-down pass from the start symbol keeps only the items on a
@@ -91,7 +92,7 @@ specialised to context-free rules
   as a hyperedge. No dead-end item is ever stored.
 
 The forest's tree counts are those of the grammar's own rules;
-`Forest.Trees` enumerates trees with the prefixes spliced out, and
+`Forest.Trees` enumerates trees with the auxiliary symbols spliced out, and
 `Forest.Contains` checks a given tree without enumerating. Its tests compare
 it with package `chart` on random grammars (the same items, reachable from a
 parse, and the same tree counts) and with `treeas.golden`.

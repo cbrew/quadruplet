@@ -160,7 +160,7 @@ func TestAgreesWithChart(t *testing.T) {
 			f := g.Parse(tokens)
 			got := map[string]bool{}
 			for _, it := range f.Items {
-				if !g.Prefix[it.Sym] {
+				if !g.Aux[it.Sym] {
 					got[fmt.Sprintf("%s %d %d", g.Names[it.Sym], it.L, it.R)] = true
 				}
 			}
@@ -279,4 +279,54 @@ func parseTree(t *testing.T, s string) *Tree {
 		t.Fatalf("trailing input in %s", s)
 	}
 	return tr
+}
+
+// Rules that share a pair of daughters share its auxiliary symbol, wherever
+// the pair is: two parents over B C get unary steps over one {B C}, and
+// E -> A B C D uses it too. Trees and Contains see only the grammar's rules.
+func TestPairBinarization(t *testing.T) {
+	g, err := New([]Rule{
+		{"A", []string{"B", "C"}}, {"D", []string{"B", "C"}}, {"E", []string{"A", "B", "C", "D"}},
+		{"S", []string{"E"}}, {"S", []string{"A", "D", "D"}},
+	}, map[string][]string{"b": {"B"}, "c": {"C"}}, []string{"S"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for s, aux := range g.Aux {
+		if aux {
+			names = append(names, g.Names[s])
+		}
+	}
+	slices.Sort(names)
+	// S -> A D D pairs its first two, which tie at one each; E -> A {B C} D
+	// pairs A with {B C}, then ends in a binary step, its pair being unique.
+	if want := []string{"{A D}", "{A {B C}}", "{B C}"}; !slices.Equal(names, want) {
+		t.Errorf("auxiliary symbols %q, want %q", names, want)
+	}
+	f := g.Parse(strings.Fields("b c b c b c"))
+	var trees []string
+	for tree := range f.Trees() {
+		trees = append(trees, tree.String())
+		if !f.Contains(tree) {
+			t.Errorf("%s not found in its own forest", tree)
+		}
+	}
+	slices.Sort(trees)
+	want := []string{
+		"(S (A (B b) (C c)) (D (B b) (C c)) (D (B b) (C c)))",
+		"(S (E (A (B b) (C c)) (B b) (C c) (D (B b) (C c))))",
+	}
+	if !slices.Equal(trees, want) || f.Count().Int64() != 2 {
+		t.Errorf("trees %q (count %s), want %q", trees, f.Count(), want)
+	}
+	for _, w := range []string{
+		"(S (A (B b) (C c)) (A (B b) (C c)) (D (B b) (C c)))",
+		"(S (E (D (B b) (C c)) (B b) (C c) (D (B b) (C c))))",
+		"(S (E (A (B b) (C c)) (B b) (C c) (A (B b) (C c))))",
+	} {
+		if f.Contains(parseTree(t, w)) {
+			t.Errorf("%s: found, but is not in the forest", w)
+		}
+	}
 }

@@ -110,40 +110,54 @@ B → A with "x" an A) lost its word reading. The fast parser counted it,
 the two parsers disagreed on a random grammar, and both charts are now
 fixed.
 
-## 2. Binarization with shared prefixes
+## 2. Binarization by frequent pairs
 
 The parser only ever joins two items, so a rule of more than two daughters
-is broken into steps. The rules
+is broken into steps, each joining two symbols. `go/cfg` does this as
+BitPar does (Schmid 2004, crediting Andreas Eisele): count how often each
+pair of neighbouring daughters occurs over all the rules; then let each
+rule in turn replace its most frequent pair with an *auxiliary symbol*
+standing for that pair, adjust the counts, and repeat until every rule has
+two symbols left. If those two occur together in other rules too, they
+become an auxiliary symbol as well, and the rule a unary step over it. The
+rules
 
     NP -> Det Adj N       NP -> Det Adj N PP      NP -> Det N
+    Nom -> Adj N          PP -> P NP
 
 become
 
-    |Det Adj    -> Det Adj
-    |Det Adj N  -> |Det Adj N
-    NP          -> |Det Adj N          (completes NP -> Det Adj N)
-    NP          -> |Det Adj N PP       (completes NP -> Det Adj N PP)
-    NP          -> Det N
+    {Adj N}          -> Adj N
+    {Det {Adj N}}    -> Det {Adj N}
+    NP               -> {Det {Adj N}}       (completes NP -> Det Adj N)
+    NP               -> {Det {Adj N}} PP    (completes NP -> Det Adj N PP)
+    NP               -> Det N
+    Nom              -> {Adj N}             (completes Nom -> Adj N)
+    PP               -> P NP
 
-A symbol like `|Det Adj N` is a *prefix*: "the first three daughters of
-some rule have been found". Prefixes are shared between rules, and between
-left-hand sides, so the two NP rules build `|Det Adj N` once. Each original
-rule still corresponds to exactly one path of steps, so derivations are in
-one-to-one correspondence and tree counts are unchanged. For "the old man
-with the dog":
+`Adj N` occurs in three rules, so it is paired first, and the two NP rules
+and Nom all share `{Adj N}`. An auxiliary symbol can stand for daughters
+anywhere in a rule, not only at the start, and for daughters of rules with
+different parents. Each rule still has exactly one binary tree, and each
+auxiliary symbol exactly one step, so derivations are in one-to-one
+correspondence with the grammar's own and tree counts are unchanged. For
+"the old man with the dog", with NP as the start symbol:
 
-    |Det Adj(0,2)    [Det(0,1) Adj(1,2)]
-    |Det Adj N(0,3)  [|Det Adj(0,2) N(2,3)]
-    PP(3,6)          [P(3,4) NP(4,6)]
-    NP(0,6)          [|Det Adj N(0,3) PP(3,6)]
+    {Adj N}(1,3)         [Adj(1,2) N(2,3)]
+    {Det {Adj N}}(0,3)   [Det(0,1) {Adj N}(1,3)]
+    NP(4,6)              [Det(4,5) N(5,6)]
+    PP(3,6)              [P(3,4) NP(4,6)]
+    NP(0,6)              [{Det {Adj N}}(0,3) PP(3,6)]
 
-Trees are reported in the grammar's own rules: a prefix item's children are
-spliced into its parent, giving `(NP (Det the) (Adj old) (N man) (PP ...))`.
+Trees are reported in the grammar's own rules: an auxiliary item's children
+are spliced into its parent, giving `(NP (Det the) (Adj old) (N man) (PP ...))`.
 
-Sharing matters for treebank grammars. The MASC grammar has 21,273 rules,
-up to 2,616 of which begin with the same symbol. The shared-prefix grammar
-has 45,029 binary steps, but at most 283 begin with any one symbol, so each
-item found starts far fewer steps.
+Sharing matters for treebank grammars, which are flat and repetitive. The
+MASC grammar has 21,273 rules, 18,732 of them with more than two
+daughters. Binarized by pairs it has 24,042 binary steps, 9,513 of them
+building auxiliary symbols, and 6,744 unary steps. The first version of
+`go/cfg` shared only prefixes (`|Det Adj`, `|Det Adj N`), which gave 45,029
+binary steps and, on MASC sentences, 1.8 times as many hyperedges (§6).
 
 ## 3. Two passes
 
@@ -206,7 +220,7 @@ odd_one_out TIGER grammar does.
 * `Count` is the sum-product above.
 * `Trees` enumerates trees lazily, so the first few of 10²³ come at once.
 * `Contains` checks whether a given tree is in the forest, node by node
-  through the prefixes, without enumerating anything. This is how to check
+  through the binary tree of its rule, without enumerating anything. This is how to check
   that each treebank sentence's own tree is among its parses.
 * `Find` looks up an item by symbol and span.
 
@@ -352,7 +366,7 @@ It differs from `go/cfg` in details:
 
 | | BitPar | `go/cfg` |
 |---|---|---|
-| binarization | Eisele's greedy method: repeatedly replace the most frequent adjacent pair of daughters, anywhere in a rule, with a new symbol | left factoring: shared prefixes only |
+| binarization | Eisele's greedy method: repeatedly replace the most frequent adjacent pair of daughters, anywhere in a rule, with a new symbol | the same (at first: left factoring, sharing prefixes only) |
 | recognition | driven by the parent: for each symbol over a span, try its rules until one succeeds; the split points are tested at once by ANDing two bit vectors, for which the chart is stored twice | driven by the children: for each split, combine the symbols found on the left with those on the right, and find every parent |
 | unary rules | a precomputed bitset of the symbols reachable from each symbol, ORed in | one step at a time |
 | Viterbi | a filtered chart, then Viterbi probabilities over it, without building the forest | none yet |

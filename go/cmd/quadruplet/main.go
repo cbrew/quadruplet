@@ -76,7 +76,7 @@ func main() {
 			if *count {
 				number = f.Count().String()
 			}
-			fmt.Printf("%s\n  %s trees, %d items (%d not prefixes), %d hyperedges, %d derivable, %v (recognise %v, build %v)\n",
+			fmt.Printf("%s\n  %s trees, %d items (%d of the grammar's own symbols), %d hyperedges, %d derivable, %v (recognise %v, build %v)\n",
 				strings.Join(words, " "), number, items, own, edges, f.Derivable, elapsed.Round(time.Microsecond),
 				f.Recognise.Round(time.Microsecond), f.Build.Round(time.Microsecond))
 			n := 0

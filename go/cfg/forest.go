@@ -56,10 +56,10 @@ func (f *Forest) Count() *big.Int {
 }
 
 // Stats counts the forest's items and hyperedges, and how many items are of
-// the grammar's own symbols rather than binarization prefixes.
+// the grammar's own symbols rather than auxiliary symbols of binarization.
 func (f *Forest) Stats() (items, own, edges int) {
 	for _, it := range f.Items {
-		if !f.G.Prefix[it.Sym] {
+		if !f.G.Aux[it.Sym] {
 			own++
 		}
 	}
@@ -110,13 +110,13 @@ func (f *Forest) Trees() iter.Seq[*Tree] {
 }
 
 // pieces yields what an item contributes to its parent's children: the item
-// as one tree, or, for a binarization prefix, the several trees it stands for.
+// as one tree, or, for an auxiliary symbol, the several trees it stands for.
 func (f *Forest) pieces(item int32) iter.Seq[[]*Tree] {
 	return func(yield func([]*Tree) bool) {
 		it := f.Items[item]
 		label := f.G.Names[it.Sym]
 		wrap := func(children []*Tree) []*Tree {
-			if f.G.Prefix[it.Sym] {
+			if f.G.Aux[it.Sym] {
 				return children
 			}
 			return []*Tree{{Label: label, Children: children}}
@@ -147,8 +147,8 @@ func (f *Forest) pieces(item int32) iter.Seq[[]*Tree] {
 }
 
 // Contains says whether a tree of the grammar's own rules is in the forest.
-// It checks each node against the hyperedges, through the binarization
-// prefixes, without enumerating anything.
+// It checks each node against the hyperedges, through the binarization of
+// its rule, without enumerating anything.
 func (f *Forest) Contains(t *Tree) bool {
 	for _, g := range f.Goals {
 		if f.G.Names[f.Items[g].Sym] == t.Label {
@@ -211,35 +211,55 @@ func (f *Forest) node(item int32, t *Tree, l int32) (int32, bool) {
 		}
 		children[i] = child
 	}
-	// the hyperedges that build it: prefix by prefix, then the item itself
-	has := func(item, left, right int32) bool {
+	// the hyperedges that build it, following its rule's binary tree
+	g := f.G
+	labels := make([]string, len(t.Children))
+	for i, c := range t.Children {
+		labels[i] = c.Label
+	}
+	ri, ok := g.ruleIndex[Rule{t.Label, labels}.String()]
+	if !ok {
+		return 0, false
+	}
+	has := func(item, step, left, right int32) bool {
 		for e, end := f.EdgeRange(item); e < end; e++ {
-			if h := f.Edge(e); h.Step >= 0 && h.Left == left && h.Right == right {
+			if h := f.Edge(e); h.Step == step && h.Left == left && h.Right == right {
 				return true
 			}
 		}
 		return false
 	}
-	if len(children) == 1 {
-		return it.R, has(item, children[0], -1)
-	}
-	left := children[0]
-	for i := 1; i < len(children)-1; i++ {
-		labels := make([]string, i+1)
-		for j := range labels {
-			labels[j] = t.Children[j].Label
+	start := func(i int) int32 {
+		if i == 0 {
+			return l
 		}
-		p, ok := f.G.PrefixSymbol(labels)
+		return ends[i-1]
+	}
+	// part is the item for a symbol covering the daughters from the i'th
+	var part func(sym int32, i int) (int32, bool)
+	part = func(sym int32, i int) (int32, bool) {
+		if !g.Aux[sym] {
+			return children[i], true
+		}
+		st := g.Steps[g.auxStep[sym]]
+		left, ok := part(st.Left, i)
 		if !ok {
 			return 0, false
 		}
-		pi, ok := f.Find(p, l, ends[i])
-		if !ok || !has(pi, left, children[i]) {
+		right, ok := part(st.Right, i+int(g.width[st.Left]))
+		if !ok {
 			return 0, false
 		}
-		left = pi
+		aux, ok := f.Find(sym, start(i), ends[i+int(g.width[sym])-1])
+		return aux, ok && has(aux, g.auxStep[sym], left, right)
 	}
-	return it.R, has(item, left, children[len(children)-1])
+	top := g.Steps[g.ruleStep[ri]]
+	left, ok := part(top.Left, 0)
+	right := int32(-1)
+	if ok && top.Right >= 0 {
+		right, ok = part(top.Right, int(g.width[top.Left]))
+	}
+	return it.R, ok && has(item, g.ruleStep[ri], left, right)
 }
 
 // span is the number of words a tree covers, added to where it starts.

@@ -3,10 +3,11 @@
 // same packed forest as package chart would, holding only the items that lie
 // on a derivation of the whole input, in flat memory over integer symbols.
 //
-// The method follows the LCFRS parser in cbrew/odd_one_out, specialised to
-// context-free rules. Rules of more than two daughters are binarized left
-// to right, with prefixes shared between rules, so the parser only ever
-// joins two items. A first pass recognises, for every span, the set of
+// The method is that of Schmid's BitPar (2004), and of the LCFRS parser in
+// cbrew/odd_one_out, specialised to context-free rules. Rules are binarized
+// by pairing up the daughters that occur together most often, as BitPar
+// does, so the parser only ever joins two items. A first pass recognises,
+// for every span, the set of
 // symbols derivable over it, as bitsets (CKY). A second pass goes top down
 // from the goal and keeps an item only if it is derivable and on a
 // derivation of the whole input, recording, as it goes, every way of
@@ -17,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -30,7 +32,7 @@ func (r Rule) String() string { return r.LHS + " -> " + strings.Join(r.RHS, " ")
 
 // Step is a rule of the binarized grammar: Parent -> Left Right, or
 // Parent -> Left when Right is -1. Rule is the index of the grammar rule the
-// step completes, or -1 for a step that builds a prefix of rules.
+// step completes, or -1 for the step that builds an auxiliary symbol.
 type Step struct {
 	Parent, Left, Right int32
 	Rule                int32
@@ -38,11 +40,16 @@ type Step struct {
 
 // Grammar is a context-free grammar compiled for parsing.
 type Grammar struct {
-	Names  []string // symbol -> name; binarization prefixes are named |A B ...
-	Prefix []bool   // symbol -> it is a prefix made by binarization
+	Names  []string // symbol -> name; auxiliary symbols are named {A B}, {{A B} C}, ...
+	Aux    []bool   // symbol -> it is an auxiliary symbol, made by binarization
 	Starts []int32  // the start symbols
 	Rules  []Rule   // the grammar's rules, without duplicates
 	Steps  []Step
+
+	ruleIndex map[string]int32 // rule, as a string -> its index
+	ruleStep  []int32          // rule -> the step that completes it
+	auxStep   []int32          // auxiliary symbol -> the one step that builds it; -1 for others
+	width     []int32          // symbol -> how many of a rule's daughters it covers
 
 	number    map[string]int32
 	lexicon   map[string][]int32 // word or phrase -> symbols
@@ -65,45 +72,19 @@ type down struct {
 // separated by single spaces, to the symbols it can be. starts are the
 // symbols a whole input may be.
 func New(rules []Rule, lexicon map[string][]string, starts []string) (*Grammar, error) {
-	g := &Grammar{number: map[string]int32{}, lexicon: map[string][]int32{}}
-	seen := map[string]bool{}
+	g := &Grammar{number: map[string]int32{}, lexicon: map[string][]int32{}, ruleIndex: map[string]int32{}}
 	for _, r := range rules {
 		if len(r.RHS) == 0 {
 			return nil, fmt.Errorf("cfg: %s: rules with no daughters are not supported", r)
 		}
 		key := r.String()
-		if seen[key] {
+		if _, ok := g.ruleIndex[key]; ok {
 			continue
 		}
-		seen[key] = true
+		g.ruleIndex[key] = int32(len(g.Rules))
 		g.Rules = append(g.Rules, r)
 	}
-	steps := map[[3]int32]int32{} // prefix steps, shared
-	for ri, r := range g.Rules {
-		lhs := g.symbol(r.LHS)
-		rhs := make([]int32, len(r.RHS))
-		for i, s := range r.RHS {
-			rhs[i] = g.symbol(s)
-		}
-		switch len(rhs) {
-		case 1:
-			g.Steps = append(g.Steps, Step{lhs, rhs[0], -1, int32(ri)})
-		case 2:
-			g.Steps = append(g.Steps, Step{lhs, rhs[0], rhs[1], int32(ri)})
-		default:
-			left := rhs[0]
-			for i := 1; i < len(rhs)-1; i++ {
-				p := g.prefix(r.RHS[:i+1])
-				k := [3]int32{p, left, rhs[i]}
-				if _, ok := steps[k]; !ok {
-					steps[k] = int32(len(g.Steps))
-					g.Steps = append(g.Steps, Step{p, left, rhs[i], -1})
-				}
-				left = p
-			}
-			g.Steps = append(g.Steps, Step{lhs, left, rhs[len(rhs)-1], int32(ri)})
-		}
-	}
+	g.binarize()
 	for word, cats := range lexicon {
 		if word == "" || strings.Contains(word, "  ") || strings.TrimSpace(word) != word {
 			return nil, fmt.Errorf("cfg: bad lexical entry %q", word)
@@ -136,34 +117,106 @@ func (g *Grammar) symbol(name string) int32 {
 	s := int32(len(g.Names))
 	g.number[name] = s
 	g.Names = append(g.Names, name)
-	g.Prefix = append(g.Prefix, false)
+	g.Aux = append(g.Aux, false)
+	g.auxStep = append(g.auxStep, -1)
+	g.width = append(g.width, 1)
 	return s
 }
 
-// prefix is the symbol for the first daughters of some rules. Its key starts
-// with a character no symbol name can hold, so it never meets a grammar symbol.
-func (g *Grammar) prefix(daughters []string) int32 {
-	key := "\x00" + strings.Join(daughters, "\x00")
+func (g *Grammar) step(st Step) int32 {
+	g.Steps = append(g.Steps, st)
+	return int32(len(g.Steps) - 1)
+}
+
+// binarize makes the steps: for each rule one step that completes it, over
+// its daughter or over two symbols, and one step for each auxiliary symbol,
+// which stands for a pair of symbols. As in BitPar (Schmid 2004, following
+// Andreas Eisele), each rule in turn replaces its most frequent pair of
+// neighbouring daughters with an auxiliary symbol, the counts being over all
+// the rules, until two symbols are left; if their pair is in other rules
+// too, it is replaced as well, leaving a unary step. So an auxiliary symbol
+// is shared by every rule that has its pair, wherever it is in the rule,
+// and over a span it is built once for them all. Each rule still has one
+// binary tree, and each auxiliary symbol one step, so derivations of the
+// binarized grammar are one to one with those of the grammar.
+func (g *Grammar) binarize() {
+	type pair [2]int32
+	type work struct {
+		lhs, rule int32
+		ds        []int32
+	}
+	g.ruleStep = make([]int32, len(g.Rules))
+	count := map[pair]int{}
+	var todo []work
+	for ri, r := range g.Rules {
+		w := work{lhs: g.symbol(r.LHS), rule: int32(ri)}
+		for _, s := range r.RHS {
+			w.ds = append(w.ds, g.symbol(s))
+		}
+		if len(w.ds) == 1 {
+			g.ruleStep[ri] = g.step(Step{w.lhs, w.ds[0], -1, w.rule})
+			continue
+		}
+		for i := 1; i < len(w.ds); i++ {
+			count[pair{w.ds[i-1], w.ds[i]}]++
+		}
+		todo = append(todo, w)
+	}
+	for len(todo) > 0 {
+		var next []work
+		for _, w := range todo {
+			ds := w.ds
+			if len(ds) == 1 {
+				g.ruleStep[w.rule] = g.step(Step{w.lhs, ds[0], -1, w.rule})
+				continue
+			}
+			at := 0
+			for i := 1; i+1 < len(ds); i++ {
+				if count[pair{ds[i], ds[i+1]}] > count[pair{ds[at], ds[at+1]}] {
+					at = i
+				}
+			}
+			p := pair{ds[at], ds[at+1]}
+			if len(ds) == 2 && count[p] == 1 {
+				g.ruleStep[w.rule] = g.step(Step{w.lhs, ds[0], ds[1], w.rule})
+				continue
+			}
+			x := g.aux(p[0], p[1])
+			nd := slices.Concat(ds[:at], []int32{x}, ds[at+2:])
+			// the pairs across the new symbol's edges replace those across the old
+			if at > 0 {
+				count[pair{nd[at-1], x}]++
+				count[pair{nd[at-1], p[0]}]--
+			}
+			if at+1 < len(nd) {
+				count[pair{x, nd[at+1]}]++
+				count[pair{p[1], nd[at+1]}]--
+			}
+			next = append(next, work{w.lhs, w.rule, nd})
+		}
+		todo = next
+	}
+}
+
+// aux is the auxiliary symbol for the pair a b. Its key starts with a
+// character no symbol name can hold, so it never meets a grammar symbol.
+func (g *Grammar) aux(a, b int32) int32 {
+	key := "\x00" + strconv.Itoa(int(a)) + " " + strconv.Itoa(int(b))
 	if s, ok := g.number[key]; ok {
 		return s
 	}
 	s := g.symbol(key)
-	g.Names[s] = "|" + strings.Join(daughters, " ")
-	g.Prefix[s] = true
+	g.Names[s] = "{" + g.Names[a] + " " + g.Names[b] + "}"
+	g.Aux[s] = true
+	g.width[s] = g.width[a] + g.width[b]
+	g.auxStep[s] = g.step(Step{s, a, b, -1})
 	return s
 }
 
 // Symbol is a symbol's number, if the grammar has it.
 func (g *Grammar) Symbol(name string) (int32, bool) {
 	s, ok := g.number[name]
-	return s, ok && !g.Prefix[s]
-}
-
-// PrefixSymbol is the symbol binarization made for the first daughters of
-// some rule, if there is one.
-func (g *Grammar) PrefixSymbol(daughters []string) (int32, bool) {
-	s, ok := g.number["\x00"+strings.Join(daughters, "\x00")]
-	return s, ok
+	return s, ok && !g.Aux[s]
 }
 
 // index builds the tables the parser looks things up in, and ranks the
