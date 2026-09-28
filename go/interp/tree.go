@@ -16,6 +16,7 @@ import (
 
 // Node is a word or a phrase of a tree, with the categories a treebank uses.
 type Node struct {
+	Label string   // the grammar symbol, as the tree gives it: NPph[], SxVP[]
 	Cat   string   // the category: NP, VP, NN, ","; for a collapsed chain, its top
 	Chain []string // a chain of phrases collapsed into one node, top first: [S VP]; else [Cat]
 	Fn    []string // function tags, SBJ, TMP, where the treebank gives them
@@ -73,7 +74,7 @@ func FromTree(t *cfg.Tree) *Node {
 	var node func(t *cfg.Tree) *Node
 	node = func(t *cfg.Tree) *Node {
 		chain := categories(t.Label)
-		n := &Node{Cat: chain[0], Chain: chain, Head: -1}
+		n := &Node{Label: t.Label, Cat: chain[0], Chain: chain, Head: -1}
 		if t.Words != nil {
 			// a lexical phrase, of several words, is one word here
 			n.Word, n.Pos = strings.Join(t.Words, " "), pos
@@ -109,7 +110,7 @@ func FromJSON(raw []byte) (*Node, error) {
 	var node func(j *jnode) (*Node, error)
 	node = func(j *jnode) (*Node, error) {
 		chain := categories(j.C)
-		n := &Node{Cat: chain[0], Chain: chain, Fn: j.F, Head: -1}
+		n := &Node{Label: j.C, Cat: chain[0], Chain: chain, Fn: j.F, Head: -1}
 		if j.W != nil {
 			n.Word, n.Pos = *j.W, pos
 			pos++

@@ -3,6 +3,7 @@ package cfg
 import (
 	"iter"
 	"math/big"
+	"math/rand"
 	"slices"
 	"strings"
 )
@@ -32,27 +33,96 @@ func (f *Forest) Count() *big.Int {
 	if len(f.Goals) == 0 {
 		return total
 	}
+	ways := f.ways()
+	for _, g := range f.Goals {
+		total.Add(total, ways[g])
+	}
+	return total
+}
+
+// ways is the number of trees under each item.
+func (f *Forest) ways() []*big.Int {
 	ways := make([]*big.Int, len(f.Items))
 	tmp := new(big.Int)
 	for _, item := range f.Order() {
 		w := new(big.Int)
 		for e, end := f.EdgeRange(item); e < end; e++ {
-			h := f.Edge(e)
-			tmp.SetInt64(1)
-			if h.Left >= 0 {
-				tmp.Mul(tmp, ways[h.Left])
-			}
-			if h.Right >= 0 {
-				tmp.Mul(tmp, ways[h.Right])
-			}
-			w.Add(w, tmp)
+			w.Add(w, f.edgeWays(ways, e, tmp))
 		}
 		ways[item] = w
 	}
-	for _, g := range f.Goals {
-		total.Add(total, ways[g])
+	return ways
+}
+
+// edgeWays is the number of trees under hyperedge e, in tmp.
+func (f *Forest) edgeWays(ways []*big.Int, e int, tmp *big.Int) *big.Int {
+	h := f.Edge(e)
+	tmp.SetInt64(1)
+	if h.Left >= 0 {
+		tmp.Mul(tmp, ways[h.Left])
 	}
-	return total
+	if h.Right >= 0 {
+		tmp.Mul(tmp, ways[h.Right])
+	}
+	return tmp
+}
+
+// Sampler draws trees of a forest at random, each tree of the whole input
+// as likely as any other.
+type Sampler struct {
+	f    *Forest
+	ways []*big.Int
+	rng  *rand.Rand
+}
+
+// Sampler counts the trees under each item, once, for drawing trees with
+// rng. The forest must have a tree.
+func (f *Forest) Sampler(rng *rand.Rand) *Sampler { return &Sampler{f, f.ways(), rng} }
+
+// Tree draws a tree: a goal item, then at each item a hyperedge, each in
+// proportion to the number of trees under it.
+func (s *Sampler) Tree() *Tree {
+	total := new(big.Int)
+	for _, g := range s.f.Goals {
+		total.Add(total, s.ways[g])
+	}
+	r := new(big.Int).Rand(s.rng, total)
+	for _, g := range s.f.Goals {
+		if r.Cmp(s.ways[g]) < 0 {
+			return s.pieces(g)[0]
+		}
+		r.Sub(r, s.ways[g])
+	}
+	panic("cfg: a sample beyond the count")
+}
+
+// pieces is what a drawn tree of item contributes to its parent's
+// children, as Forest.pieces is for every tree.
+func (s *Sampler) pieces(item int32) []*Tree {
+	f := s.f
+	it := f.Items[item]
+	r := new(big.Int).Rand(s.rng, s.ways[item])
+	tmp := new(big.Int)
+	for e, end := f.EdgeRange(item); e < end; e++ {
+		w := f.edgeWays(s.ways, e, tmp)
+		if r.Cmp(w) >= 0 {
+			r.Sub(r, w)
+			continue
+		}
+		h := f.Edge(e)
+		if h.Step < 0 {
+			return []*Tree{{Label: f.G.Names[it.Sym], Words: f.Tokens[it.L:it.R]}}
+		}
+		children := s.pieces(h.Left)
+		if h.Right >= 0 {
+			children = slices.Concat(children, s.pieces(h.Right))
+		}
+		if f.G.Aux[it.Sym] {
+			return children
+		}
+		return []*Tree{{Label: f.G.Names[it.Sym], Children: children}}
+	}
+	panic("cfg: a sample beyond the count")
 }
 
 // Stats counts the forest's items and hyperedges, and how many items are of

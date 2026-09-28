@@ -11,7 +11,10 @@ id and the tree as nested lists, [label, child, ...], a leaf being
 OUT_DIR/annotated.jsonl (the same trees with the function tags MASC gives
 their phrases: a node is {"c": label, "f": [tag, ...], "k": [child, ...]},
 a leaf {"c": tag, "w": word}; where a chain of phrases is collapsed, the
-tags are those of its top, which relate the chain to its parent). Punctuation is kept; empty elements
+tags are those of its top, which relate the chain to its parent), and
+OUT_DIR/counts.tsv (the grammar with how often each rule and each tagging of
+a word occurs: "rule", count, parent and daughters; "word", count, tag and
+word; tab-separated). Punctuation is kept; empty elements
 and function tags are dropped; a chain of single-child phrases becomes one
 symbol (S over VP is SxVP), which removes the unary cycles; a phrase label
 that is also a part of speech somewhere gets the suffix ph. That last rule
@@ -68,11 +71,13 @@ def fix(n):
     FUNCTIONS[id(out)] = FUNCTIONS[id(n)]  # every phrase norm made has an entry
     return out
 trees = [(i, fix(n)) for i, n in trees]
-prods = collections.Counter(); lex = collections.defaultdict(set); roots = set()
+prods = collections.Counter(); lex = collections.defaultdict(set); roots = collections.Counter()
+tagged = collections.Counter()
 for _, n in trees:
-    roots.add(n[0])
+    roots[n[0]] += 1
     for tag, w in leaves(n):
         lex[w].add(tag)
+        tagged[tag, w] += 1
     ps = []
     productions(n, ps)
     prods.update(ps)
@@ -85,6 +90,13 @@ with open(os.path.join(OUT, 'tb.fcfg'), 'w') as f:
         f.write('Top[] -> %s[]\n' % r)
     for w in sorted(lex):
         f.write('"%s": %s\n' % (w, ' | '.join(t + '[]' for t in sorted(lex[w]))))
+with open(os.path.join(OUT, 'counts.tsv'), 'w') as f:
+    for (l, r), k in sorted(prods.items()):
+        f.write('rule\t%d\t%s\t%s\n' % (k, l, '\t'.join(r)))
+    for r, k in sorted(roots.items()):
+        f.write('rule\t%d\tTop\t%s\n' % (k, r))
+    for (tag, w), k in sorted(tagged.items()):
+        f.write('word\t%d\t%s\t%s\n' % (k, tag, w))
 with open(os.path.join(OUT, 'sents.txt'), 'w') as f:
     for i, n in trees:
         f.write('%s\t%d\t%s\n' % (i, len(leaves(n)), ' '.join(w for _, w in leaves(n))))
