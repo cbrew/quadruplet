@@ -100,14 +100,14 @@ parse, and the same tree counts) and with `treeas.golden`.
 `cfg.FromGrammar` compiles a grammar in either notation, provided its
 categories are ground and no two different ones unify. On the command line,
 `-fast -start SYMBOL` uses it. On a treebank grammar read off all of MASC
-(21,273 rules; 45,029 binary steps), one core:
+(21,273 rules; 24,042 binary and 6,744 unary steps), one core:
 
 | tokens | package `chart` | package `cfg` | trees |
 |---|---|---|---|
-| 5 | 0.9 s | 2 ms | 675,831 |
-| 10 | 7.6 s | 16 ms | 6.8 × 10¹² |
-| 15 | 49 s | 0.11 s | 3.6 × 10²³ |
-| 30 | | 1.4 s | 2.2 × 10⁵¹ |
+| 5 | 0.9 s | 1.4 ms | 675,831 |
+| 10 | 7.6 s | 11 ms | 6.8 × 10¹² |
+| 15 | 49 s | 82 ms | 3.6 × 10²³ |
+| 30 | | 0.78 s | 2.2 × 10⁵¹ |
 
 [`docs/fast-parser.md`](../docs/fast-parser.md) §6 compares it with BitPar
 on sentences of up to 80 words.

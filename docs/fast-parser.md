@@ -2,7 +2,7 @@
 
 Package `go/cfg` parses context-free grammars: grammars whose categories
 are plain symbols, with no features to unify. It builds the same packed
-forest as the feature parser in `go/chart` would, but faster: 0.11 s
+forest as the feature parser in `go/chart` would, but faster: 0.08 s
 against 49 s for a 15-token sentence under a treebank grammar read off
 MASC. This note explains how, starting with the idea everything else rests
 on: the forest as a hypergraph.
@@ -101,7 +101,7 @@ with the empty product, 1, for a lexical hyperedge. Here every item has
 one tree except VP(1,7), which has 1 × 1 + 1 × 1 = 2, so S(0,7) has
 1 × 2 = 2. Visiting items children first makes this one pass over the
 forest, however many trees it holds. The 15-token sentence above has
-3.6 × 10²³ trees in 36,349 items and 427,236 hyperedges.
+3.6 × 10²³ trees in 46,292 items and 295,291 hyperedges.
 
 Writing the lexical entries as explicit hyperedges caught a bug. `go/chart`
 and the Kotlin chart took "no predecessors" to mean "a word", so an item
@@ -196,9 +196,9 @@ are most of what a bottom-up parser builds:
 
 | tokens | derivable (pass 1) | items in the forest | hyperedges |
 |---|---|---|---|
-| 15 | 109,330 | 36,349 | 427,236 |
-| 30 | 927,533 | 416,486 | 6,599,726 |
-| 60 | 3,632,467 | 1,497,846 | 56,957,292 |
+| 15 | 68,398 | 46,292 | 295,291 |
+| 30 | 476,330 | 339,163 | 4,051,522 |
+| 60 | 1,866,232 | 1,396,511 | 31,592,772 |
 
 (The feature parser, which has only the bottom-up pass, built 109,330
 complete edges and 339,854 partial ones for the 15-token sentence, and kept
@@ -245,9 +245,9 @@ On one core, with the treebank grammar read off all of MASC:
 
 | tokens | `go/chart` | `go/cfg` | trees |
 |---|---|---|---|
-| 5 | 0.9 s | 2 ms | 675,831 |
-| 10 | 7.6 s | 16 ms | 6.8 × 10¹² |
-| 15 | 49 s | 0.11 s | 3.6 × 10²³ |
+| 5 | 0.9 s | 1.4 ms | 675,831 |
+| 10 | 7.6 s | 11 ms | 6.8 × 10¹² |
+| 15 | 49 s | 82 ms | 3.6 × 10²³ |
 
 ### Against BitPar
 
@@ -255,78 +255,74 @@ BitPar (§8) was run on the same grammar, lexicon and sentences: three
 MASC sentences of each length from 5 to 80 words, one core, each parse
 its own process. The scripts, the results, and what it took to make BitPar
 use exactly the same grammar and lexicon are in
-[`tools/bitpar`](../tools/bitpar/README.md). The two parsers' tree
-counts agree on every sentence where they could be compared (up to 20
-words).
+[`tools/bitpar`](../tools/bitpar/README.md).
+
+The two build the same forests. On every one of the 42 sentences,
+`go/cfg`'s items and hyperedges are exactly as many as BitPar's nodes and
+analyses, since the binarization (§2) is the same, and the tree counts
+agree wherever they could be compared (up to 20 words).
 
 ![Parse time and peak memory against sentence length, go/cfg and BitPar](bitpar-scaling.svg)
 
 Medians of three sentences. Time is the parser's own: recognition plus
 building the forest, without loading the grammar or counting the trees.
-Memory is the process's peak, grammar included: about 120 MB of it for
+Memory is the process's peak, grammar included: about 115 MB of it for
 `go/cfg` (which reads the grammar as a feature grammar) and 35 MB for
 BitPar, at any length.
 
-| words | `go/cfg` time | BitPar time | `go/cfg` memory | BitPar memory | `go/cfg` hyperedges | BitPar analyses |
-|---|---|---|---|---|---|---|
-| 10 | 0.021 s | 0.013 s | 113 MB | 35 MB | 0.09 M | 0.07 M |
-| 20 | 0.27 s | 0.10 s | 118 MB | 39 MB | 1.4 M | 0.9 M |
-| 30 | 1.3 s | 0.37 s | 136 MB | 93 MB | 5.3 M | 3.1 M |
-| 40 | 2.7 s | 0.96 s | 287 MB | 174 MB | 14 M | 8.3 M |
-| 50 | 6.7 s | 2.4 s | 537 MB | 416 MB | 32 M | 18 M |
-| 60 | 13 s | 5.0 s | 881 MB | 670 MB | 58 M | 31 M |
-| 70 | 20 s | 7.0 s | 1.3 GB | 888 MB | 89 M | 48 M |
-| 80 | 28 s | 11 s | 1.8 GB | 1.2 GB | 128 M | 69 M |
+| words | `go/cfg` time | BitPar time | `go/cfg` memory | BitPar memory | hyperedges (both) |
+|---|---|---|---|---|---|
+| 10 | 0.018 s | 0.013 s | 118 MB | 35 MB | 0.07 M |
+| 20 | 0.19 s | 0.09 s | 115 MB | 39 MB | 0.86 M |
+| 30 | 0.69 s | 0.36 s | 122 MB | 93 MB | 3.1 M |
+| 40 | 1.8 s | 1.0 s | 202 MB | 174 MB | 8.3 M |
+| 50 | 3.5 s | 2.5 s | 341 MB | 416 MB | 18 M |
+| 60 | 6.2 s | 5.0 s | 538 MB | 670 MB | 31 M |
+| 70 | 12 s | 7.1 s | 817 MB | 888 MB | 48 M |
+| 80 | 14 s | 11 s | 1.1 GB | 1.2 GB | 69 M |
 
-Both parsers scale the same way, and both scale with the size of the
-answer. From 20 to 80 words the forests grow as about n^3.2 in both, and
-the times as about n^3.4 in both. Recognition is a small part of either:
-at 80 words it is 2.1 s of `go/cfg`'s 28 s, and 0.4 s of BitPar's 11 s.
-Neither is doing anything asymptotically cleverer than the other.
+Both scale with the size of the answer: from 20 to 80 words the forests
+grow as about n^3.2, and the times as about n^3.2 (`go/cfg`) and n^3.5
+(BitPar). BitPar is 1.2 to 2 times faster from 30 words on; from 50 words
+on, `go/cfg` uses as much memory or less. Per hyperedge (medians, 40 words and
+more):
 
-BitPar is 2.2 to 3.5 times faster, and uses 1.3 to 1.6 times less memory,
-from 30 words on. Most of that is one difference: BitPar's forests have
-about 1.8 times fewer analyses than `go/cfg`'s have hyperedges, for about
-the same number of nodes. The main difference in what the two build is
-the binarization: Eisele's method pairs up the daughters that occur
-together most often, anywhere in a rule, so more rules share each binary
-step than when only prefixes are shared. Per hyperedge, the two are
-close:
-
-| per hyperedge (medians, 40 words and more) | `go/cfg` | BitPar |
+| | `go/cfg` | BitPar |
 |---|---|---|
-| time to build | 201 ns | 139 ns |
+| time to build | 189 ns | 132 ns |
 | memory, above what the grammar takes | 14 bytes | 18 bytes |
 
-`go/cfg` stores a hyperedge in 12 bytes, in blocks of 16K that are never
-copied; an item records where its hyperedges start and how many there
-are, since they are all found while it is visited. The first version
-linked each item's hyperedges through a `Next` field (16 bytes each) and
-kept them in one slice, which Go copied each time it grew, leaving the old
-arrays as garbage: it needed 62 bytes a hyperedge, 7.1 GB at 80 words, and
-twice the time. Counting the trees exactly is extra, and not measured
-here: one big integer per item, 0.9 GB on the 60-word sentence with 53
-million hyperedges.
+and recognition, which BitPar does with its bit-vector AND over split
+points, is 4 times faster in BitPar: 0.39 s against 1.6 s at 80 words.
+
+Getting here took two changes, each measured on the same sentences:
+
+| at 80 words | time | memory | hyperedges |
+|---|---|---|---|
+| first version: shared prefixes, hyperedges linked through `Next` in one growing slice | 54 s | 7.1 GB | 128 M |
+| hyperedges in fixed blocks, 12 bytes each, numbered consecutively per item | 28 s | 1.8 GB | 128 M |
+| binarization by frequent pairs (§2) | 14 s | 1.1 GB | 69 M |
+
+The first version needed 62 bytes a hyperedge: its one slice of
+hyperedges was copied each time it grew, and the old arrays left as
+garbage. Counting the trees exactly is extra, and not measured here: one
+big integer per item, 0.9 GB on a 60-word sentence with 53 million
+prefix-binarized hyperedges.
 
 Extrapolating (roughly) to MASC's longest sentence, 174 words: its exact
-forest would have about 1.6 billion hyperedges in `go/cfg`, about 23 GB,
-and about 0.8 billion in BitPar, about 15 GB.
+forest would have about 0.8 billion hyperedges, about 11 GB in `go/cfg`
+and 15 GB in BitPar.
 
 ### What next
 
-In order of what the comparison says they would gain:
-
-* **Pair binarization**, as BitPar does it, for about 1.8 times fewer
-  hyperedges. Tree enumeration and `Contains` would have to follow the
-  new binary steps instead of prefixes.
+* **Faster recognition**, now 11% of the time at 80 words: BitPar's
+  parent-driven test, ANDing bit vectors over the split points, or
+  recognition in parallel, cell by cell, as `go/chart` does.
 * **An open-addressed item table** of integers, as in odd_one_out, instead
-  of a Go map.
+  of a Go map; it is looked up for both children of every hyperedge.
 * **Unary closure as a bitset**, as BitPar does it: precompute, for each
   symbol, the set of symbols reachable from it by unary steps, and OR it
   into the cell, instead of following unary steps one at a time.
-* **Parallel recognition**, cell by cell, as `go/chart` does. At 80 words
-  recognition is 8% of the time, so this would matter only once the forest
-  is cheaper.
 * **Probabilities.** The treebank's rule counts give a PCFG for free. Klein
   and Manning's A* search, or Charniak, Goldwater and Johnson's best-first
   search, would find the best parse of a long sentence without building
