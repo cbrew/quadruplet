@@ -2,7 +2,7 @@
 
 Package `go/cfg` parses context-free grammars: grammars whose categories
 are plain symbols, with no features to unify. It builds the same packed
-forest as the feature parser in `go/chart` would, but faster: 0.08 s
+forest as the feature parser in `go/chart` would, but faster: 0.03 s
 against 49 s for a 15-token sentence under a treebank grammar read off
 MASC. This note explains how, starting with the idea everything else rests
 on: the forest as a hypergraph.
@@ -256,9 +256,9 @@ On one core, with the treebank grammar read off all of MASC:
 
 | tokens | `go/chart` | `go/cfg` | trees |
 |---|---|---|---|
-| 5 | 0.9 s | 1.4 ms | 675,831 |
-| 10 | 7.6 s | 11 ms | 6.8 × 10¹² |
-| 15 | 49 s | 82 ms | 3.6 × 10²³ |
+| 5 | 0.9 s | 2 ms | 675,831 |
+| 10 | 7.6 s | 7 ms | 6.8 × 10¹² |
+| 15 | 49 s | 33 ms | 3.6 × 10²³ |
 
 ### Against BitPar
 
@@ -283,36 +283,39 @@ BitPar, at any length.
 
 | words | `go/cfg` time | BitPar time | `go/cfg` memory | BitPar memory | hyperedges (both) |
 |---|---|---|---|---|---|
-| 10 | 0.018 s | 0.013 s | 118 MB | 35 MB | 0.07 M |
-| 20 | 0.19 s | 0.09 s | 115 MB | 39 MB | 0.86 M |
-| 30 | 0.69 s | 0.36 s | 122 MB | 93 MB | 3.1 M |
-| 40 | 1.8 s | 1.0 s | 202 MB | 174 MB | 8.3 M |
-| 50 | 3.5 s | 2.5 s | 341 MB | 416 MB | 18 M |
-| 60 | 6.2 s | 5.0 s | 538 MB | 670 MB | 31 M |
-| 70 | 12 s | 7.1 s | 817 MB | 888 MB | 48 M |
-| 80 | 14 s | 11 s | 1.1 GB | 1.2 GB | 69 M |
+| 10 | 0.010 s | 0.014 s | 112 MB | 35 MB | 0.07 M |
+| 20 | 0.08 s | 0.09 s | 119 MB | 39 MB | 0.86 M |
+| 30 | 0.25 s | 0.40 s | 117 MB | 93 MB | 3.1 M |
+| 40 | 0.67 s | 0.92 s | 207 MB | 174 MB | 8.3 M |
+| 50 | 1.4 s | 2.4 s | 325 MB | 416 MB | 18 M |
+| 60 | 2.4 s | 4.9 s | 569 MB | 670 MB | 31 M |
+| 70 | 3.7 s | 6.8 s | 795 MB | 888 MB | 48 M |
+| 80 | 6.0 s | 9.8 s | 1.1 GB | 1.2 GB | 69 M |
 
 Both scale with the size of the answer: from 20 to 80 words the forests
-grow as about n^3.2, and the times as about n^3.2 (`go/cfg`) and n^3.5
-(BitPar). BitPar is 1.2 to 2 times faster from 30 words on; from 50 words
-on, `go/cfg` uses as much memory or less. Per hyperedge (medians, 40 words and
-more):
+grow as about n^3.2, and the times as about n^3.1 (`go/cfg`) and n^3.4
+(BitPar). `go/cfg` is 1.2 to 2.2 times faster than BitPar from 30 words
+on, sentence by sentence; from 50 words on it uses as much memory or
+less. Recognition takes the same time in both (0.40 s and 0.39 s at 80
+words); `go/cfg` builds the forest faster. Per hyperedge (medians, 40
+words and more):
 
 | | `go/cfg` | BitPar |
 |---|---|---|
-| time to build | 189 ns | 132 ns |
+| time to build | 74 ns | 132 ns |
 | memory, above what the grammar takes | 14 bytes | 18 bytes |
 
-and recognition, which BitPar does with its bit-vector AND over split
-points, is 4 times faster in BitPar: 0.39 s against 1.6 s at 80 words.
+BitPar's times are CPU time from `clock()`, `go/cfg`'s wall-clock time on
+one core; BitPar is compiled with `g++ -O3`.
 
-Getting here took two changes, each measured on the same sentences:
+Getting here took four changes, each measured on the same sentences:
 
 | at 80 words | time | memory | hyperedges |
 |---|---|---|---|
-| first version: shared prefixes, hyperedges linked through `Next` in one growing slice | 54 s | 7.1 GB | 128 M |
+| first version: shared prefixes; recognition child by child, split by split; hyperedges linked through `Next` in one growing slice | 54 s | 7.1 GB | 128 M |
 | hyperedges in fixed blocks, 12 bytes each, numbered consecutively per item | 28 s | 1.8 GB | 128 M |
 | binarization by frequent pairs (§2) | 14 s | 1.1 GB | 69 M |
+| BitPar's chart: all split points by one AND, in both passes (§3) | 6.0 s | 1.1 GB | 69 M |
 
 The first version needed 62 bytes a hyperedge: its one slice of
 hyperedges was copied each time it grew, and the old arrays left as
@@ -326,9 +329,8 @@ and 15 GB in BitPar.
 
 ### What next
 
-* **Faster recognition**, now 11% of the time at 80 words: BitPar's
-  parent-driven test, ANDing bit vectors over the split points, or
-  recognition in parallel, cell by cell, as `go/chart` does.
+* **Parallel recognition**, cell by cell, as `go/chart` does, or
+  parallel building: at 80 words recognition is 7% of the time.
 * **An open-addressed item table** of integers, as in odd_one_out, instead
   of a Go map; it is looked up for both children of every hyperedge.
 * **Unary closure as a bitset**, as BitPar does it: precompute, for each
