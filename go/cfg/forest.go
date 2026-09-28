@@ -36,8 +36,8 @@ func (f *Forest) Count() *big.Int {
 	tmp := new(big.Int)
 	for _, item := range f.Order() {
 		w := new(big.Int)
-		for e := f.Head[item]; e >= 0; e = f.Edges[e].Next {
-			h := &f.Edges[e]
+		for e, end := f.EdgeRange(item); e < end; e++ {
+			h := f.Edge(e)
 			tmp.SetInt64(1)
 			if h.Left >= 0 {
 				tmp.Mul(tmp, ways[h.Left])
@@ -63,7 +63,7 @@ func (f *Forest) Stats() (items, own, edges int) {
 			own++
 		}
 	}
-	return len(f.Items), own, len(f.Edges)
+	return len(f.Items), own, f.edges
 }
 
 // Tree is a parse tree in the grammar's own rules: a symbol over its
@@ -121,8 +121,8 @@ func (f *Forest) pieces(item int32) iter.Seq[[]*Tree] {
 			}
 			return []*Tree{{Label: label, Children: children}}
 		}
-		for e := f.Head[item]; e >= 0; e = f.Edges[e].Next {
-			h := f.Edges[e]
+		for e, end := f.EdgeRange(item); e < end; e++ {
+			h := *f.Edge(e)
 			if h.Step < 0 {
 				if !yield([]*Tree{{Label: label, Words: f.Tokens[it.L:it.R]}}) {
 					return
@@ -171,8 +171,8 @@ func (f *Forest) node(item int32, t *Tree, l int32) (int32, bool) {
 		if int(it.R-it.L) != len(t.Words) || !slices.Equal(f.Tokens[it.L:it.R], t.Words) {
 			return 0, false
 		}
-		for e := f.Head[item]; e >= 0; e = f.Edges[e].Next {
-			if f.Edges[e].Step < 0 {
+		for e, end := f.EdgeRange(item); e < end; e++ {
+			if f.Edge(e).Step < 0 {
 				return it.R, true
 			}
 		}
@@ -213,8 +213,8 @@ func (f *Forest) node(item int32, t *Tree, l int32) (int32, bool) {
 	}
 	// the hyperedges that build it: prefix by prefix, then the item itself
 	has := func(item, left, right int32) bool {
-		for e := f.Head[item]; e >= 0; e = f.Edges[e].Next {
-			if h := f.Edges[e]; h.Step >= 0 && h.Left == left && h.Right == right {
+		for e, end := f.EdgeRange(item); e < end; e++ {
+			if h := f.Edge(e); h.Step >= 0 && h.Left == left && h.Right == right {
 				return true
 			}
 		}

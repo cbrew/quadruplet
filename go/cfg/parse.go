@@ -14,12 +14,15 @@ type Item struct {
 
 // Hyperedge is one way of building an item: a step of the binarized grammar
 // and the items it joins (Right is -1 for a unary step), or, when Step is
-// -1, the item's words as a lexical entry. The hyperedges under an item are
-// a list through Next.
+// -1, the item's words as a lexical entry.
 type Hyperedge struct {
 	Step, Left, Right int32
-	Next              int32
 }
+
+// edgeBlock is how many hyperedges a block holds. The hyperedges are kept in
+// blocks of this size so that adding one never copies the others: a forest
+// can hold a hundred million of them.
+const edgeBlock = 1 << 14
 
 // Forest is the packed forest of an input: every item on a derivation of the
 // whole input from a start symbol, and every way of building each.
@@ -27,9 +30,14 @@ type Forest struct {
 	G      *Grammar
 	Tokens []string
 	Items  []Item
-	Head   []int32 // item -> its first hyperedge, -1 for none
-	Edges  []Hyperedge
 	Goals  []int32 // the start symbols' items over the whole input
+
+	// An item's hyperedges are all found while it is visited, so they are
+	// numbered consecutively: first[item] up to first[item]+count[item].
+	first  []int
+	count  []int32
+	blocks [][]Hyperedge
+	edges  int
 
 	index map[uint64]int32
 	// Derivable is how many (symbol, span) pairs the bottom-up pass found,
@@ -40,6 +48,23 @@ type Forest struct {
 }
 
 func key(sym, l, r int32) uint64 { return uint64(sym)<<32 | uint64(l)<<16 | uint64(r) }
+
+// EdgeRange is the numbers of the item's hyperedges, first <= e < end, in
+// the order they were found.
+func (f *Forest) EdgeRange(item int32) (first, end int) {
+	return f.first[item], f.first[item] + int(f.count[item])
+}
+
+// Edge is hyperedge number e.
+func (f *Forest) Edge(e int) *Hyperedge { return &f.blocks[e/edgeBlock][e%edgeBlock] }
+
+func (f *Forest) addEdge(h Hyperedge) {
+	if f.edges%edgeBlock == 0 {
+		f.blocks = append(f.blocks, make([]Hyperedge, edgeBlock))
+	}
+	f.blocks[f.edges/edgeBlock][f.edges%edgeBlock] = h
+	f.edges++
+}
 
 // Find is the forest's item for a symbol over l..r, if there is one.
 func (f *Forest) Find(sym, l, r int32) (int32, bool) {
@@ -171,13 +196,14 @@ func (g *Grammar) build(f *Forest, c *cells) {
 		i := int32(len(f.Items))
 		f.index[k] = i
 		f.Items = append(f.Items, Item{sym, l, r})
-		f.Head = append(f.Head, -1)
+		f.first = append(f.first, 0)
+		f.count = append(f.count, 0)
 		stack = append(stack, i)
 		return i
 	}
 	edge := func(item, step, left, right int32) {
-		f.Edges = append(f.Edges, Hyperedge{step, left, right, f.Head[item]})
-		f.Head[item] = int32(len(f.Edges) - 1)
+		f.addEdge(Hyperedge{step, left, right})
+		f.count[item]++
 	}
 	for _, s := range g.Starts {
 		if c.test(c.has, s, c.cell(0, int(n))) {
@@ -188,6 +214,7 @@ func (g *Grammar) build(f *Forest, c *cells) {
 		item := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		it := f.Items[item]
+		f.first[item] = f.edges
 		cell := c.cell(int(it.L), int(it.R))
 		if c.test(c.lexical, it.Sym, cell) {
 			edge(item, -1, -1, -1)

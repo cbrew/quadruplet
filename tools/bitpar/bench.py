@@ -50,8 +50,8 @@ def godur(s):
 
 def ours(sent):
     env = dict(os.environ, GOMAXPROCS='1')
-    out, wall, cpu, rss, st = run([QP, '-grammar', os.path.join(DIR, 'tb.fcfg'), '-start', 'Top', '-fast', '-quiet'], sent + '\n', env)
-    m = re.search(r'(\d+) trees, (\d+) items \((\d+) not prefixes\), (\d+) hyperedges, (\d+) derivable, \S+ \(recognise (\S+), build (\S+)\)', out)
+    out, wall, cpu, rss, st = run([QP, '-grammar', os.path.join(DIR, 'tb.fcfg'), '-start', 'Top', '-fast', '-quiet', '-count=false'], sent + '\n', env)
+    m = re.search(r'(\S+) trees, (\d+) items \((\d+) not prefixes\), (\d+) hyperedges, (\d+) derivable, \S+ \(recognise (\S+), build (\S+)\)', out)
     if not m:
         return {'status': st, 'wall': wall, 'rss': rss}
     return {'status': st, 'trees': m.group(1), 'items': int(m.group(2)), 'hyperedges': int(m.group(4)), 'derivable': int(m.group(5)),

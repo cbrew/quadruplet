@@ -37,6 +37,7 @@ func main() {
 	startCat := flag.String("start", "", "count only readings of this category, such as Top")
 	quiet := flag.Bool("quiet", false, "print only the summary line for each sentence")
 	pretty := flag.Bool("pretty", false, "print readings' semantics with named variables and sorted conjuncts")
+	count := flag.Bool("count", true, "with -fast, count the trees, exactly (memory in proportion to the forest)")
 	fast := flag.Bool("fast", false, "parse with the fast context-free parser (package cfg); needs -start, and a grammar whose categories are plain")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: quadruplet -grammar FILE [flags] [sentence ...]\n")
@@ -71,8 +72,12 @@ func main() {
 			f := cg.Parse(words)
 			elapsed := time.Since(start)
 			items, own, edges := f.Stats()
+			number := "uncounted"
+			if *count {
+				number = f.Count().String()
+			}
 			fmt.Printf("%s\n  %s trees, %d items (%d not prefixes), %d hyperedges, %d derivable, %v (recognise %v, build %v)\n",
-				strings.Join(words, " "), f.Count(), items, own, edges, f.Derivable, elapsed.Round(time.Microsecond),
+				strings.Join(words, " "), number, items, own, edges, f.Derivable, elapsed.Round(time.Microsecond),
 				f.Recognise.Round(time.Microsecond), f.Build.Round(time.Microsecond))
 			n := 0
 			for t := range f.Trees() {

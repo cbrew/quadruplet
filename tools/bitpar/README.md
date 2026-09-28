@@ -35,7 +35,8 @@ python3 bench.py /tmp/qp BitPar/src/bitpar work 5,10,15,20,25,30,35,40,45,50,55,
 python3 plot.py results.jsonl ../../docs/bitpar-scaling.svg
 ```
 
-`bench.py` runs `go/cfg` with `GOMAXPROCS=1`, so both parsers use one core.
+`bench.py` runs `go/cfg` with `GOMAXPROCS=1`, so both parsers use one core,
+and with `-count=false`, since BitPar does not count trees either.
 It reads each parser's own timings, which leave out loading the grammar,
 and each process's peak resident memory, which includes it: about 120 MB
 for `quadruplet`, which reads the grammar as a feature grammar, and 35 MB
