@@ -7,6 +7,11 @@ against 49 s for a 15-token sentence under a treebank grammar read off
 MASC. This note explains how, starting with the idea everything else rests
 on: the forest as a hypergraph.
 
+None of the method is new. It is, in all essentials, Helmut Schmid's BitPar
+(2004): bit-vector CKY recognition, then a top-down pass that builds a
+packed forest of only the items on a complete parse. §8 gives the sources
+and what differs.
+
 ## 1. Items and hyperedges
 
 ### Two words for "edge"
@@ -240,8 +245,12 @@ billion hyperedges. The next steps are:
 
 * **Smaller hyperedges.** An item's hyperedges are all found when it is
   visited, so they can be stored side by side, without the `Next` link:
-  12 bytes each instead of 16. The item table could be an open-addressed
-  table of integers, as in odd_one_out, instead of a Go map.
+  12 bytes each instead of 16. BitPar's forest is stored this way. The item
+  table could be an open-addressed table of integers, as in odd_one_out,
+  instead of a Go map.
+* **Unary closure as a bitset**, as BitPar does it: precompute, for each
+  symbol, the set of symbols reachable from it by unary steps, and OR it
+  into the cell, instead of following unary steps one at a time.
 * **Parallel recognition**, cell by cell, as `go/chart` does.
 * **Probabilities.** The treebank's rule counts give a PCFG for free. Klein
   and Manning's A* search, or Charniak, Goldwater and Johnson's best-first
@@ -261,3 +270,73 @@ grammar itself, so the whitelist is exact and the second parser is not
 needed: the top-down pass of the CKY stage builds the forest directly.
 Everything to do with discontinuity (tuples of spans, yield functions,
 gaps, fan-out) drops away.
+
+## 8. Prior work
+
+**BitPar.** Schmid (2004) describes a parser for "large treebank grammars
+and long input sentences" that computes "a compact parse forest
+representation of the complete set of possible analyses". Its design is
+the one described here:
+
+* a CKY recogniser over a bit-vector chart, one bit per (span, symbol),
+  with chain (unary) rules allowed;
+* then the forest, built "top-down from the chart", "reparsing all the
+  constituents in the chart which are part of a complete analysis", with a
+  hash table from (span, symbol) to node, so that "parse forest nodes are
+  only created for constituents which are part of a complete analysis";
+* a forest stored in flat arrays: nodes, each node's analyses (our
+  hyperedges) side by side, and their children.
+
+It differs from `go/cfg` in details:
+
+| | BitPar | `go/cfg` |
+|---|---|---|
+| binarization | Eisele's greedy method: repeatedly replace the most frequent adjacent pair of daughters, anywhere in a rule, with a new symbol | left factoring: shared prefixes only |
+| recognition | driven by the parent: for each symbol over a span, try its rules until one succeeds; the split points are tested at once by ANDing two bit vectors, for which the chart is stored twice | driven by the children: for each split, combine the symbols found on the left with those on the right, and find every parent |
+| unary rules | a precomputed bitset of the symbols reachable from each symbol, ORed in | one step at a time |
+| Viterbi | a filtered chart, then Viterbi probabilities over it, without building the forest | none yet |
+
+BitPar was tested on a Penn Treebank grammar with 65,855 rules and 4,444
+categories, on sentences up to 55 words long; the forest for the
+55-word sentence took 3,185 MB, on a 750 MHz machine with 4 GB of memory.
+
+**The rest.**
+
+* Bit-vector recognition, and recognising first and building only what a
+  complete parse uses, go back to Graham, Harrison and Ruzzo (1980).
+* Parses and forests as hypergraphs: Gallo et al. (1993) for directed
+  hypergraphs; Klein and Manning (2001) for parsing; Huang and Chiang
+  (2005) for the notation of items and hyperedges used here.
+* Left factoring of large treebank grammars, and its effect on parsing
+  time, is studied by Moore (2000).
+* The cost of combining the symbols of two cells, and the choice between
+  iterating over a grammar's rules and over a cell's symbols, is analysed
+  by Dunlop, Bodenstab and Roark (2011).
+* Collapsing unary chains into single symbols is standard treebank
+  preprocessing; this repository takes it from odd_one_out.
+
+What `go/cfg` adds is engineering for this repository: compiling a ground
+feature grammar to a context-free one (`FromGrammar`), a membership test
+for a given tree (`Contains`), and the cross-check against the feature
+parser, which found the lexical-derivation bug in both charts.
+
+### References
+
+* Dunlop, A., Bodenstab, N. and Roark, B. (2011). Efficient matrix-encoded
+  grammars and low latency parallelization strategies for CYK. *Proceedings
+  of IWPT 2011*. <https://aclanthology.org/W11-2920/>
+* Gallo, G., Longo, G., Pallottino, S. and Nguyen, S. (1993). Directed
+  hypergraphs and applications. *Discrete Applied Mathematics* 42(2–3).
+* Graham, S. L., Harrison, M. A. and Ruzzo, W. L. (1980). An improved
+  context-free recognizer. *ACM Transactions on Programming Languages and
+  Systems* 2(3):415–462.
+* Huang, L. and Chiang, D. (2005). Better k-best parsing. *Proceedings of
+  IWPT 2005*.
+* Klein, D. and Manning, C. D. (2001). Parsing and hypergraphs.
+  *Proceedings of IWPT 2001*.
+* Moore, R. C. (2000). Improved left-corner chart parsing for large
+  context-free grammars. *Proceedings of IWPT 2000*, 171–182.
+  <https://aclanthology.org/2000.iwpt-1.18/>
+* Schmid, H. (2004). Efficient parsing of highly ambiguous context-free
+  grammars with bit vectors. *Proceedings of COLING 2004*, 162–168.
+  <https://aclanthology.org/C04-1024/>
