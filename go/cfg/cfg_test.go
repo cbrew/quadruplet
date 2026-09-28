@@ -347,3 +347,34 @@ func TestLongInputs(t *testing.T) {
 		}
 	}
 }
+
+// The item table agrees with a map through several doublings.
+func TestItemTable(t *testing.T) {
+	rng := rand.New(rand.NewPCG(3, 4))
+	tab, want := newItemTable(), map[uint64]int32{}
+	for i := range 20000 {
+		k := key(int32(rng.IntN(500)), int32(rng.IntN(100)), int32(1+rng.IntN(100)))
+		got, added := tab.add(k, int32(i))
+		if w, ok := want[k]; ok {
+			if added || got != w {
+				t.Fatalf("add %x again: %d, %v; want %d", k, got, added, w)
+			}
+			continue
+		}
+		if !added || got != int32(i) {
+			t.Fatalf("add %x: %d, %v", k, got, added)
+		}
+		want[k] = int32(i)
+	}
+	for k, w := range want {
+		if got, ok := tab.get(k); !ok || got != w {
+			t.Fatalf("get %x: %d, %v; want %d", k, got, ok, w)
+		}
+	}
+	if _, ok := tab.get(key(600, 0, 1)); ok {
+		t.Error("found a key never added")
+	}
+	if tab.n != len(want) || 2*tab.n >= len(tab.keys) {
+		t.Errorf("%d keys in %d slots, want %d", tab.n, len(tab.keys), len(want))
+	}
+}

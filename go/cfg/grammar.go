@@ -60,6 +60,7 @@ type Grammar struct {
 	binUp      [][]up             // left -> (right, step), sorted by right
 	binDown    [][]down           // parent -> lefts, sorted, each with its (right, step)s
 	binParents []int32            // the symbols binary steps build, by unary rank
+	unaryAbove [][]int32          // symbol -> all it builds by unary steps, directly or not
 	rank       []int32            // symbol -> above all its unary descendants
 }
 
@@ -276,6 +277,23 @@ func (g *Grammar) index() error {
 	for s := range n {
 		if err := visit(int32(s)); err != nil {
 			return err
+		}
+	}
+	// the unary closure of each symbol, as BitPar precomputes it
+	g.unaryAbove = make([][]int32, n)
+	seen := make([]int32, n) // the last symbol whose closure included this one, plus one
+	for s := range n {
+		stack := []int32{int32(s)}
+		for len(stack) > 0 {
+			x := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			for _, si := range g.unaryUp[x] {
+				if p := g.Steps[si].Parent; seen[p] != int32(s)+1 {
+					seen[p] = int32(s) + 1
+					g.unaryAbove[s] = append(g.unaryAbove[s], p)
+					stack = append(stack, p)
+				}
+			}
 		}
 	}
 	// lowest rank first, so that a symbol found brings its unary ancestors

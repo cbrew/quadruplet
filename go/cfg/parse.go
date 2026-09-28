@@ -39,7 +39,7 @@ type Forest struct {
 	blocks [][]Hyperedge
 	edges  int
 
-	index map[uint64]int32
+	index itemTable
 	// Derivable is how many (symbol, span) pairs the bottom-up pass found,
 	// most of them on no derivation of the whole input.
 	Derivable int
@@ -68,8 +68,7 @@ func (f *Forest) addEdge(h Hyperedge) {
 
 // Find is the forest's item for a symbol over l..r, if there is one.
 func (f *Forest) Find(sym, l, r int32) (int32, bool) {
-	i, ok := f.index[key(sym, l, r)]
-	return i, ok
+	return f.index.get(key(sym, l, r))
 }
 
 // cells holds the symbols derivable over each span, as BitPar's chart does
@@ -137,7 +136,7 @@ func (c *cells) splits(left, right int32, l, r int) bool {
 
 // Parse builds the forest of the tokens.
 func (g *Grammar) Parse(tokens []string) *Forest {
-	f := &Forest{G: g, Tokens: tokens, index: map[uint64]int32{}}
+	f := &Forest{G: g, Tokens: tokens, index: newItemTable()}
 	n := len(tokens)
 	if n == 0 || n >= 1<<16 {
 		return f
@@ -165,11 +164,10 @@ func (g *Grammar) recognise(tokens []string) *cells {
 	c.starts = make([]uint64, (n+1)*c.nsym*c.pos)
 	c.lexical = make([]uint64, n*(n+1)/2*c.words)
 	c.syms = make([][]int32, n*(n+1)/2)
-	var closure func(sym int32, l, r int)
-	closure = func(sym int32, l, r int) {
+	closure := func(sym int32, l, r int) {
 		if c.add(sym, l, r) {
-			for _, si := range g.unaryUp[sym] {
-				closure(g.Steps[si].Parent, l, r)
+			for _, a := range g.unaryAbove[sym] {
+				c.add(a, l, r)
 			}
 		}
 	}
@@ -223,12 +221,10 @@ func (g *Grammar) build(f *Forest, c *cells) {
 	n := int32(c.n)
 	var stack []int32
 	intern := func(sym, l, r int32) int32 {
-		k := key(sym, l, r)
-		if i, ok := f.index[k]; ok {
+		i, added := f.index.add(key(sym, l, r), int32(len(f.Items)))
+		if !added {
 			return i
 		}
-		i := int32(len(f.Items))
-		f.index[k] = i
 		f.Items = append(f.Items, Item{sym, l, r})
 		f.first = append(f.first, 0)
 		f.count = append(f.count, 0)
