@@ -12,7 +12,13 @@
 // it stands shows what, if anything, sets the attested tree apart from the
 // astronomically many others.
 //
-//	ambiguity -counts counts.tsv -annotated annotated.jsonl [-n 300] [-min 5] [-max 25] [-samples 200]
+// With -exact, it measures every tree of each forest at once (package
+// interp's PhraseCounts, DepthCounts, ShortestDependencies) and places the
+// sentence's own tree exactly: among the trees by number of phrases, by how
+// deep its most centre-embedded word is, and against the shortest total
+// dependency length any tree has.
+//
+//	ambiguity -counts counts.tsv -annotated annotated.jsonl [-n 300] [-min 5] [-max 25] [-samples 200] [-exact]
 package main
 
 import (
@@ -60,6 +66,7 @@ func main() {
 	maxWords := flag.Int("max", 25, "the most words a sampled sentence has")
 	seed := flag.Uint64("seed", 1, "the sample's random seed")
 	samples := flag.Int("samples", 0, "draw this many trees from each forest, and place the sentence's own among them")
+	exactly := flag.Bool("exact", false, "place the sentence's own tree among all of its forest's, by phrases, depth and dependency length")
 	flag.Parse()
 	if *countsFile == "" || *annotatedFile == "" {
 		flag.Usage()
@@ -144,6 +151,9 @@ func main() {
 		}
 		fmt.Println()
 	}
+	if *exactly {
+		exact(variants[0].g, sents)
+	}
 	if *samples > 0 {
 		counts := map[string]int{}
 		for _, r := range rules {
@@ -151,6 +161,83 @@ func main() {
 		}
 		typical(variants[0].g, sents, *samples, *seed, counts)
 	}
+}
+
+// exact places each sentence's own tree among all the trees of its forest.
+func exact(g *cfg.Grammar, sents []sentence) {
+	const most = 4
+	var used int
+	var phrasePct, phraseTied, fewer []float64
+	ownDepth := make([]int, most+2)
+	forestDepth := make([][]float64, most+1) // log10 trees per word within each depth
+	var withinOwn []float64                  // share of the forest no deeper than the own tree
+	var excess []int
+	var shortestWays []float64
+	for _, s := range sents {
+		f := g.Parse(s.words)
+		if len(f.Goals) == 0 || !f.Contains(s.tree) {
+			continue
+		}
+		used++
+		words := float64(len(s.words))
+		own := interp.FromTree(s.tree)
+
+		counts := interp.PhraseCounts(f)
+		p := interp.Phrases(own)
+		var below, all float64
+		for q, c := range counts {
+			all += c
+			if q < p {
+				below += c
+			}
+		}
+		phrasePct = append(phrasePct, 100*(below+counts[p]/2)/all)
+		phraseTied = append(phraseTied, math.Log10(counts[p])/words)
+		fewer = append(fewer, math.Log10(max(below, 1))/words)
+
+		d := interp.CentreDepth(own)
+		ownDepth[min(d, most+1)]++
+		within := interp.DepthCounts(f, most)
+		for b := range within {
+			forestDepth[b] = append(forestDepth[b], math.Log10(max(within[b], 1))/words)
+		}
+		if d <= most {
+			withinOwn = append(withinOwn, 100*within[d]/all)
+		} else {
+			withinOwn = append(withinOwn, 100)
+		}
+
+		least, ways := interp.ShortestDependencies(f)
+		excess = append(excess, interp.DependencyLength(own)-least)
+		shortestWays = append(shortestWays, math.Log10(ways)/words)
+	}
+	fmt.Printf("\nthe sentence's own tree among all the trees of its forest, over %d sentences:\n", used)
+	fmt.Printf("phrases: own tree's percentile, median %.2f; trees with as many phrases as it, median %.2f log10 per word; trees with fewer, %.2f\n",
+		median(phrasePct), median(phraseTied), median(fewer))
+	fmt.Print("centre-embedding: own trees at depth")
+	for d := 0; d <= most+1; d++ {
+		fmt.Printf(" %d: %d", d, ownDepth[d])
+	}
+	fmt.Println()
+	fmt.Print("  trees of the forest within depth, median log10 per word:")
+	for b := range forestDepth {
+		fmt.Printf(" %d: %.2f", b, median(forestDepth[b]))
+	}
+	fmt.Printf("\n  share of the forest no deeper than the own tree, median %.2f%%\n", median(withinOwn))
+	var shortest, near int
+	var ex []float64
+	for _, e := range excess {
+		if e == 0 {
+			shortest++
+		}
+		if e <= 2 {
+			near++
+		}
+		ex = append(ex, float64(e))
+	}
+	fmt.Printf("dependency length: own tree the shortest in %.1f%% of sentences, within 2 words of it in %.1f%%; its excess, median %.0f words\n",
+		pct(shortest, len(excess)), pct(near, len(excess)), median(ex))
+	fmt.Printf("  trees with the shortest, median %.2f log10 per word\n", median(shortestWays))
 }
 
 // measure is something to say of a tree, bigger or smaller.
