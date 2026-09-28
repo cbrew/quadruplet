@@ -18,7 +18,13 @@
 // deep its most centre-embedded word is, and against the shortest total
 // dependency length any tree has.
 //
-//	ambiguity -counts counts.tsv -annotated annotated.jsonl [-n 300] [-min 5] [-max 25] [-samples 200] [-exact]
+// With -verbs k, it draws k trees from each sentence's forest under the
+// grammar with gold tags, and looks at the sentence through its verbs: how
+// many distinct local analyses (sets of dependents) each verb has among the
+// draws, how many distinct combinations of them the sentence has, and
+// whether each verb's own analysis is among them.
+//
+//	ambiguity -counts counts.tsv -annotated annotated.jsonl [-n 300] [-min 5] [-max 25] [-samples 200] [-exact] [-verbs 1000]
 package main
 
 import (
@@ -66,6 +72,7 @@ func main() {
 	maxWords := flag.Int("max", 25, "the most words a sampled sentence has")
 	seed := flag.Uint64("seed", 1, "the sample's random seed")
 	samples := flag.Int("samples", 0, "draw this many trees from each forest, and place the sentence's own among them")
+	verbs := flag.Int("verbs", 0, "draw this many trees from each forest, with gold tags, and count the verbs' local analyses")
 	exactly := flag.Bool("exact", false, "place the sentence's own tree among all of its forest's, by phrases, depth and dependency length")
 	flag.Parse()
 	if *countsFile == "" || *annotatedFile == "" {
@@ -154,6 +161,9 @@ func main() {
 	if *exactly {
 		exact(variants[0].g, sents)
 	}
+	if *verbs > 0 {
+		throughVerbs(variants[1].g, sents, *verbs, *seed)
+	}
 	if *samples > 0 {
 		counts := map[string]int{}
 		for _, r := range rules {
@@ -161,6 +171,137 @@ func main() {
 		}
 		typical(variants[0].g, sents, *samples, *seed, counts)
 	}
+}
+
+// frames is each verb's local analysis in a tree: its dependents, each as
+// its position and the category it attaches as; and, more coarsely, just
+// which words other than punctuation depend on it.
+func frames(t *interp.Node, verbs []int) (labelled, bare []string) {
+	deps := interp.Dependencies(t)
+	var punct []bool
+	interp.Fold(t, func(w *interp.Node) int {
+		punct = append(punct, interp.IsPunctuation(w))
+		return 0
+	}, func(*interp.Node, []int) int { return 0 })
+	labelled, bare = make([]string, len(verbs)), make([]string, len(verbs))
+	for i, v := range verbs {
+		var parts, words []string
+		for _, d := range deps {
+			if d.Head == v {
+				parts = append(parts, fmt.Sprintf("%d:%s", d.Dependent, d.Label))
+				if !punct[d.Dependent] {
+					words = append(words, fmt.Sprint(d.Dependent))
+				}
+			}
+		}
+		labelled[i], bare[i] = strings.Join(parts, " "), strings.Join(words, " ")
+	}
+	return labelled, bare
+}
+
+// throughVerbs draws k trees from each sentence's forest and counts, per
+// verb, the distinct local analyses among the first k/4, k/2 and k draws,
+// and the distinct combinations of them over the sentence.
+func throughVerbs(g *cfg.Grammar, sents []sentence, k int, seed uint64) {
+	rng := mrand.New(mrand.NewSource(int64(seed)))
+	checkpoints := []int{k / 4, k / 2, k}
+	perVerb := make([][]float64, len(checkpoints))
+	perVerbBare := make([][]float64, len(checkpoints))
+	var joint, jointBare, logProduct []float64
+	var sentences, verbCount, ownFound, ownFoundBare, allDistinct int
+	perSentenceVerbs := []float64{}
+	for _, s := range sents {
+		var verbs []int
+		for i, t := range s.tags {
+			if strings.HasPrefix(t, "VB") {
+				verbs = append(verbs, i)
+			}
+		}
+		if len(verbs) == 0 {
+			continue
+		}
+		words := make([]string, len(s.words))
+		for i := range s.words {
+			words[i] = s.words[i] + "|" + s.tags[i]
+		}
+		f := g.Parse(words)
+		if len(f.Goals) == 0 {
+			continue
+		}
+		sentences++
+		verbCount += len(verbs)
+		perSentenceVerbs = append(perSentenceVerbs, float64(len(verbs)))
+		own, ownBare := frames(interp.FromTree(respelled(s.tree, words)), verbs)
+		seen := make([]map[string]bool, len(verbs))
+		seenBare := make([]map[string]bool, len(verbs))
+		for i := range seen {
+			seen[i], seenBare[i] = map[string]bool{}, map[string]bool{}
+		}
+		combos, combosBare := map[string]bool{}, map[string]bool{}
+		sampler := f.Sampler(rng)
+		c := 0
+		for draw := 1; draw <= k; draw++ {
+			fr, bare := frames(interp.FromTree(sampler.Tree()), verbs)
+			for i := range fr {
+				seen[i][fr[i]] = true
+				seenBare[i][bare[i]] = true
+			}
+			combos[strings.Join(fr, "|")] = true
+			combosBare[strings.Join(bare, "|")] = true
+			if draw == checkpoints[c] {
+				for i := range verbs {
+					perVerb[c] = append(perVerb[c], float64(len(seen[i])))
+					perVerbBare[c] = append(perVerbBare[c], float64(len(seenBare[i])))
+				}
+				c++
+			}
+		}
+		lp := 0.0
+		for i := range verbs {
+			lp += math.Log10(float64(len(seen[i])))
+			if seen[i][own[i]] {
+				ownFound++
+			}
+			if seenBare[i][ownBare[i]] {
+				ownFoundBare++
+			}
+		}
+		logProduct = append(logProduct, lp)
+		joint = append(joint, float64(len(combos)))
+		jointBare = append(jointBare, float64(len(combosBare)))
+		if len(combos) == k {
+			allDistinct++
+		}
+	}
+	fmt.Printf("\nthrough the verbs: %d trees drawn from each of %d sentences' forests, with gold tags; %d verbs, median %.0f a sentence\n",
+		k, sentences, verbCount, median(perSentenceVerbs))
+	fmt.Print("distinct local analyses of a verb, median (mean) after")
+	for c, n := range checkpoints {
+		fmt.Printf(" %d draws: %.0f (%.1f);", n, median(perVerb[c]), mean(perVerb[c]))
+	}
+	fmt.Println()
+	fmt.Printf("verbs whose own analysis was drawn: %.1f%%\n", pct(ownFound, verbCount))
+	fmt.Printf("distinct combinations over a sentence, median %.0f of %d draws; all %d distinct in %.1f%% of sentences\n",
+		median(joint), k, k, pct(allDistinct, sentences))
+	fmt.Printf("product of the verbs' distinct analyses, median log10 %.1f\n", median(logProduct))
+	fmt.Print("which words depend on a verb, punctuation aside: distinct sets, median (mean) after")
+	for c, n := range checkpoints {
+		fmt.Printf(" %d draws: %.0f (%.1f);", n, median(perVerbBare[c]), mean(perVerbBare[c]))
+	}
+	fmt.Println()
+	fmt.Printf("  verbs whose own set was drawn: %.1f%%; distinct combinations over a sentence, median %.0f\n",
+		pct(ownFoundBare, verbCount), median(jointBare))
+}
+
+func mean(xs []float64) float64 {
+	if len(xs) == 0 {
+		return math.NaN()
+	}
+	s := 0.0
+	for _, x := range xs {
+		s += x
+	}
+	return s / float64(len(xs))
 }
 
 // exact places each sentence's own tree among all the trees of its forest.
