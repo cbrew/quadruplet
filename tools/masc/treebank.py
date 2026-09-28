@@ -3,16 +3,19 @@ timing the parsers: no features, no semantics.
 
     python3 treebank.py MASC_DATA_DIR OUT_DIR
 
-writes OUT_DIR/tb.fcfg (the grammar, start symbol Top) and OUT_DIR/sents.txt
-(id, length and words of each sentence). Punctuation is kept; empty elements
+writes OUT_DIR/tb.fcfg (the grammar, start symbol Top), OUT_DIR/sents.txt
+(id, length and words of each sentence) and OUT_DIR/trees.jsonl (each
+sentence's tree as the grammar derives it, under Top: a JSON object with its
+id and the tree as nested lists, [label, child, ...], a leaf being
+[tag, word], labels as the grammar writes them, NP[]). Punctuation is kept; empty elements
 and function tags are dropped; a chain of single-child phrases becomes one
 symbol (S over VP is SxVP), which removes the unary cycles; a phrase label
 that is also a part of speech somewhere gets the suffix ph. That last rule
 is too blunt (NP is a tag somewhere, so every NP is NPph), but it is the
 same grammar for every parser timed.
 """
-import collections, os, re, sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'masc'))
+import collections, json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from masctrees import *
 
 ROOT, OUT = sys.argv[1], sys.argv[2]
@@ -68,4 +71,13 @@ with open(os.path.join(OUT, 'tb.fcfg'), 'w') as f:
 with open(os.path.join(OUT, 'sents.txt'), 'w') as f:
     for i, n in trees:
         f.write('%s\t%d\t%s\n' % (i, len(leaves(n)), ' '.join(w for _, w in leaves(n))))
+
+def grammar_labels(n):
+    if is_leaf(n):
+        return [n[0] + '[]', n[1]]
+    return [n[0] + '[]'] + [grammar_labels(k) for k in n[1:]]
+
+with open(os.path.join(OUT, 'trees.jsonl'), 'w') as f:
+    for i, n in trees:
+        f.write(json.dumps({'id': i, 'tree': ['Top[]', grammar_labels(n)]}) + '\n')
 print('%d trees, %d rules, %d words' % (len(trees), len(prods) + len(roots), len(lex)))
