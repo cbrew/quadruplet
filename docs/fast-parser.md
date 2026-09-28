@@ -225,6 +225,8 @@ odd_one_out TIGER grammar does.
 
 ## 6. Where the time goes, and what next
 
+### Against the feature parser
+
 On one core, with the treebank grammar read off all of MASC:
 
 | tokens | `go/chart` | `go/cfg` | trees |
@@ -232,26 +234,83 @@ On one core, with the treebank grammar read off all of MASC:
 | 5 | 0.9 s | 4 ms | 675,831 |
 | 10 | 7.6 s | 14 ms | 6.8 × 10¹² |
 | 15 | 49 s | 0.13 s | 3.6 × 10²³ |
-| 30 | | 2.2 s | 2.2 × 10⁵¹ |
-| 40 | | 5.5 s | 9.9 × 10⁷⁴ |
-| 60 | | 23 s, 3.4 GB | 3.3 × 10¹¹⁰ |
 
-The bottom-up pass is cheap: 0.24 s at 40 tokens. Nearly all the time is in
-the top-down pass, and it is proportional to what it builds: the live
-forest, whose hyperedges grow about as the cube of the length. What remains
-is the size of the answer, not waste: a flat treebank grammar is enormously
-ambiguous, and an exact forest of a 174-token sentence would hold a few
-billion hyperedges. The next steps are:
+### Against BitPar
 
-* **Smaller hyperedges.** An item's hyperedges are all found when it is
-  visited, so they can be stored side by side, without the `Next` link:
-  12 bytes each instead of 16. BitPar's forest is stored this way. The item
-  table could be an open-addressed table of integers, as in odd_one_out,
-  instead of a Go map.
+BitPar (§8) was run on the same grammar, lexicon and sentences: three
+MASC sentences of each length from 5 to 80 words, one core, each parse
+its own process. The scripts, the results, and what it took to make BitPar
+use exactly the same grammar and lexicon are in
+[`tools/bitpar`](../tools/bitpar/README.md). The two parsers' tree
+counts agree on every sentence where they could be compared (up to 20
+words).
+
+![Parse time and peak memory against sentence length, go/cfg and BitPar](bitpar-scaling.svg)
+
+Medians of three sentences. Time is the parser's own: recognition plus
+building the forest, without loading the grammar. Memory is the process's
+peak, grammar included: 120 MB of it for `go/cfg` (which reads the
+grammar as a feature grammar) and 35 MB for BitPar, at any length.
+
+| words | `go/cfg` time | BitPar time | `go/cfg` memory | BitPar memory | `go/cfg` hyperedges | BitPar analyses |
+|---|---|---|---|---|---|---|
+| 10 | 0.033 s | 0.013 s | 121 MB | 35 MB | 0.09 M | 0.07 M |
+| 20 | 0.42 s | 0.11 s | 134 MB | 39 MB | 1.4 M | 0.9 M |
+| 30 | 1.5 s | 0.36 s | 356 MB | 93 MB | 5.3 M | 3.1 M |
+| 40 | 4.6 s | 1.0 s | 919 MB | 174 MB | 14 M | 8.3 M |
+| 50 | 14 s | 3.1 s | 1.9 GB | 416 MB | 32 M | 18 M |
+| 60 | 22 s | 4.6 s | 3.8 GB | 670 MB | 58 M | 31 M |
+| 70 | 45 s | 7.9 s | 4.9 GB | 888 MB | 89 M | 48 M |
+| 80 | 54 s | 9.7 s | 7.1 GB | 1.2 GB | 128 M | 69 M |
+
+Both parsers scale the same way, and both scale with the size of the
+answer. From 20 to 80 words the forests grow as about n^3.2 in both, and
+the times as about n^3.8 (`go/cfg`) and n^3.4 (BitPar). Recognition is a
+small part of either: at 80 words it is 2.1 s of `go/cfg`'s 54 s, and
+0.4 s of BitPar's 9.7 s. Neither is doing anything asymptotically
+cleverer than the other.
+
+BitPar is 4 to 6 times faster and uses 4 to 6 times less memory from 30
+words on. The difference comes from three places:
+
+* **Fewer hyperedges.** BitPar's forests have about 1.8 times fewer
+  analyses than `go/cfg`'s have hyperedges, for about the same number of
+  nodes. The main difference in what the two build is the binarization:
+  Eisele's method pairs up the daughters that occur together most often,
+  anywhere in a rule, so more rules share each binary step than when only
+  prefixes are shared.
+* **Cheaper hyperedges.** Building one costs BitPar 134 ns and `go/cfg`
+  394 ns (medians, 40 words and more). BitPar stores a node's analyses
+  side by side and looks up nodes in its own hash table; `go/cfg` links
+  hyperedges through `Next` and looks up items in a Go map.
+* **Smaller hyperedges.** BitPar needs 18 bytes a hyperedge, `go/cfg` 62:
+  a 16-byte hyperedge, plus the map, plus slices that double as they
+  grow.
+
+Extrapolating (roughly) to MASC's longest sentence, 174 words: its exact
+forest would have about 1.6 billion hyperedges in `go/cfg`, about 100 GB,
+and about 0.8 billion in BitPar, about 15 GB. So an exact forest of every
+MASC sentence is within reach of BitPar's representation on a large
+machine, and not of `go/cfg`'s as it stands.
+
+### What next
+
+In order of what the comparison says they would gain:
+
+* **Pair binarization**, as BitPar does it, for about 1.8 times fewer
+  hyperedges. Tree enumeration and `Contains` would have to follow the
+  new binary steps instead of prefixes.
+* **Smaller, cheaper hyperedges.** An item's hyperedges are all found when
+  it is visited, so they can be stored side by side, without the `Next`
+  link: 12 bytes each instead of 16, and no pointer chasing. The item table
+  could be an open-addressed table of integers, as in odd_one_out, instead
+  of a Go map.
 * **Unary closure as a bitset**, as BitPar does it: precompute, for each
   symbol, the set of symbols reachable from it by unary steps, and OR it
   into the cell, instead of following unary steps one at a time.
-* **Parallel recognition**, cell by cell, as `go/chart` does.
+* **Parallel recognition**, cell by cell, as `go/chart` does. At 80 words
+  recognition is 4% of the time, so this would matter only once the forest
+  is cheaper.
 * **Probabilities.** The treebank's rule counts give a PCFG for free. Klein
   and Manning's A* search, or Charniak, Goldwater and Johnson's best-first
   search, would find the best parse of a long sentence without building

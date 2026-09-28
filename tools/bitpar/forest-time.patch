@@ -1,0 +1,16 @@
+--- parser.C.orig	2026-09-28 13:03:36.216679980 +0000
++++ parser.C	2026-09-28 13:03:36.224940145 +0000
+@@ -168,7 +168,13 @@
+ 
+   if (verbose)
+     cerr << "\nbuilding parse...";
++  clock_t bstart = clock();
+   build_parse( grammar.start_symbol(), 0, word.size()-1, NH);
++  if (verbose)
++    fprintf( stderr, "\nforest time %.3f nodes %lu analyses %lu\n",
++	     (double) (clock() - bstart) / CLOCKS_PER_SEC,
++	     (unsigned long)parse.symbol.size(),
++	     (unsigned long)parse.rule_data.size());
+   parse.number_of_roots = 1;
+   parse.first_analysis.push_back( (Index)parse.rule_data.size() );
+   parse.first_daughter.push_back( (Index)parse.daughter.size() );
