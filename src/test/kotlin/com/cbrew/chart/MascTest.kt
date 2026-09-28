@@ -40,6 +40,21 @@ class MascTest {
         assertEquals(284, parsed, "sentences with a reading")
     }
 
+    /**
+     * The held-out sample (heldout.txt), with the grammar's own lexicon, from
+     * the development sample, and with masc-heldout.fcfg, whose lexicon comes
+     * from the held-out trees. Never tune the grammar to these.
+     */
+    @Test
+    fun testHeldoutCoverage() {
+        val heldout = resource("heldout.txt").trim().lines().map { it.split("\t")[2].split(" ").toTypedArray() }
+        val gold = FeatureGrammar(IntegratedParser.toGrammar(resource("masc-heldout.fcfg")) as Grammar)
+        fun parsed(g: FeatureGrammar) = heldout.count { words -> readings(Chart(words).also { it.parse(g) }).isNotEmpty() }
+        assertEquals(299, heldout.size)
+        assertEquals(10, parsed(grammar), "held-out sentences with a reading, v0 lexicon")
+        assertEquals(278, parsed(gold), "held-out sentences with a reading, held-out lexicon")
+    }
+
     @Test
     fun testReadings() = checkReadings("readings.txt", 50)
 

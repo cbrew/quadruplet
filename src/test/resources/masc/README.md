@@ -1,9 +1,12 @@
 # MASC grammar v0
 
 A grammar with an extensional Montague semantics and quantificational event
-semantics, and 299 real sentences to parse with it, for testing and timing the parser on something bigger than a
-toy. This is version 0 of the grammar: it parses 284 of the sentences (95%),
-and the [known failures](#known-failures) are listed below.
+semantics, and 299 real sentences to parse with it, for testing and timing
+the parser on something bigger than a toy. This is version 0 of the
+grammar: it parses 284 of the sentences (95%), and the [known
+failures](#known-failures) are listed below. A second, [held-out
+sample](#held-out-sample) of 299 sentences measures how well it
+generalises.
 
 | file | contents |
 |---|---|
@@ -13,6 +16,8 @@ and the [known failures](#known-failures) are listed below.
 | `gold.txt` | the same trees normalised: no punctuation, traces or function tags |
 | `readings.txt` | the correctness suite: 61 sentences with their readings, checked by hand |
 | `examples.txt` | 12 sentences from outside the sample, with their readings, checked by hand |
+| `heldout.txt`, `heldout.mrg`, `heldout-gold.txt` | the held-out sample, in the same formats as the development sample |
+| `masc-heldout.fcfg` | generated: the rules of `masc.fcfg` with a lexicon from the held-out trees |
 
 ## The sentences
 
@@ -29,8 +34,10 @@ sentences and trees here are a small sample of it, otherwise unchanged.
 `tools/masc/sample.py` chose them. It takes sentences of 4 to 15 words,
 leaving out punctuation, whose trees use only common constructions (listed
 in the script): no fragments, interjections, parentheticals, numbers or
-foreign words. That leaves 4,328 of MASC's 35,766 trees. From these it takes
-13 sentences from each of the 23 genres, at random with a fixed seed.
+foreign words. That leaves 4,328 of MASC's 34,586 sentences, from 23 of
+its genres. From these it takes 13 sentences from each genre, at random
+with a fixed seed: the development sample, which the grammar was written
+by looking at.
 Words are lower-cased unless tagged NNP; PTB tokenisation (`do n't`,
 `John 's`) is kept.
 
@@ -129,6 +136,44 @@ On 4 cores:
 mvn test -Dtest=MascTest -Dmasc.bench=5            # Kotlin timing
 cd go && go test ./chart -run MascReport -v        # coverage report
 cd go && go test ./chart -run X -bench Masc        # Go timing
+```
+
+## Held-out sample
+
+`heldout.txt` is 299 more sentences, drawn by `tools/masc/sample.py` with a
+second seed from the 4,029 that pass the same filter and are not in the
+development sample. It takes 13 from each genre that has that many left and
+the rest at random from the whole remaining pool, so it covers 21 genres:
+telephone and wsj had too few sentences left. Nobody has looked at these
+sentences while writing the grammar, and nobody should: they are for
+measuring, not tuning.
+
+The lexicon is generated from the development sample, so on the held-out
+sentences the grammar mostly measures vocabulary. The same generator run on
+the held-out trees gives a lexicon with the held-out words, using the
+treebank's parts of speech and verb frames, and so measures whether the
+hand-written rules generalise:
+
+| | sentences parsed | treebank phrases spanned |
+|---|---|---|
+| development sample, grammar v0 | 284 of 299 (95.0%) | 96.5% |
+| held-out sample, grammar v0 | 10 of 299 (3.3%) | 97.5% |
+| held-out sample, held-out lexicon (`masc-heldout.fcfg`) | 278 of 299 (93.0%) | 95.8% |
+
+Only 21 held-out sentences have every word in the v0 lexicon, and 884 of
+their 2,511 words (35%) are not in it. With a lexicon for them, the rules
+parse 93% of the held-out sentences, two points fewer than the development
+sentences they were written for. Both samples come through the same filter,
+though, so this says the rules generalise to sentences of the kind the
+filter lets through, not to English at large, and the held-out lexicon
+uses gold parts of speech.
+
+`masc-heldout.fcfg` is generated, and a test checks that its rules are the
+same as `masc.fcfg`'s. After changing the grammar, regenerate it:
+
+```bash
+(cd tools/masc && python3 lexicon.py ../../src/test/resources/masc heldout.mrg masc-heldout.fcfg)
+(cd go && go test ./chart -run MascHeldoutReport -v)     # the figures above
 ```
 
 ## Known failures

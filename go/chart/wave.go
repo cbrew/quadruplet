@@ -87,6 +87,7 @@ type wave struct {
 
 type cell struct {
 	lexical             bool // the words i..j are in the lexicon
+	lexEdges            []*Edge
 	completes, partials []*Edge
 	edges               *table
 	preds               map[*Edge][]Pair
@@ -116,7 +117,7 @@ func (t *table) intern(e *Edge) (*Edge, bool) {
 func (w *wave) build(i, j, helpers int) {
 	cl := &cell{edges: newTable(), preds: map[*Edge][]Pair{}}
 	var agenda []*Edge
-	add := func(e *Edge, from Pair, hasPred bool) {
+	add := func(e *Edge, from Pair, hasPred bool) *Edge {
 		e, isNew := cl.edges.intern(e)
 		if isNew {
 			agenda = append(agenda, e)
@@ -124,10 +125,11 @@ func (w *wave) build(i, j, helpers int) {
 		if hasPred {
 			cl.preds[e] = append(cl.preds[e], from)
 		}
+		return e
 	}
 	for _, e := range w.g.Lookup(strings.Join(w.chart.words[i:j], " "), i, j) {
 		cl.lexical = true
-		add(e, Pair{}, false)
+		cl.lexEdges = append(cl.lexEdges, add(e, Pair{}, false))
 	}
 	var pairs []Pair
 	for k := i + 1; k < j; k++ {
@@ -172,6 +174,9 @@ func (w *wave) assemble() {
 			c.partials[j] = append(c.partials[j], cl.partials...)
 			for e, pairs := range cl.preds {
 				c.preds[e] = pairs
+			}
+			for _, e := range cl.lexEdges {
+				c.lexical[e] = true
 			}
 		}
 	}

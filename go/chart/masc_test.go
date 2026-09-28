@@ -38,17 +38,21 @@ func mascFile(t testing.TB, name string) []string {
 	return lines
 }
 
-func mascSample(t testing.TB) []mascSentence {
+func mascSample(t testing.TB) []mascSentence { return mascSentences(t, "sample.txt") }
+
+func mascSentences(t testing.TB, file string) []mascSentence {
 	var out []mascSentence
-	for _, line := range mascFile(t, "sample.txt") {
+	for _, line := range mascFile(t, file) {
 		f := strings.Split(line, "\t")
 		out = append(out, mascSentence{f[0], f[1], strings.Split(f[2], " ")})
 	}
 	return out
 }
 
-func mascGrammar(t testing.TB) Grammar {
-	return NewFeatureGrammar(loadGrammar(t, filepath.Join("masc", "masc.fcfg")))
+func mascGrammar(t testing.TB) Grammar { return mascGrammarFile(t, "masc.fcfg") }
+
+func mascGrammarFile(t testing.TB, file string) Grammar {
+	return NewFeatureGrammar(loadGrammar(t, filepath.Join("masc", file)))
 }
 
 // tops returns the solutions whose category is Top, and the trees under them.
@@ -205,10 +209,41 @@ func goldSpans(tree string) (spans [][2]int, words int) {
 
 // TestMascReport reports coverage, how many of the treebank's phrases the
 // parses contain, and timing. Run with -v to see it.
-func TestMascReport(t *testing.T) {
-	g := mascGrammar(t)
+func TestMascReport(t *testing.T) { mascReport(t, "masc.fcfg", "sample.txt", "gold.txt") }
+
+// TestMascHeldoutReport does the same for the held-out sample, with the
+// grammar's lexicon, which comes from the development sample, and with a
+// lexicon generated from the held-out trees (masc-heldout.fcfg), which
+// measures how well the rules alone generalise.
+func TestMascHeldoutReport(t *testing.T) {
+	t.Run("v0 lexicon", func(t *testing.T) { mascReport(t, "masc.fcfg", "heldout.txt", "heldout-gold.txt") })
+	t.Run("gold lexicon", func(t *testing.T) {
+		mascReport(t, "masc-heldout.fcfg", "heldout.txt", "heldout-gold.txt")
+	})
+}
+
+// TestMascHeldoutRules checks that masc-heldout.fcfg has the rules of
+// masc.fcfg, as it did when tools/masc/lexicon.py generated it.
+func TestMascHeldoutRules(t *testing.T) {
+	rules := func(file string) string {
+		text := strings.Join(mascFile(t, file), "\n")
+		start := strings.Index(text, "## masc.fcfg, version")
+		end := strings.Index(text, "# generated lexicon")
+		if start < 0 || end < 0 {
+			t.Fatalf("%s: no rules section", file)
+		}
+		return text[start:end]
+	}
+	if rules("masc.fcfg") != rules("masc-heldout.fcfg") {
+		t.Error("masc-heldout.fcfg is out of date: python3 tools/masc/lexicon.py src/test/resources/masc heldout.mrg masc-heldout.fcfg")
+	}
+}
+
+func mascReport(t *testing.T, grammarFile, sentencesFile, goldFile string) {
+	g := mascGrammarFile(t, grammarFile)
+	sentences := mascSentences(t, sentencesFile)
 	gold := map[string]string{}
-	for _, line := range mascFile(t, "gold.txt") {
+	for _, line := range mascFile(t, goldFile) {
 		id, tree, _ := strings.Cut(line, "\t")
 		gold[id] = tree
 	}
@@ -216,7 +251,7 @@ func TestMascReport(t *testing.T) {
 	var edges int
 	trees := new(big.Int)
 	start := time.Now()
-	for _, s := range mascSample(t) {
+	for _, s := range sentences {
 		c := New(s.words)
 		c.Parse(g)
 		top, n := tops(c)
@@ -253,8 +288,9 @@ func TestMascReport(t *testing.T) {
 			}
 		}
 	}
-	n := len(mascSample(t))
-	t.Logf("parsed %d of %d sentences (%.1f%%)", parsed, n, 100*float64(parsed)/float64(n))
+	n := len(sentences)
+	t.Logf("%s on %s: parsed %d of %d sentences (%.1f%%)", grammarFile, sentencesFile,
+		parsed, n, 100*float64(parsed)/float64(n))
 	t.Logf("of those sentences' treebank phrases, %d of %d (%.1f%%) are spanned by an edge in some parse",
 		found, total, 100*float64(found)/float64(total))
 	t.Logf("%d edges, %s trees, %v with the agenda parser", edges, trees, time.Since(start).Round(time.Millisecond))

@@ -54,11 +54,13 @@ func (c *Chart) Trees(e *Edge) iter.Seq[Tree] {
 
 func (c *Chart) trees(e *Edge, yield func(Tree) bool) bool {
 	pairs := c.preds[e]
-	if len(pairs) == 0 {
-		if e.Start == e.End {
-			return yield(&Node{Cat: e.Cat})
+	if len(pairs) == 0 && e.Start == e.End {
+		return yield(&Node{Cat: e.Cat})
+	}
+	if len(pairs) == 0 || c.lexical[e] {
+		if !yield(&Leaf{Cat: e.Cat, Words: c.words[e.Start:e.End]}) {
+			return false
 		}
-		return yield(&Leaf{Cat: e.Cat, Words: c.words[e.Start:e.End]})
 	}
 	for _, pr := range pairs {
 		ok := c.trees(pr.Partial, func(t1 Tree) bool {

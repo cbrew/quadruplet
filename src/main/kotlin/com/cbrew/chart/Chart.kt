@@ -18,7 +18,8 @@ import kotlin.collections.set
  * edges being stored in a bucket at their start point, and one for partial
  * edges, with edges being stored at their end point. It also contains a mutable map
  * that is used to record which partial edges, if any, gave rise to each edge that
- * is created. Some edges will have been created from the lexicon, so will have no predecessors.
+ * is created. Some edges will have been created from the lexicon: these are recorded in
+ * lexical, since an edge can come from the lexicon and from rules both.
  */
 
 class Chart(val completes: Array<MutableSet<Complete>>,
@@ -28,6 +29,9 @@ class Chart(val completes: Array<MutableSet<Complete>>,
             val sentence: Array<String>) {
 
     private val agenda: PriorityQueue<Edge> = PriorityQueue(agendaOrder)
+
+    /** The edges that came from the lexicon; some may also be built by rules. */
+    val lexical: MutableSet<Edge> = HashSet()
 
     constructor(sentence: Array<String>) : this(
             completes = Array(sentence.size + 1, { _ -> mutableSetOf<Complete>() }),
@@ -71,11 +75,16 @@ class Chart(val completes: Array<MutableSet<Complete>>,
     // Counts are BigIntegers because they outgrow Int within ~17 words.
     fun countTrees(e: Edge): BigInteger = countTrees(e, HashMap())
 
+    // An edge with no predecessors (a lexical entry, or a partial edge a rule
+    // has just spawned) is one tree; so is a lexical edge that rules also build,
+    // besides the trees they build.
     private fun countTrees(e: Edge, memo: MutableMap<Edge, BigInteger>): BigInteger =
             memo.getOrPut(e) {
-                predecessors[e]?.fold(BigInteger.ZERO) { acc, (p, c) ->
+                val preds = predecessors[e]
+                val built = preds?.fold(BigInteger.ZERO) { acc, (p, c) ->
                     acc + countTrees(p, memo) * countTrees(c, memo)
-                } ?: BigInteger.ONE
+                } ?: BigInteger.ZERO
+                if (preds == null || e in lexical) built + BigInteger.ONE else built
             }
 
     fun countTrees(): BigInteger {
@@ -84,19 +93,14 @@ class Chart(val completes: Array<MutableSet<Complete>>,
     }
 
 
-    fun getTrees(e: Edge): Sequence<Tree> =
-            predecessors[e]?.asSequence()?.flatMap { (p, c) -> getTrees(p, c) }
-                    ?:
-
-                    /**
-                     * if there were no predecessors, we will have gotten null
-                     * above, and we have the base case
-                     */
-
-                    sequenceOf(if (e.start == e.end)
-                        empty(e)
-                    else
-                        leaf(e))
+    fun getTrees(e: Edge): Sequence<Tree> {
+        val preds = predecessors[e]
+        // the base case: a lexical entry, or a partial edge a rule has just spawned
+        val base = if (preds == null || e in lexical)
+            sequenceOf(if (e.start == e.end) empty(e) else leaf(e))
+        else emptySequence()
+        return base + (preds?.asSequence()?.flatMap { (p, c) -> getTrees(p, c) } ?: emptySequence())
+    }
 
 
     fun getTrees(p: Partial, c: Complete): Sequence<Tree> =
@@ -229,6 +233,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
             val cats = grammar.lookup(sentence.get(j), j)
             if(cats.size > 0) {
                 spans.add(Span(label=sentence.get(j),start=j,end=j+1))
+                lexical.addAll(cats)
                 agenda.addAll(cats)
             }
             // 2. Multiple word lexical entries ending here
@@ -237,6 +242,7 @@ class Chart(val completes: Array<MutableSet<Complete>>,
                 val cats = grammar.lookup(prefix, i, j + 1)
                 if(cats.size > 0) {
                     spans.add(Span(label = prefix.joinToString(" "), start = i, end = j + 1))
+                    lexical.addAll(cats)
                     agenda.addAll(cats)
                 }
 

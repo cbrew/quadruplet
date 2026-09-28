@@ -1,16 +1,23 @@
-"""Selects the MASC benchmark sample.
+"""Selects the MASC benchmark sample and its held-out sample.
 
     python3 tools/masc/sample.py MASC_DATA_DIR src/test/resources/masc
 
 MASC_DATA_DIR is the data directory of the MASC Penn Treebank release (with
-spoken/ and written/ below it). The sample is sentences of 4 to 15 words,
-leaving out punctuation, whose normalised trees use only the constructions
-listed in OK below, 13 from each genre, chosen at random with a fixed seed.
-It writes
+spoken/ and written/ below it). Both samples are drawn from the sentences
+of 4 to 15 words, leaving out punctuation, whose normalised trees use only
+the constructions listed in OK below.
 
-    sample.mrg   the chosen trees as MASC has them, each preceded by its id
+The development sample is 13 sentences from each genre, chosen at random
+with a fixed seed; the grammar was written by looking at it. The held-out
+sample is 299 more, chosen with a second seed from the sentences the
+development sample left: 13 from each genre that has that many left, and
+the rest at random from the whole remaining pool. It is for measuring
+coverage, never for tuning the grammar. The script writes
+
+    sample.mrg   the development trees as MASC has them, each preceded by its id
     sample.txt   id, genre and the words to parse, tab-separated
     gold.txt     id and the normalised tree, tab-separated
+    heldout.mrg, heldout.txt, heldout-gold.txt   the same for the held-out sample
 
 Words to parse are the tree's words without punctuation, lower-cased
 unless they are proper nouns (NNP) or "I".
@@ -25,6 +32,8 @@ from masctrees import (base, leaves, masc_trees, normalise, pretty, productions,
 
 PER_GENRE = 13
 SEED = 20260927
+HELDOUT = 299
+HELDOUT_SEED = SEED + 1
 
 BAN_TAGS = {'UH', 'FW', 'SYM', 'LS', '$', '#', 'ADD', 'SU', 'XX', 'GW', 'AFX',
             'WP$', 'PDT', 'CD', 'NNPS', 'CODE'}
@@ -91,7 +100,9 @@ def parse_words(tree):
 
 def main(masc_dir, out_dir):
     by_genre = collections.defaultdict(list)
+    sentences = 0
     for genre, fid, i, raw in masc_trees(masc_dir):
+        sentences += 1
         tree = normalise(unwrap(raw))
         if tree and accept(tree):
             by_genre[genre].append(('%s/%s#%d' % (genre, fid, i), genre, raw, tree))
@@ -100,14 +111,35 @@ def main(masc_dir, out_dir):
     for genre in sorted(by_genre):
         pool = by_genre[genre]
         chosen += sorted(rng.sample(pool, min(PER_GENRE, len(pool))), key=lambda c: c[0])
-    with open(out_dir + '/sample.mrg', 'w') as mrg, \
-            open(out_dir + '/sample.txt', 'w') as txt, \
-            open(out_dir + '/gold.txt', 'w') as gold:
+    write(out_dir, 'sample.mrg', 'sample.txt', 'gold.txt', chosen)
+
+    # the held-out sample, from what is left
+    taken = {c[0] for c in chosen}
+    rng = random.Random(HELDOUT_SEED)
+    left = {g: [c for c in pool if c[0] not in taken] for g, pool in by_genre.items()}
+    heldout = []
+    for genre in sorted(left):
+        if len(left[genre]) >= PER_GENRE:
+            heldout += rng.sample(left[genre], PER_GENRE)
+    rest = sorted(c for g in sorted(left) for c in left[g] if c not in heldout)
+    heldout += rng.sample(rest, HELDOUT - len(heldout))
+    heldout.sort(key=lambda c: (c[1], c[0]))
+    write(out_dir, 'heldout.mrg', 'heldout.txt', 'heldout-gold.txt', heldout)
+
+    pool = sum(len(p) for p in by_genre.values())
+    print('%d sentences in MASC, %d in the pool, from %d genres' % (sentences, pool, len(by_genre)))
+    print('development sample: %d sentences; held-out sample: %d from %d genres'
+          % (len(chosen), len(heldout), len({c[1] for c in heldout})))
+
+
+def write(out_dir, mrg_name, txt_name, gold_name, chosen):
+    with open(out_dir + '/' + mrg_name, 'w') as mrg, \
+            open(out_dir + '/' + txt_name, 'w') as txt, \
+            open(out_dir + '/' + gold_name, 'w') as gold:
         for sid, genre, raw, tree in chosen:
             mrg.write('# %s\n%s\n\n' % (sid, pretty_raw(raw)))
             txt.write('%s\t%s\t%s\n' % (sid, genre, ' '.join(parse_words(tree))))
             gold.write('%s\t%s\n' % (sid, pretty(tree)))
-    print('%d sentences from %d genres' % (len(chosen), len(by_genre)))
 
 
 def pretty_raw(n):

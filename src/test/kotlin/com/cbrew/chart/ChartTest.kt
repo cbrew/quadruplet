@@ -139,6 +139,20 @@ class ChartTest {
     }
 
     @Test
+    fun testLexicalEdgesBuiltByRulesToo() {
+        // "x" is an A and a B, and B -> A, so a B over "x" is a word or an A:
+        // two ways each, four trees in all.
+        val g = FeatureGrammar(IntegratedParser.toGrammar("""
+            S[] -> B[] B[]
+            B[] -> A[]
+            "x": A[] | B[]
+        """.trimIndent()) as Grammar)
+        val chart = Chart(arrayOf("x", "x")).also { it.parse(g) }
+        assertEquals(java.math.BigInteger.valueOf(4), chart.countTrees())
+        assertEquals(4, chart.solutions().flatMap { chart.getTrees(it).toList() }.size)
+    }
+
+    @Test
     fun testCountTrees() {
         // 16 matches the old unmemoised Int count; 20 overflowed Int and
         // 40 would overflow Long. Values cross-checked against the Go port.

@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12">
+<rect width="100%" height="100%" fill="#fcfcfb"/>
+<text x="62" y="28" fill="#0b0b0b" font-weight="600">Parse time (recognise + build), one core</text>
+<line x1="62" x2="332" y1="270.0" y2="270.0" stroke="#e4e3df"/>
+<text x="56" y="270.0" fill="#52514e" text-anchor="end" dy="4">1 ms</text>
+<line x1="62" x2="332" y1="233.3" y2="233.3" stroke="#e4e3df"/>
+<text x="56" y="233.3" fill="#52514e" text-anchor="end" dy="4">10 ms</text>
+<line x1="62" x2="332" y1="196.7" y2="196.7" stroke="#e4e3df"/>
+<text x="56" y="196.7" fill="#52514e" text-anchor="end" dy="4">100 ms</text>
+<line x1="62" x2="332" y1="160.0" y2="160.0" stroke="#e4e3df"/>
+<text x="56" y="160.0" fill="#52514e" text-anchor="end" dy="4">1 s</text>
+<line x1="62" x2="332" y1="123.3" y2="123.3" stroke="#e4e3df"/>
+<text x="56" y="123.3" fill="#52514e" text-anchor="end" dy="4">10 s</text>
+<line x1="62" x2="332" y1="86.7" y2="86.7" stroke="#e4e3df"/>
+<text x="56" y="86.7" fill="#52514e" text-anchor="end" dy="4">100 s</text>
+<line x1="62" x2="332" y1="50.0" y2="50.0" stroke="#e4e3df"/>
+<text x="56" y="50.0" fill="#52514e" text-anchor="end" dy="4">1000 s</text>
+<text x="81.4" y="286" fill="#52514e" text-anchor="middle">5</text>
+<text x="141.5" y="286" fill="#52514e" text-anchor="middle">10</text>
+<text x="201.6" y="286" fill="#52514e" text-anchor="middle">20</text>
+<text x="261.7" y="286" fill="#52514e" text-anchor="middle">40</text>
+<text x="321.8" y="286" fill="#52514e" text-anchor="middle">80</text>
+<line x1="62" x2="332" y1="270" y2="270" stroke="#8a8984"/>
+<text x="197" y="304" fill="#52514e" text-anchor="middle">words (log scale)</text>
+<polyline fill="none" stroke="#2a78d6" stroke-width="2" points="81.4,248.1 141.5,235.0 176.6,215.6 201.6,203.6 220.9,189.7 236.7,183.3 250.1,175.6 261.7,166.6 271.9,160.3 281.0,159.8 289.3,151.8 296.8,149.2 310.2,144.6 321.8,134.0"/>
+<circle cx="81.4" cy="248.1" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 5 words: 3.962 ms</title></circle>
+<circle cx="81.4" cy="244.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 5 words: 4.94 ms</title></circle>
+<circle cx="81.4" cy="259.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 5 words: 1.973 ms</title></circle>
+<circle cx="141.5" cy="234.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 10 words: 9.245 ms</title></circle>
+<circle cx="141.5" cy="235.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 10 words: 8.991 ms</title></circle>
+<circle cx="141.5" cy="235.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 10 words: 9.004 ms</title></circle>
+<circle cx="176.6" cy="215.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 15 words: 30.391 ms</title></circle>
+<circle cx="176.6" cy="216.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 15 words: 29.79 ms</title></circle>
+<circle cx="176.6" cy="213.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 15 words: 35.796 ms</title></circle>
+<circle cx="201.6" cy="204.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 20 words: 62.941 ms</title></circle>
+<circle cx="201.6" cy="203.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 20 words: 64.745 ms</title></circle>
+<circle cx="201.6" cy="201.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 20 words: 73.12 ms</title></circle>
+<circle cx="220.9" cy="189.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 25 words: 155.256 ms</title></circle>
+<circle cx="220.9" cy="189.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 25 words: 159.269 ms</title></circle>
+<circle cx="220.9" cy="191.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 25 words: 140.752 ms</title></circle>
+<circle cx="236.7" cy="187.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 30 words: 174.357 ms</title></circle>
+<circle cx="236.7" cy="183.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 30 words: 231.557 ms</title></circle>
+<circle cx="236.7" cy="182.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 30 words: 243.939 ms</title></circle>
+<circle cx="250.1" cy="176.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 35 words: 348.559 ms</title></circle>
+<circle cx="250.1" cy="175.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 35 words: 376.548 ms</title></circle>
+<circle cx="250.1" cy="167.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 35 words: 624.24 ms</title></circle>
+<circle cx="261.7" cy="163.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 40 words: 829.602 ms</title></circle>
+<circle cx="261.7" cy="173.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 40 words: 432.189 ms</title></circle>
+<circle cx="261.7" cy="166.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 40 words: 661.728 ms</title></circle>
+<circle cx="271.9" cy="161.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 45 words: 921.173 ms</title></circle>
+<circle cx="271.9" cy="160.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 45 words: 983.316 ms</title></circle>
+<circle cx="271.9" cy="159.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 45 words: 1.04582 s</title></circle>
+<circle cx="281.0" cy="141.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 50 words: 3.2216 s</title></circle>
+<circle cx="281.0" cy="164.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 50 words: 770.245 ms</title></circle>
+<circle cx="281.0" cy="159.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 50 words: 1.00968 s</title></circle>
+<circle cx="289.3" cy="151.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 55 words: 1.67586 s</title></circle>
+<circle cx="289.3" cy="156.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 55 words: 1.25126 s</title></circle>
+<circle cx="289.3" cy="142.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 55 words: 2.97029 s</title></circle>
+<circle cx="296.8" cy="149.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 60 words: 1.97103 s</title></circle>
+<circle cx="296.8" cy="149.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 60 words: 1.95857 s</title></circle>
+<circle cx="296.8" cy="138.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 60 words: 3.84042 s</title></circle>
+<circle cx="310.2" cy="144.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 70 words: 2.64806 s</title></circle>
+<circle cx="310.2" cy="144.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 70 words: 2.63559 s</title></circle>
+<circle cx="310.2" cy="145.1" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 70 words: 2.55295 s</title></circle>
+<circle cx="321.8" cy="143.1" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 80 words: 2.88154 s</title></circle>
+<circle cx="321.8" cy="134.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 80 words: 5.12773 s</title></circle>
+<circle cx="321.8" cy="130.9" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 80 words: 6.21312 s</title></circle>
+<polyline fill="none" stroke="#eb6834" stroke-width="2" points="81.4,259.0 141.5,229.2 176.6,210.5 201.6,198.3 220.9,181.6 236.7,174.6 250.1,168.2 261.7,161.0 271.9,148.9 281.0,145.0 289.3,139.3 296.8,133.8 310.2,129.5 321.8,123.3"/>
+<circle cx="81.4" cy="259.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 5 words: 2 ms</title></circle>
+<circle cx="81.4" cy="259.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 5 words: 2 ms</title></circle>
+<circle cx="81.4" cy="252.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 5 words: 3 ms</title></circle>
+<circle cx="141.5" cy="229.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 10 words: 13 ms</title></circle>
+<circle cx="141.5" cy="225.8" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 10 words: 16 ms</title></circle>
+<circle cx="141.5" cy="230.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 10 words: 12 ms</title></circle>
+<circle cx="176.6" cy="210.1" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 15 words: 43 ms</title></circle>
+<circle cx="176.6" cy="211.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 15 words: 39 ms</title></circle>
+<circle cx="176.6" cy="210.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 15 words: 42 ms</title></circle>
+<circle cx="201.6" cy="198.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 20 words: 90 ms</title></circle>
+<circle cx="201.6" cy="198.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 20 words: 90 ms</title></circle>
+<circle cx="201.6" cy="195.1" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 20 words: 110 ms</title></circle>
+<circle cx="220.9" cy="181.1" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 25 words: 266 ms</title></circle>
+<circle cx="220.9" cy="185.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 25 words: 200 ms</title></circle>
+<circle cx="220.9" cy="181.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 25 words: 258 ms</title></circle>
+<circle cx="236.7" cy="179.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 30 words: 297 ms</title></circle>
+<circle cx="236.7" cy="174.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 30 words: 399 ms</title></circle>
+<circle cx="236.7" cy="174.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 30 words: 410 ms</title></circle>
+<circle cx="250.1" cy="168.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 35 words: 597 ms</title></circle>
+<circle cx="250.1" cy="169.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 35 words: 567 ms</title></circle>
+<circle cx="250.1" cy="164.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 35 words: 752 ms</title></circle>
+<circle cx="261.7" cy="161.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 40 words: 942 ms</title></circle>
+<circle cx="261.7" cy="163.1" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 40 words: 824 ms</title></circle>
+<circle cx="261.7" cy="158.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 40 words: 1.111 s</title></circle>
+<circle cx="271.9" cy="148.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 45 words: 2.002 s</title></circle>
+<circle cx="271.9" cy="148.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 45 words: 2.074 s</title></circle>
+<circle cx="271.9" cy="151.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 45 words: 1.726 s</title></circle>
+<circle cx="281.0" cy="139.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 50 words: 3.679 s</title></circle>
+<circle cx="281.0" cy="152.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 50 words: 1.607 s</title></circle>
+<circle cx="281.0" cy="145.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 50 words: 2.57 s</title></circle>
+<circle cx="289.3" cy="132.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 55 words: 5.536 s</title></circle>
+<circle cx="289.3" cy="139.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 55 words: 3.666 s</title></circle>
+<circle cx="289.3" cy="140.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 55 words: 3.449 s</title></circle>
+<circle cx="296.8" cy="137.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 60 words: 4.114 s</title></circle>
+<circle cx="296.8" cy="133.8" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 60 words: 5.183 s</title></circle>
+<circle cx="296.8" cy="131.8" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 60 words: 5.886 s</title></circle>
+<circle cx="310.2" cy="131.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 70 words: 6.171 s</title></circle>
+<circle cx="310.2" cy="129.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 70 words: 6.797 s</title></circle>
+<circle cx="310.2" cy="128.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 70 words: 7.345 s</title></circle>
+<circle cx="321.8" cy="129.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 80 words: 6.984 s</title></circle>
+<circle cx="321.8" cy="120.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 80 words: 11.855 s</title></circle>
+<circle cx="321.8" cy="123.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 80 words: 10.007 s</title></circle>
+<text x="321.8" y="121.6" fill="#0b0b0b" dx="6" dy="4">BitPar</text>
+<text x="321.8" y="135.6" fill="#0b0b0b" dx="6" dy="4">go/cfg</text>
+<text x="462" y="28" fill="#0b0b0b" font-weight="600">Peak memory of the process</text>
+<line x1="462" x2="732" y1="270.0" y2="270.0" stroke="#e4e3df"/>
+<text x="456" y="270.0" fill="#52514e" text-anchor="end" dy="4">16 MB</text>
+<line x1="462" x2="732" y1="226.0" y2="226.0" stroke="#e4e3df"/>
+<text x="456" y="226.0" fill="#52514e" text-anchor="end" dy="4">64 MB</text>
+<line x1="462" x2="732" y1="182.0" y2="182.0" stroke="#e4e3df"/>
+<text x="456" y="182.0" fill="#52514e" text-anchor="end" dy="4">256 MB</text>
+<line x1="462" x2="732" y1="138.0" y2="138.0" stroke="#e4e3df"/>
+<text x="456" y="138.0" fill="#52514e" text-anchor="end" dy="4">1 GB</text>
+<line x1="462" x2="732" y1="94.0" y2="94.0" stroke="#e4e3df"/>
+<text x="456" y="94.0" fill="#52514e" text-anchor="end" dy="4">4 GB</text>
+<line x1="462" x2="732" y1="50.0" y2="50.0" stroke="#e4e3df"/>
+<text x="456" y="50.0" fill="#52514e" text-anchor="end" dy="4">16 GB</text>
+<text x="481.4" y="286" fill="#52514e" text-anchor="middle">5</text>
+<text x="541.5" y="286" fill="#52514e" text-anchor="middle">10</text>
+<text x="601.6" y="286" fill="#52514e" text-anchor="middle">20</text>
+<text x="661.7" y="286" fill="#52514e" text-anchor="middle">40</text>
+<text x="721.8" y="286" fill="#52514e" text-anchor="middle">80</text>
+<line x1="462" x2="732" y1="270" y2="270" stroke="#8a8984"/>
+<text x="597" y="304" fill="#52514e" text-anchor="middle">words (log scale)</text>
+<polyline fill="none" stroke="#2a78d6" stroke-width="2" points="481.4,207.1 541.5,207.9 576.6,207.2 601.6,207.0 620.9,205.4 636.7,204.9 650.1,194.9 661.7,187.3 671.9,178.4 681.0,170.8 689.3,163.5 696.8,156.9 710.2,146.4 721.8,133.9"/>
+<circle cx="481.4" cy="207.1" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 5 words: 116.055 MB</title></circle>
+<circle cx="481.4" cy="206.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 5 words: 117.633 MB</title></circle>
+<circle cx="481.4" cy="207.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 5 words: 114.852 MB</title></circle>
+<circle cx="541.5" cy="208.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 10 words: 111.043 MB</title></circle>
+<circle cx="541.5" cy="207.1" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 10 words: 116.113 MB</title></circle>
+<circle cx="541.5" cy="207.9" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 10 words: 113.23 MB</title></circle>
+<circle cx="576.6" cy="215.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 15 words: 90.4961 MB</title></circle>
+<circle cx="576.6" cy="207.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 15 words: 115.652 MB</title></circle>
+<circle cx="576.6" cy="204.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 15 words: 125.109 MB</title></circle>
+<circle cx="601.6" cy="216.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 20 words: 86.6562 MB</title></circle>
+<circle cx="601.6" cy="207.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 20 words: 116.352 MB</title></circle>
+<circle cx="601.6" cy="206.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 20 words: 117.227 MB</title></circle>
+<circle cx="620.9" cy="205.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 25 words: 122.473 MB</title></circle>
+<circle cx="620.9" cy="202.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 25 words: 132.98 MB</title></circle>
+<circle cx="620.9" cy="214.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 25 words: 92.8594 MB</title></circle>
+<circle cx="636.7" cy="206.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 30 words: 118.684 MB</title></circle>
+<circle cx="636.7" cy="204.9" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 30 words: 124.539 MB</title></circle>
+<circle cx="636.7" cy="204.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 30 words: 125.969 MB</title></circle>
+<circle cx="650.1" cy="194.9" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 35 words: 170.621 MB</title></circle>
+<circle cx="650.1" cy="196.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 35 words: 160.352 MB</title></circle>
+<circle cx="650.1" cy="194.0" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 35 words: 175.238 MB</title></circle>
+<circle cx="661.7" cy="186.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 40 words: 224.477 MB</title></circle>
+<circle cx="661.7" cy="193.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 40 words: 179.176 MB</title></circle>
+<circle cx="661.7" cy="187.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 40 words: 216.957 MB</title></circle>
+<circle cx="671.9" cy="178.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 45 words: 287.051 MB</title></circle>
+<circle cx="671.9" cy="176.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 45 words: 307.555 MB</title></circle>
+<circle cx="671.9" cy="181.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 45 words: 259.887 MB</title></circle>
+<circle cx="681.0" cy="163.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 50 words: 454.652 MB</title></circle>
+<circle cx="681.0" cy="181.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 50 words: 259.824 MB</title></circle>
+<circle cx="681.0" cy="170.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 50 words: 364.199 MB</title></circle>
+<circle cx="689.3" cy="161.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 55 words: 486.305 MB</title></circle>
+<circle cx="689.3" cy="166.6" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 55 words: 416.156 MB</title></circle>
+<circle cx="689.3" cy="163.5" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 55 words: 458.316 MB</title></circle>
+<circle cx="696.8" cy="157.8" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 60 words: 549.488 MB</title></circle>
+<circle cx="696.8" cy="156.9" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 60 words: 565 MB</title></circle>
+<circle cx="696.8" cy="153.3" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 60 words: 631.832 MB</title></circle>
+<circle cx="710.2" cy="147.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 70 words: 753.93 MB</title></circle>
+<circle cx="710.2" cy="145.7" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 70 words: 802.367 MB</title></circle>
+<circle cx="710.2" cy="146.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 70 words: 785.586 MB</title></circle>
+<circle cx="721.8" cy="141.4" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 80 words: 918.793 MB</title></circle>
+<circle cx="721.8" cy="133.2" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 80 words: 1.1644 GB</title></circle>
+<circle cx="721.8" cy="133.9" r="3.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"><title>go/cfg, 80 words: 1.13791 GB</title></circle>
+<polyline fill="none" stroke="#eb6834" stroke-width="2" points="481.4,244.9 541.5,244.9 576.6,244.9 601.6,241.4 620.9,226.0 636.7,214.1 650.1,201.4 661.7,194.2 671.9,182.0 681.0,166.6 689.3,164.9 696.8,151.5 710.2,142.5 721.8,132.3"/>
+<circle cx="481.4" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 5 words: 35.3164 MB</title></circle>
+<circle cx="481.4" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 5 words: 35.3164 MB</title></circle>
+<circle cx="481.4" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 5 words: 35.3164 MB</title></circle>
+<circle cx="541.5" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 10 words: 35.3164 MB</title></circle>
+<circle cx="541.5" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 10 words: 35.3164 MB</title></circle>
+<circle cx="541.5" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 10 words: 35.3164 MB</title></circle>
+<circle cx="576.6" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 15 words: 35.3164 MB</title></circle>
+<circle cx="576.6" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 15 words: 35.3164 MB</title></circle>
+<circle cx="576.6" cy="244.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 15 words: 35.3164 MB</title></circle>
+<circle cx="601.6" cy="241.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 20 words: 39.457 MB</title></circle>
+<circle cx="601.6" cy="242.8" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 20 words: 37.6914 MB</title></circle>
+<circle cx="601.6" cy="237.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 20 words: 44.2148 MB</title></circle>
+<circle cx="620.9" cy="226.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 25 words: 63.9375 MB</title></circle>
+<circle cx="620.9" cy="225.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 25 words: 65.4375 MB</title></circle>
+<circle cx="620.9" cy="228.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 25 words: 58.7305 MB</title></circle>
+<circle cx="636.7" cy="222.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 30 words: 71.9141 MB</title></circle>
+<circle cx="636.7" cy="214.1" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 30 words: 93.1875 MB</title></circle>
+<circle cx="636.7" cy="209.1" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 30 words: 109.066 MB</title></circle>
+<circle cx="650.1" cy="198.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 35 words: 152.434 MB</title></circle>
+<circle cx="650.1" cy="208.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 35 words: 109.66 MB</title></circle>
+<circle cx="650.1" cy="201.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 35 words: 139.023 MB</title></circle>
+<circle cx="661.7" cy="194.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 40 words: 174.301 MB</title></circle>
+<circle cx="661.7" cy="194.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 40 words: 171.859 MB</title></circle>
+<circle cx="661.7" cy="187.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 40 words: 216.105 MB</title></circle>
+<circle cx="671.9" cy="179.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 45 words: 279.43 MB</title></circle>
+<circle cx="671.9" cy="182.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 45 words: 256.316 MB</title></circle>
+<circle cx="671.9" cy="185.0" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 45 words: 232.637 MB</title></circle>
+<circle cx="681.0" cy="166.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 50 words: 416.285 MB</title></circle>
+<circle cx="681.0" cy="186.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 50 words: 220.859 MB</title></circle>
+<circle cx="681.0" cy="165.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 50 words: 425.57 MB</title></circle>
+<circle cx="689.3" cy="164.9" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 55 words: 438.41 MB</title></circle>
+<circle cx="689.3" cy="158.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 55 words: 532.895 MB</title></circle>
+<circle cx="689.3" cy="165.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 55 words: 433.992 MB</title></circle>
+<circle cx="696.8" cy="158.6" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 60 words: 534.441 MB</title></circle>
+<circle cx="696.8" cy="149.4" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 60 words: 716.078 MB</title></circle>
+<circle cx="696.8" cy="151.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 60 words: 670.211 MB</title></circle>
+<circle cx="710.2" cy="146.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 70 words: 791.215 MB</title></circle>
+<circle cx="710.2" cy="142.5" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 70 words: 888.363 MB</title></circle>
+<circle cx="710.2" cy="138.2" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 70 words: 1016.47 MB</title></circle>
+<circle cx="721.8" cy="137.8" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 80 words: 1.0071 GB</title></circle>
+<circle cx="721.8" cy="129.7" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 80 words: 1.29738 GB</title></circle>
+<circle cx="721.8" cy="132.3" r="3.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"><title>BitPar, 80 words: 1.19792 GB</title></circle>
+<text x="721.8" y="126.1" fill="#0b0b0b" dx="6" dy="4">BitPar</text>
+<text x="721.8" y="140.1" fill="#0b0b0b" dx="6" dy="4">go/cfg</text>
+<line x1="62" x2="80" y1="338" y2="338" stroke="#2a78d6" stroke-width="2"/><circle cx="71" cy="338" r="3.5" fill="#2a78d6"/>
+<text x="86" y="338" fill="#0b0b0b" dy="4">go/cfg</text>
+<line x1="172" x2="190" y1="338" y2="338" stroke="#eb6834" stroke-width="2"/><circle cx="181" cy="338" r="3.5" fill="#eb6834"/>
+<text x="196" y="338" fill="#0b0b0b" dy="4">BitPar</text>
+<text x="292" y="338" fill="#52514e" dy="4">dots: sentences; lines: medians</text>
+</svg>

@@ -20,6 +20,7 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 | `grammar` | rules, grammars and lexicons |
 | `notation` | parsers for the logic language, the FeatureNotation style (`demo.fcfg`) and the IntegratedParser style (`patio.fcfg`, `sem2.fcfg`) |
 | `chart` | the chart parser (sequential agenda, or parallel wavefront), tree counting and enumeration, `FeatureGrammar`, and the `TreeGrammar` benchmark grammar |
+| `cfg` | a fast parser for context-free grammars, whose categories are plain symbols ([below](#context-free-grammars)) |
 | `cmd/quadruplet` | command-line parser (`-workers`, `-trees`) |
 | `cmd/prototype` | the earlier prototype comparing agenda and wavefront parsing, with and without goroutines ([below](#prototype)) |
 
@@ -71,6 +72,46 @@ scheduling.
 Keeping the rules spawned at i to the cell that spawned them relies on
 `Spawn` returning every rule whose first category unifies with the edge, as
 `FeatureGrammar` and `TreeGrammar` do.
+
+## Context-free grammars
+
+A grammar whose categories have no features to unify is context-free, and
+package `cfg` parses it without the feature machinery. The method is that
+of the LCFRS parser in
+[cbrew/odd_one_out](https://github.com/cbrew/odd_one_out) (`internal/lcfrs`),
+specialised to context-free rules
+([`docs/fast-parser.md`](../docs/fast-parser.md) explains it at length):
+
+* symbols are integers, and rules are binarized
+  by pairing up the daughters that occur together most often, as in
+  BitPar, with the pairs shared between rules (`{DT {JJ NN}}`);
+* a bottom-up pass (CKY) records which symbols are derivable over which
+  spans, in bit vectors over positions, so that one AND tests all the
+  split points of a step, as in BitPar;
+* a top-down pass from the start symbol keeps only the items on a
+  derivation of the whole input, and records every way of building each
+  as a hyperedge. No dead-end item is ever stored.
+
+The forest's tree counts are those of the grammar's own rules;
+`Forest.Trees` enumerates trees with the auxiliary symbols spliced out, and
+`Forest.Contains` checks a given tree without enumerating. Its tests compare
+it with package `chart` on random grammars (the same items, reachable from a
+parse, and the same tree counts) and with `treeas.golden`.
+
+`cfg.FromGrammar` compiles a grammar in either notation, provided its
+categories are ground and no two different ones unify. On the command line,
+`-fast -start SYMBOL` uses it. On a treebank grammar read off all of MASC
+(21,273 rules; 24,042 binary and 6,744 unary steps), one core:
+
+| tokens | package `chart` | package `cfg` | trees |
+|---|---|---|---|
+| 5 | 0.9 s | 1.5 ms | 675,831 |
+| 10 | 7.6 s | 7 ms | 6.8 × 10¹² |
+| 15 | 49 s | 33 ms | 3.6 × 10²³ |
+| 30 | | 0.27 s | 2.2 × 10⁵¹ |
+
+[`docs/fast-parser.md`](../docs/fast-parser.md) §6 compares it with BitPar
+on sentences of up to 80 words.
 
 ## Differences from the Kotlin version
 

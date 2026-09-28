@@ -109,6 +109,7 @@ type Chart struct {
 	agenda    agenda
 	seq       int
 	spans     []Span
+	lexical   map[*Edge]bool // edges from the lexicon; rules may build them too
 }
 
 // New makes an empty chart for the words of a sentence.
@@ -119,6 +120,7 @@ func New(words []string) *Chart {
 		partials:  make([][]*Edge, len(words)+1),
 		edges:     map[uint64][]*Edge{},
 		preds:     map[*Edge][]Pair{},
+		lexical:   map[*Edge]bool{},
 	}
 }
 
@@ -159,7 +161,7 @@ func (c *Chart) Start(g Grammar) {
 		if es := g.Lookup(w, j, j+1); len(es) > 0 {
 			c.spans = append(c.spans, Span{w, j, j + 1})
 			for _, e := range es {
-				c.push(e)
+				c.lexical[c.push(e)] = true
 			}
 		}
 		for i := 0; i < j; i++ {
@@ -167,7 +169,7 @@ func (c *Chart) Start(g Grammar) {
 			if es := g.Lookup(phrase, i, j+1); len(es) > 0 {
 				c.spans = append(c.spans, Span{phrase, i, j + 1})
 				for _, e := range es {
-					c.push(e)
+					c.lexical[c.push(e)] = true
 				}
 			}
 		}
@@ -245,9 +247,13 @@ func flatten(buckets [][]*Edge) []*Edge {
 	return out
 }
 
-// Predecessors returns the ways an edge was made; lexical and spawned edges
-// have none.
+// Predecessors returns the ways an edge was made by the fundamental rule;
+// spawned edges and most lexical edges have none.
 func (c *Chart) Predecessors(e *Edge) []Pair { return c.preds[e] }
+
+// Lexical says whether an edge came from the lexicon. It may also have been
+// made by rules, and then it has predecessors too.
+func (c *Chart) Lexical(e *Edge) bool { return c.lexical[e] }
 
 // Solutions returns the complete edges spanning the whole sentence.
 func (c *Chart) Solutions() []*Edge {
@@ -296,8 +302,8 @@ func (c *Chart) countTrees(e *Edge, memo map[*Edge]*big.Int) *big.Int {
 	}
 	n := new(big.Int)
 	pairs := c.preds[e]
-	if len(pairs) == 0 {
-		n.SetInt64(1)
+	if len(pairs) == 0 || c.lexical[e] {
+		n.SetInt64(1) // a lexical entry, or a partial edge a rule has just spawned
 	}
 	for _, pr := range pairs {
 		n.Add(n, new(big.Int).Mul(c.countTrees(pr.Partial, memo), c.countTrees(pr.Complete, memo)))

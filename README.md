@@ -25,9 +25,10 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/masc/masc.fcfg -start Top
 | `src/main/kotlin/com/cbrew/fstruct`, `logic`, `src/main/antlr4` | the grammar and logic notations (ANTLR) |
 | [`go/`](go/README.md) | the Go port: the same parser, a parallel version of it, and a command-line tool |
 | `src/test/resources` | test grammars, from `tiny.cfg` to `sem2.fcfg` (NLTK's) |
-| [`src/test/resources/masc`](src/test/resources/masc/README.md) | the MASC grammar v0 and its benchmark: 299 treebank sentences, 284 of which it parses |
+| [`src/test/resources/masc`](src/test/resources/masc/README.md) | the MASC grammar v0 and its benchmark: 299 treebank sentences, 284 of which it parses, and a held-out sample of 299 more |
 | `tools/masc` | the scripts that chose the MASC sample and generate the grammar's lexicon and correctness suite |
 | [`docs/semantics.md`](docs/semantics.md) | what kind of semantics the grammars have, and where the ideas come from |
+| [`docs/fast-parser.md`](docs/fast-parser.md) | how the fast context-free parser (`go/cfg`) works, and what a hyperedge is |
 
 ## Building and testing
 
