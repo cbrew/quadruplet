@@ -1,9 +1,12 @@
 // Command readings reads the annotated trees tools/masc/treebank.py writes,
-// finds their heads, and gives each its dependency reading: CoNLL-style
-// lines with -conll, and otherwise a summary of the corpus, checking that
-// every tree's dependencies form a tree over its words.
+// finds their heads, and gives each its dependency reading, CoNLL-style
+// lines with -conll, or its flat meaning (interp.Flat), with -sem; and a
+// summary of the corpus, checking that every tree's dependencies form a
+// tree over its words and every meaning is a closed formula. With -table, the
+// function tags are the learned table's (cmd/functions) instead of the
+// treebank's.
 //
-//	readings -annotated annotated.jsonl [-conll]
+//	readings -annotated annotated.jsonl [-conll | -sem] [-table table.json]
 package main
 
 import (
@@ -17,11 +20,14 @@ import (
 	"slices"
 
 	"github.com/cbrew/quadruplet/go/interp"
+	"github.com/cbrew/quadruplet/go/term"
 )
 
 func main() {
 	file := flag.String("annotated", "", "annotated trees, as JSON lines: {\"id\": ..., \"tree\": ...}")
 	conll := flag.Bool("conll", false, "write each sentence's dependencies, a line per word")
+	sem := flag.Bool("sem", false, "write each sentence's flat meaning")
+	tableFile := flag.String("table", "", "optional: give the trees this function table's tags instead of their own")
 	flag.Parse()
 	if *file == "" {
 		flag.Usage()
@@ -38,6 +44,19 @@ func main() {
 	defer f.Close()
 	out := bufio.NewWriter(os.Stdout)
 	defer out.Flush()
+	var table *interp.FunctionTable
+	if *tableFile != "" {
+		tf, err := os.Open(*tableFile)
+		if err != nil {
+			fail(err)
+		}
+		if table, err = interp.ReadFunctionTable(tf); err != nil {
+			fail(err)
+		}
+		tf.Close()
+	}
+	var open, atoms int
+	relations := map[string]int{}
 
 	var sentences, words, arcs, tagged, bad int
 	labels := map[string]int{}
@@ -57,7 +76,25 @@ func main() {
 		if err != nil {
 			fail(fmt.Errorf("%s: %v", rec.ID, err))
 		}
+		if table != nil {
+			table.Assign(n)
+		}
 		deps := interp.Dependencies(n)
+		flat := interp.Flat(n)
+		formula := interp.Formula(flat)
+		if !term.Closed(formula) {
+			open++
+			fmt.Fprintf(os.Stderr, "%s: the meaning is not closed: %s\n", rec.ID, term.Pretty(formula))
+		}
+		atoms += len(flat)
+		for _, a := range flat {
+			if len(a.Args) == 2 {
+				relations[a.Pred]++
+			}
+		}
+		if *sem {
+			fmt.Fprintf(out, "%s\t%s\n", rec.ID, term.Pretty(formula))
+		}
 		if err := isTree(deps); err != nil {
 			bad++
 			fmt.Fprintf(os.Stderr, "%s: %v\n", rec.ID, err)
@@ -102,6 +139,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "%d sentences, %d words, %d arcs; %d not a tree\n", sentences, words, arcs, bad)
 	fmt.Fprintf(os.Stderr, "%d arcs to a daughter with function tags\n", tagged)
 	fmt.Fprintf(os.Stderr, "most frequent arc labels:%s\n", top(labels, 25))
+	fmt.Fprintf(os.Stderr, "flat meanings: %d atoms; %d not closed; most frequent relations:%s\n", atoms, open, top(relations, 25))
 	fmt.Fprintf(os.Stderr, "phrases headed by default, by category (of all of that category):")
 	for _, c := range sortedKeys(defaults) {
 		fmt.Fprintf(os.Stderr, " %s %d/%d", c, defaults[c], phrases[c])

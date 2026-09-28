@@ -23,6 +23,8 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 | `cfg` | a fast parser for context-free grammars, whose categories are plain symbols ([below](#context-free-grammars)) |
 | `cmd/quadruplet` | command-line parser (`-workers`, `-trees`) |
 | `cmd/forests` | parses a whole corpus with a context-free grammar, a line per sentence ([below](#all-of-masc)) |
+| `interp` | readings of parse trees: heads, a fold over a tree, dependencies, learned function tags, and flat meanings ([`docs/flat-semantics.md`](../docs/flat-semantics.md)) |
+| `cmd/readings`, `cmd/functions` | give MASC's trees their dependencies and flat meanings; learn and test the function-tag table |
 | `cmd/prototype` | the earlier prototype comparing agenda and wavefront parsing, with and without goroutines ([below](#prototype)) |
 
 ## Design

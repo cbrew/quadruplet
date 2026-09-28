@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/cbrew/quadruplet/go/cfg"
+	"github.com/cbrew/quadruplet/go/term"
 )
 
 // tree reads brackets with grammar labels, (Sph (NP (DT the) ...)), as package
@@ -88,5 +89,42 @@ func TestFromJSON(t *testing.T) {
 	want := []Dep{{0, 1, "SBJ"}, {1, -1, "ROOT"}, {2, 1, "TMP"}}
 	if got := Dependencies(n); !slices.Equal(got, want) {
 		t.Errorf("got %v\nwant %v", got, want)
+	}
+}
+
+// Flat meanings of small trees, with and without function tags.
+func TestFlat(t *testing.T) {
+	for in, want := range map[string]string{
+		"(Top (S (NP (DT The) (NN dog)) (VP (VBD saw) (NP (DT a) (NN cat))) (Period .)))":   "a(x5) cat(x5) dog(x2) mod(x3, x2) obj(x3, x5) saw(x3) the(x2)",
+		"(Top (S (NP (PRP He)) (VP (MD will) (VP (VB go) (PP (TO to) (NP (NNP Paris)))))))": "go(x3) he(x1) mod(x3, x1) paris(x5) to(x3, x5) will(x3)",
+		"(Top (NP (NP (NNP John) (POS 's)) (NN dog)))":                                      "dog(x3) john(x1) poss(x3, x1)",
+		"(Top (NP (NP (NNS cats)) (CC and) (NP (NNS dogs))))":                               "and(x1, x3) cats(x1) dogs(x3)",
+		"(Top (NP (NP (DT the) (NN dog)) (SBAR (WHNP (WDT which)) (S (VP (VBD barked))))))": "barked(x4) dog(x2) the(x2) which(x2, x4)",
+		"(Top (S (NP (PRP I)) (VP (VBP like) (NP (DT this)))))":                             "i(x1) like(x2) mod(x2, x1) obj(x2, x3) this(x3)",
+		"(Top (S (NP (PRP It)) (VP (VBZ is) (VP (VBN done) (ADVP (RB well))))))":            "done(x3) is(x3) it(x1) mod(x3, x1) mod(x3, x4) well(x4)",
+	} {
+		atoms := Flat(tree(t, in))
+		got := make([]string, len(atoms))
+		for i, a := range atoms {
+			got[i] = a.String()
+		}
+		if strings.Join(got, " ") != want {
+			t.Errorf("%s:\n got  %s\n want %s", in, strings.Join(got, " "), want)
+		}
+	}
+	// with function tags, the subject is named for them
+	raw := `{"c": "Top[]", "k": [{"c": "Sph[]", "k": [
+		{"c": "NPph[]", "f": ["SBJ"], "k": [{"c": "PRP[]", "w": "I"}]},
+		{"c": "VPph[]", "k": [{"c": "VBD[]", "w": "left"}, {"c": "PPph[]", "f": ["TMP"], "k": [{"c": "IN[]", "w": "after"}, {"c": "NPph[]", "k": [{"c": "NN[]", "w": "lunch"}]}]}]}]}]}`
+	n, err := FromJSON([]byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := Formula(Flat(n))
+	if got, want := term.Pretty(f), "∃x1.∃x2.∃x3.(i(x1) ∧ left(x2) ∧ lunch(x3) ∧ sbj(x2, x1) ∧ tmp_after(x2, x3))"; got != want {
+		t.Errorf("got  %s\nwant %s", got, want)
+	}
+	if !term.Closed(f) {
+		t.Errorf("%s is not closed", term.Pretty(f))
 	}
 }
