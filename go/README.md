@@ -105,10 +105,10 @@ categories are ground and no two different ones unify. On the command line,
 
 | tokens | package `chart` | package `cfg` | trees |
 |---|---|---|---|
-| 5 | 0.9 s | 2 ms | 675,831 |
+| 5 | 0.9 s | 1.5 ms | 675,831 |
 | 10 | 7.6 s | 7 ms | 6.8 × 10¹² |
 | 15 | 49 s | 33 ms | 3.6 × 10²³ |
-| 30 | | 0.31 s | 2.2 × 10⁵¹ |
+| 30 | | 0.27 s | 2.2 × 10⁵¹ |
 
 [`docs/fast-parser.md`](../docs/fast-parser.md) §6 compares it with BitPar
 on sentences of up to 80 words.

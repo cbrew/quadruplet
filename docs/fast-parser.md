@@ -256,7 +256,7 @@ On one core, with the treebank grammar read off all of MASC:
 
 | tokens | `go/chart` | `go/cfg` | trees |
 |---|---|---|---|
-| 5 | 0.9 s | 2 ms | 675,831 |
+| 5 | 0.9 s | 1.5 ms | 675,831 |
 | 10 | 7.6 s | 7 ms | 6.8 × 10¹² |
 | 15 | 49 s | 33 ms | 3.6 × 10²³ |
 
@@ -283,32 +283,36 @@ BitPar, at any length.
 
 | words | `go/cfg` time | BitPar time | `go/cfg` memory | BitPar memory | hyperedges (both) |
 |---|---|---|---|---|---|
-| 10 | 0.010 s | 0.014 s | 112 MB | 35 MB | 0.07 M |
-| 20 | 0.08 s | 0.09 s | 119 MB | 39 MB | 0.86 M |
-| 30 | 0.25 s | 0.40 s | 117 MB | 93 MB | 3.1 M |
-| 40 | 0.67 s | 0.92 s | 207 MB | 174 MB | 8.3 M |
-| 50 | 1.4 s | 2.4 s | 325 MB | 416 MB | 18 M |
-| 60 | 2.4 s | 4.9 s | 569 MB | 670 MB | 31 M |
-| 70 | 3.7 s | 6.8 s | 795 MB | 888 MB | 48 M |
-| 80 | 6.0 s | 9.8 s | 1.1 GB | 1.2 GB | 69 M |
+| 10 | 0.009 s | 0.013 s | 113 MB | 35 MB | 0.07 M |
+| 20 | 0.065 s | 0.090 s | 116 MB | 39 MB | 0.86 M |
+| 30 | 0.23 s | 0.40 s | 124 MB | 93 MB | 3.1 M |
+| 40 | 0.66 s | 0.94 s | 216 MB | 174 MB | 8.3 M |
+| 50 | 1.0 s | 2.6 s | 364 MB | 416 MB | 18 M |
+| 60 | 2.0 s | 5.2 s | 565 MB | 670 MB | 31 M |
+| 70 | 2.6 s | 6.8 s | 785 MB | 888 MB | 48 M |
+| 80 | 5.1 s | 10.0 s | 1.2 GB | 1.2 GB | 69 M |
 
 Both scale with the size of the answer: from 20 to 80 words the forests
-grow as about n^3.2, and the times as about n^3.1 (`go/cfg`) and n^3.4
-(BitPar). `go/cfg` is 1.2 to 2.2 times faster than BitPar from 30 words
-on, sentence by sentence; from 50 words on it uses as much memory or
-less. Recognition takes the same time in both (0.40 s and 0.39 s at 80
-words); `go/cfg` builds the forest faster. Per hyperedge (medians, 40
-words and more):
+grow as about n^3.2, and the times as about n^3.0 (`go/cfg`) and n^3.4
+(BitPar). `go/cfg` is 1.1 to 3.3 times faster than BitPar from 30 words
+on, sentence by sentence; from 50 words on it uses about as much memory
+or less. Recognition takes about the same time in both (0.41 s and 0.40 s
+at 80 words); `go/cfg` builds the forest faster. Per hyperedge (medians,
+40 words and more):
 
 | | `go/cfg` | BitPar |
 |---|---|---|
-| time to build | 74 ns | 132 ns |
-| memory, above what the grammar takes | 14 bytes | 18 bytes |
+| time to build | 59 ns | 138 ns |
+| memory, above what the grammar takes | 15 bytes | 18 bytes |
+
+Single runs on this (shared, virtual) machine vary a good deal: over six
+runs of the same binary, building the forest of one 60-word sentence took
+from 1.3 to 2.1 s. The table's numbers are single runs.
 
 BitPar's times are CPU time from `clock()`, `go/cfg`'s wall-clock time on
 one core; BitPar is compiled with `g++ -O3`.
 
-Getting here took four changes, each measured on the same sentences:
+Getting here took five changes, each measured on the same sentences:
 
 | at 80 words | time | memory | hyperedges |
 |---|---|---|---|
@@ -316,6 +320,7 @@ Getting here took four changes, each measured on the same sentences:
 | hyperedges in fixed blocks, 12 bytes each, numbered consecutively per item | 28 s | 1.8 GB | 128 M |
 | binarization by frequent pairs (§2) | 14 s | 1.1 GB | 69 M |
 | BitPar's chart: all split points by one AND, in both passes (§3) | 6.0 s | 1.1 GB | 69 M |
+| items looked up in an open-addressed table, not a Go map; unary closures precomputed | 5.1 s | 1.2 GB | 69 M |
 
 The first version needed 62 bytes a hyperedge: its one slice of
 hyperedges was copied each time it grew, and the old arrays left as
@@ -330,12 +335,7 @@ and 15 GB in BitPar.
 ### What next
 
 * **Parallel recognition**, cell by cell, as `go/chart` does, or
-  parallel building: at 80 words recognition is 7% of the time.
-* **An open-addressed item table** of integers, as in odd_one_out, instead
-  of a Go map; it is looked up for both children of every hyperedge.
-* **Unary closure as a bitset**, as BitPar does it: precompute, for each
-  symbol, the set of symbols reachable from it by unary steps, and OR it
-  into the cell, instead of following unary steps one at a time.
+  parallel building: at 80 words recognition is 8% of the time.
 * **Probabilities.** The treebank's rule counts give a PCFG for free. Klein
   and Manning's A* search, or Charniak, Goldwater and Johnson's best-first
   search, would find the best parse of a long sentence without building
