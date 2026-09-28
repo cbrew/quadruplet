@@ -7,8 +7,9 @@
 // cbrew/odd_one_out, specialised to context-free rules. Rules are binarized
 // by pairing up the daughters that occur together most often, as BitPar
 // does, so the parser only ever joins two items. A first pass recognises,
-// for every span, the set of
-// symbols derivable over it, as bitsets (CKY). A second pass goes top down
+// for every span, the symbols derivable over it (CKY), testing all the split
+// points of a step with one AND of bit vectors, as BitPar does. A second
+// pass goes top down
 // from the goal and keeps an item only if it is derivable and on a
 // derivation of the whole input, recording, as it goes, every way of
 // building it. No item that could not be part of a parse is ever stored.
@@ -51,14 +52,15 @@ type Grammar struct {
 	auxStep   []int32          // auxiliary symbol -> the one step that builds it; -1 for others
 	width     []int32          // symbol -> how many of a rule's daughters it covers
 
-	number    map[string]int32
-	lexicon   map[string][]int32 // word or phrase -> symbols
-	maxPhrase int                // the most words in a lexical phrase
-	unaryUp   [][]int32          // child -> unary steps over it
-	unaryDown [][]int32          // parent -> unary steps building it
-	binUp     [][]up             // left -> (right, step), sorted by right
-	binDown   [][]down           // parent -> lefts, sorted, each with its (right, step)s
-	rank      []int32            // symbol -> above all its unary descendants
+	number     map[string]int32
+	lexicon    map[string][]int32 // word or phrase -> symbols
+	maxPhrase  int                // the most words in a lexical phrase
+	unaryUp    [][]int32          // child -> unary steps over it
+	unaryDown  [][]int32          // parent -> unary steps building it
+	binUp      [][]up             // left -> (right, step), sorted by right
+	binDown    [][]down           // parent -> lefts, sorted, each with its (right, step)s
+	binParents []int32            // the symbols binary steps build, by unary rank
+	rank       []int32            // symbol -> above all its unary descendants
 }
 
 type up struct{ right, step int32 }
@@ -276,6 +278,14 @@ func (g *Grammar) index() error {
 			return err
 		}
 	}
+	// lowest rank first, so that a symbol found brings its unary ancestors
+	// with it before they would be tested
+	for s := range n {
+		if len(g.binDown[s]) > 0 {
+			g.binParents = append(g.binParents, int32(s))
+		}
+	}
+	slices.SortStableFunc(g.binParents, func(a, b int32) int { return int(g.rank[a] - g.rank[b]) })
 	return nil
 }
 

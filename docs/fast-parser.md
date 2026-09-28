@@ -166,12 +166,22 @@ binary steps and, on MASC sentences, 1.8 times as many hyperedges (§6).
 The first pass is CKY. For every span, shortest first, it computes the set
 of symbols derivable over it: the words' lexical symbols; every parent of a
 binary step whose left child is derivable over (i, k) and right child over
-(k, j), for each split k; then everything reachable from those by unary
-steps. Each set is a bitset (one bit per symbol) and also a list of the
-symbols found, so "is C derivable over (k, j)?" is one bit test and "what
-is derivable over (i, k)?" is a list. For each left symbol the pass either
-walks that symbol's steps and tests their right children, or walks the
-right cell's symbols and looks them up, whichever list is shorter.
+(k, j), for some split k; and everything reachable from those by unary
+steps.
+
+The chart is BitPar's. For each start position and symbol it holds a bit
+vector over end positions, the ends up to which the symbol is derivable;
+and for each end position and symbol, a bit vector over start positions.
+Whether a binary step A → B C applies over (i, j) at *some* split is then
+one AND: the ends of B from i with the starts of C up to j. The vectors
+have a bit per word, so for a sentence of fewer than 64 words the AND is
+of two machine words, however many split points there are; at 174 words,
+three. The pass is driven by the parent: for each span, each symbol not
+yet found tries its binary steps until one succeeds, skipping a whole
+group of steps when their left child B ends nowhere inside the span. A
+symbol found brings everything above it by unary steps at once, and
+symbols are tried from the lowest unary rank up, so those are not tested
+again.
 
 This pass stores no hyperedges and no items, only bits. It finds every
 symbol over every span that the words support, which includes a great deal
@@ -186,8 +196,9 @@ The second pass starts from the start symbol over the whole input and
 works down. For an item it has reached, it looks at every step that could
 build it: a lexical entry, a unary step whose child is derivable over the
 same span, or a binary step whose children are derivable over (i, k) and
-(k, j) for some k. Each one found becomes a hyperedge, and each child not
-yet reached becomes an item and is visited in turn.
+(k, j) for some k. The splits k of a binary step are the set bits of the
+same AND as in the first pass. Each one found becomes a hyperedge, and
+each child not yet reached becomes an item and is visited in turn.
 
 An item is reached exactly when it lies on some derivation of the whole
 input: it must be derivable (the first pass) and connected to the root (the
@@ -363,7 +374,7 @@ It differs from `go/cfg` in details:
 | | BitPar | `go/cfg` |
 |---|---|---|
 | binarization | Eisele's greedy method: repeatedly replace the most frequent adjacent pair of daughters, anywhere in a rule, with a new symbol | the same (at first: left factoring, sharing prefixes only) |
-| recognition | driven by the parent: for each symbol over a span, try its rules until one succeeds; the split points are tested at once by ANDing two bit vectors, for which the chart is stored twice | driven by the children: for each split, combine the symbols found on the left with those on the right, and find every parent |
+| recognition | driven by the parent: for each symbol over a span, try its rules until one succeeds; the split points are tested at once by ANDing two bit vectors, for which the chart is stored twice | the same (at first: driven by the children, split by split) |
 | unary rules | a precomputed bitset of the symbols reachable from each symbol, ORed in | one step at a time |
 | Viterbi | a filtered chart, then Viterbi probabilities over it, without building the forest | none yet |
 

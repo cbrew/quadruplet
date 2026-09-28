@@ -85,8 +85,9 @@ specialised to context-free rules
 * symbols are integers, and rules are binarized
   by pairing up the daughters that occur together most often, as in
   BitPar, with the pairs shared between rules (`{DT {JJ NN}}`);
-* a bottom-up pass (CKY) records, for every span, the set of symbols
-  derivable over it as a bitset;
+* a bottom-up pass (CKY) records which symbols are derivable over which
+  spans, in bit vectors over positions, so that one AND tests all the
+  split points of a step, as in BitPar;
 * a top-down pass from the start symbol keeps only the items on a
   derivation of the whole input, and records every way of building each
   as a hyperedge. No dead-end item is ever stored.

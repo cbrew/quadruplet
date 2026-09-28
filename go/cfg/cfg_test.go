@@ -330,3 +330,20 @@ func TestPairBinarization(t *testing.T) {
 		}
 	}
 }
+
+// Long inputs, whose position vectors take several words: S -> S S | a has
+// Catalan(n-1) trees over n words.
+func TestLongInputs(t *testing.T) {
+	g, err := New([]Rule{{"S", []string{"S", "S"}}}, map[string][]string{"a": {"S"}}, []string{"S"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []int{63, 64, 65, 127, 128, 129, 200} {
+		k := int64(n - 1)
+		want := new(big.Int).Binomial(2*k, k)
+		want.Div(want, big.NewInt(k+1))
+		if got := g.Parse(slices.Repeat([]string{"a"}, n)).Count(); got.Cmp(want) != 0 {
+			t.Errorf("%d words: %s trees, want %s", n, got, want)
+		}
+	}
+}

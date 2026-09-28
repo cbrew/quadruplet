@@ -1,7 +1,7 @@
 package cfg
 
 import (
-	"slices"
+	"math/bits"
 	"strings"
 	"time"
 )
@@ -72,35 +72,67 @@ func (f *Forest) Find(sym, l, r int32) (int32, bool) {
 	return i, ok
 }
 
-// cells holds, for each span, the set of symbols derivable over it: as a
-// bitset, and as a list in the order they were found.
+// cells holds the symbols derivable over each span, as BitPar's chart does
+// (Schmid 2004): for each start and symbol, a bit vector of the ends it is
+// derivable up to, and for each end and symbol, a bit vector of the starts
+// it is derivable from. Whether a step joins B over l..m and C over m..r for
+// some m is then an AND of B's ends from l with C's starts to r, a word or
+// two however many split points there are. Each span also has its symbols as
+// a list, in the order they were found.
 type cells struct {
-	n, words int
-	has      []uint64
-	lexical  []uint64 // the symbols a span is as a lexical entry
-	syms     [][]int32
+	n, nsym int
+	pos     int      // words in a vector over positions 0..n
+	ends    []uint64 // (l*nsym + sym)*pos: the r with sym derivable over l..r
+	starts  []uint64 // (r*nsym + sym)*pos: the l with sym derivable over l..r
+	words   int      // words in a set of symbols
+	lexical []uint64 // cell*words: the symbols a span is as a lexical entry
+	syms    [][]int32
 }
 
 // cell numbers the spans l..r, 0 <= l < r <= n, one after another.
 func (c *cells) cell(l, r int) int { return l*(2*c.n-l+1)/2 + (r - l - 1) }
 
-func (c *cells) test(bits []uint64, sym int32, cell int) bool {
-	return bits[cell*c.words+int(sym>>6)]&(1<<(uint(sym)&63)) != 0
+func (c *cells) isLexical(sym int32, l, r int) bool {
+	return c.lexical[c.cell(l, r)*c.words+int(sym>>6)]&(1<<(uint(sym)&63)) != 0
 }
 
-func (c *cells) set(bits []uint64, sym int32, cell int) bool {
-	i, m := cell*c.words+int(sym>>6), uint64(1)<<(uint(sym)&63)
-	if bits[i]&m != 0 {
+func (c *cells) has(sym int32, l, r int) bool {
+	return c.ends[(l*c.nsym+int(sym))*c.pos+r>>6]&(1<<(uint(r)&63)) != 0
+}
+
+func (c *cells) add(sym int32, l, r int) bool {
+	if c.has(sym, l, r) {
 		return false
 	}
-	bits[i] |= m
+	c.ends[(l*c.nsym+int(sym))*c.pos+r>>6] |= 1 << (uint(r) & 63)
+	c.starts[(r*c.nsym+int(sym))*c.pos+l>>6] |= 1 << (uint(l) & 63)
+	cell := c.cell(l, r)
+	c.syms[cell] = append(c.syms[cell], sym)
 	return true
 }
 
-func (c *cells) add(sym int32, cell int) {
-	if c.set(c.has, sym, cell) {
-		c.syms[cell] = append(c.syms[cell], sym)
+// endsBefore says whether sym is derivable over l..m for some m < r.
+func (c *cells) endsBefore(sym int32, l, r int) bool {
+	v := c.ends[(l*c.nsym+int(sym))*c.pos:]
+	last := (r - 1) >> 6
+	for w := (l + 1) >> 6; w < last; w++ {
+		if v[w] != 0 {
+			return true
+		}
 	}
+	return v[last]&(^uint64(0)>>(63-uint(r-1)&63)) != 0
+}
+
+// splits says whether left over l..m and right over m..r for some m.
+func (c *cells) splits(left, right int32, l, r int) bool {
+	a := c.ends[(l*c.nsym+int(left))*c.pos:]
+	b := c.starts[(r*c.nsym+int(right))*c.pos:]
+	for w := (l + 1) >> 6; w <= (r-1)>>6; w++ {
+		if a[w]&b[w] != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Parse builds the forest of the tokens.
@@ -122,58 +154,60 @@ func (g *Grammar) Parse(tokens []string) *Forest {
 	return f
 }
 
-// recognise is the bottom-up pass: CKY over bitsets, closing each span under
-// the unary steps.
+// recognise is the bottom-up pass, CKY as BitPar does it: for each span,
+// each symbol not yet found is tested against its binary steps until one
+// joins two derivable symbols, all split points at once; a symbol found
+// brings with it everything built from it by unary steps.
 func (g *Grammar) recognise(tokens []string) *cells {
 	n := len(tokens)
-	c := &cells{n: n, words: (len(g.Names) + 63) / 64}
-	spans := n * (n + 1) / 2
-	c.has = make([]uint64, spans*c.words)
-	c.lexical = make([]uint64, spans*c.words)
-	c.syms = make([][]int32, spans)
+	c := &cells{n: n, nsym: len(g.Names), pos: (n + 64) / 64, words: (len(g.Names) + 63) / 64}
+	c.ends = make([]uint64, (n+1)*c.nsym*c.pos)
+	c.starts = make([]uint64, (n+1)*c.nsym*c.pos)
+	c.lexical = make([]uint64, n*(n+1)/2*c.words)
+	c.syms = make([][]int32, n*(n+1)/2)
+	var closure func(sym int32, l, r int)
+	closure = func(sym int32, l, r int) {
+		if c.add(sym, l, r) {
+			for _, si := range g.unaryUp[sym] {
+				closure(g.Steps[si].Parent, l, r)
+			}
+		}
+	}
 	for l := range n {
 		for r := l + 1; r <= min(n, l+g.maxPhrase); r++ {
-			cell := c.cell(l, r)
 			for _, sym := range g.lexicon[strings.Join(tokens[l:r], " ")] {
-				c.set(c.lexical, sym, cell)
-				c.add(sym, cell)
+				i := c.cell(l, r)*c.words + int(sym>>6)
+				c.lexical[i] |= 1 << (uint(sym) & 63)
 			}
 		}
 	}
 	for width := 1; width <= n; width++ {
 		for l := 0; l+width <= n; l++ {
 			r := l + width
-			cell := c.cell(l, r)
-			for m := l + 1; m < r; m++ {
-				rightCell := c.cell(m, r)
-				rights := c.syms[rightCell]
-				if len(rights) == 0 {
-					continue
-				}
-				for _, a := range c.syms[c.cell(l, m)] {
-					ups := g.binUp[a]
-					if len(ups) == 0 {
-						continue
-					}
-					if len(ups) <= len(rights) {
-						for _, u := range ups {
-							if c.test(c.has, u.right, rightCell) {
-								c.add(g.Steps[u.step].Parent, cell)
-							}
-						}
-						continue
-					}
-					for _, b := range rights {
-						j, _ := slices.BinarySearchFunc(ups, b, func(u up, b int32) int { return int(u.right - b) })
-						for ; j < len(ups) && ups[j].right == b; j++ {
-							c.add(g.Steps[ups[j].step].Parent, cell)
-						}
-					}
+			if width <= g.maxPhrase {
+				for _, sym := range g.lexicon[strings.Join(tokens[l:r], " ")] {
+					closure(sym, l, r)
 				}
 			}
-			for k := 0; k < len(c.syms[cell]); k++ {
-				for _, si := range g.unaryUp[c.syms[cell][k]] {
-					c.add(g.Steps[si].Parent, cell)
+			if width == 1 {
+				continue
+			}
+		parents:
+			for _, a := range g.binParents {
+				if c.has(a, l, r) {
+					continue
+				}
+				for i := range g.binDown[a] {
+					d := &g.binDown[a][i]
+					if !c.endsBefore(d.left, l, r) {
+						continue
+					}
+					for _, u := range d.steps {
+						if c.splits(d.left, u.right, l, r) {
+							closure(a, l, r)
+							continue parents
+						}
+					}
 				}
 			}
 		}
@@ -206,7 +240,7 @@ func (g *Grammar) build(f *Forest, c *cells) {
 		f.count[item]++
 	}
 	for _, s := range g.Starts {
-		if c.test(c.has, s, c.cell(0, int(n))) {
+		if c.has(s, 0, int(n)) {
 			f.Goals = append(f.Goals, intern(s, 0, n))
 		}
 	}
@@ -215,43 +249,29 @@ func (g *Grammar) build(f *Forest, c *cells) {
 		stack = stack[:len(stack)-1]
 		it := f.Items[item]
 		f.first[item] = f.edges
-		cell := c.cell(int(it.L), int(it.R))
-		if c.test(c.lexical, it.Sym, cell) {
+		if c.isLexical(it.Sym, int(it.L), int(it.R)) {
 			edge(item, -1, -1, -1)
 		}
 		for _, si := range g.unaryDown[it.Sym] {
-			if child := g.Steps[si].Left; c.test(c.has, child, cell) {
+			if child := g.Steps[si].Left; c.has(child, int(it.L), int(it.R)) {
 				edge(item, si, intern(child, it.L, it.R), -1)
 			}
 		}
-		downs := g.binDown[it.Sym]
-		if len(downs) == 0 {
-			continue
-		}
-		for m := it.L + 1; m < it.R; m++ {
-			leftCell, rightCell := c.cell(int(it.L), int(m)), c.cell(int(m), int(it.R))
-			lefts := c.syms[leftCell]
-			if len(lefts) == 0 || len(c.syms[rightCell]) == 0 {
+		// each binary step's split points, all at once
+		l, r := int(it.L), int(it.R)
+		for i := range g.binDown[it.Sym] {
+			d := &g.binDown[it.Sym][i]
+			if !c.endsBefore(d.left, l, r) {
 				continue
 			}
-			join := func(d *down) {
-				for _, u := range d.steps {
-					if c.test(c.has, u.right, rightCell) {
+			a := c.ends[(l*c.nsym+int(d.left))*c.pos:]
+			for _, u := range d.steps {
+				b := c.starts[(r*c.nsym+int(u.right))*c.pos:]
+				for w := (l + 1) >> 6; w <= (r-1)>>6; w++ {
+					for x := a[w] & b[w]; x != 0; x &= x - 1 {
+						m := int32(w<<6 + bits.TrailingZeros64(x))
 						edge(item, u.step, intern(d.left, it.L, m), intern(u.right, m, it.R))
 					}
-				}
-			}
-			if len(downs) <= len(lefts) {
-				for i := range downs {
-					if c.test(c.has, downs[i].left, leftCell) {
-						join(&downs[i])
-					}
-				}
-				continue
-			}
-			for _, a := range lefts {
-				if j, ok := slices.BinarySearchFunc(downs, a, func(d down, a int32) int { return int(d.left - a) }); ok {
-					join(&downs[j])
 				}
 			}
 		}
