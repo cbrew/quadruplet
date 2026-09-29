@@ -1,0 +1,38 @@
+each tree weighted by its rules' relative frequencies (P(rule | parent)) in the training documents, each count plus one; entropies are of that distribution
+and each verb's use by P(use | lemma, tag) / P(use | tag) at the rule grain, from the training documents, smoothed with 5 pseudo-counts
+300 of 300 test sentences of 5 to 25 words parsed, with gold tags; log10 trees: mean 18.26, per word median 1.29
+entropy of the trees: mean 1.47 decimal digits
+
+Words other than verbs, by how many lexical verb phrases lie above them: in the trees, each as likely as the treebank's rule frequencies make it, and in the sentences' own trees
+lexical verb phrases above	all trees	own trees
+0	39.9%	39.6%
+1	44.3%	44.0%
+2	13.0%	12.7%
+3	2.8%	3.7%
+
+Verbs' uses at the rule grain: in the trees, each as likely as the treebank's rule frequencies make it, and in the sentences' own trees
+frame	all trees	own trees
+V NP	20.9%	22.5%
+V PP	11.3%	10.6%
+(aux)	8.6%	8.9%
+V	7.9%	8.1%
+V NP PP	6.8%	6.1%
+V SxVP	4.1%	4.5%
+V SBAR	3.6%	3.4%
+(in NP)	3.6%	3.3%
+V ADJP	3.8%	2.8%
+V PP PP	1.7%	2.4%
+V ADVP	1.2%	1.8%
+(in ADJP)	1.8%	1.0%
+
+Each part as a mean over the sentences, in decimal digits, and as a share of the whole entropy:
+where	kind of VP rule	complement frame	rest of VP rule	other phrases' rules	daughters' spans	total
+top-layer verbs' phrases	0.06 (4%)	0.13 (9%)	0.16 (11%)	-	0.02 (2%)	0.37 (25%)
+outside any verb	-	-	-	0.52 (35%)	0.04 (3%)	0.56 (38%)
+verbs' phrases at depth 1	0.01 (1%)	0.03 (2%)	0.05 (3%)	-	0.01 (1%)	0.10 (7%)
+inside the dependents of verbs at depth 1	-	-	-	0.31 (21%)	0.02 (1%)	0.33 (23%)
+verbs' phrases at depth 2	0.00 (0%)	0.01 (0%)	0.01 (1%)	-	0.00 (0%)	0.02 (1%)
+inside the dependents of verbs at depth 2	-	-	-	0.07 (5%)	0.01 (0%)	0.08 (5%)
+verbs' phrases at depth 3+	0.00 (0%)	0.00 (0%)	0.00 (0%)	-	0.00 (0%)	0.00 (0%)
+inside the dependents of verbs at depth 3+	-	-	-	0.01 (1%)	0.00 (0%)	0.01 (1%)
+all	0.07 (5%)	0.16 (11%)	0.22 (15%)	0.92 (62%)	0.10 (7%)	1.47 (100%)

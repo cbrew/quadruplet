@@ -189,6 +189,33 @@ well. Both cut the whole entropy by only 5–8%, because the lexicon learned
 from nine tenths of MASC still allows most verbs many uses (a median of
 11–18).
 
+## The lexicon as probabilities (`verbentropy -pcfg -train -lexweights`)
+
+A filter can only say yes or no. Weights say how likely each use is for a
+given lemma. So each verb's use (its tag renamed at a grain, as above) also
+carries a factor of P(use | lemma, tag) / P(use | tag), learned from the
+training documents and smoothed toward P(use | tag) with alpha
+pseudo-counts. This is exactly the grammar with split verb tags and lexical
+emission probabilities: P(word | tag~use) is proportional to
+P(use | word, tag) / P(use | tag), and P(word) is the same in every tree of a
+sentence.
+
+| weights | entropy | kind of VP rule | complement frame | rest of rule | other phrases' rules | spans |
+|---|---|---|---|---|---|---|
+| rule frequencies | 1.67 | 0.09 | 0.27 | 0.27 | 0.93 | 0.11 |
+| and uses, core grain | 1.52 | 0.07 | 0.17 | 0.27 | 0.90 | 0.10 |
+| and uses, pp grain | 1.50 | 0.07 | 0.17 | 0.24 | 0.92 | 0.10 |
+| and uses, rule grain | 1.47 | 0.07 | 0.16 | 0.22 | 0.92 | 0.10 |
+
+(alpha 5; with alpha 1 and 20 the core grain gives 1.51 and 1.55.)
+
+As probabilities, the lexicon removes about 40% of the complement frame's
+entropy, and none of the rest of the rule's until its uses are whole rules.
+Even then it removes only a fifth. The choices outside the verbs and inside
+their dependents do not move. Where the words fall and what the verbs do
+stay as close to the gold trees as before; for example, NP objects are 32.0%
+against 33.8%.
+
 ## What it means
 
 * **The uniform count is the wrong quantity to put a verb lexicon against.**
@@ -203,6 +230,12 @@ from nine tenths of MASC still allows most verbs many uses (a median of
   do. Of the remaining 1.7 digits, the verbs' choices are about two-fifths,
   split evenly between the complement frame and the rest of the rule. That is the place for a frame lexicon, and for the Levin-style
   alternations and the complement/modifier line of reports 01–06.
+* **The lexicon knows complements, not modifiers.** Given the verb's
+  lemma, the complement frame's entropy falls by 40%, and the rest of the
+  rule's (modifiers, PPs, their order) hardly at all. This is report 06's
+  finding (the verb removes 38% of the uncertainty about its complement
+  frame and 10% about its modifiers), now measured in the parser's own
+  forests rather than in the gold trees.
 * **Complement frame versus modifier choice**, in these terms, is the
   split of each verb phrase's rule entropy into its frame part and its
   rest. Weighted, the two are equal (16% each). The rest includes
@@ -213,9 +246,9 @@ from nine tenths of MASC still allows most verbs many uses (a median of
 
 * The entropies are of one sentence's trees given its words and gold tags.
   How they change with the tags open is untested.
-* The weighted figures depend on the PCFG, which has no lexical
-  conditioning. A lexicalised model, or one with the frame lexicon's
-  probabilities, is the obvious next measurement.
+* The weighted figures depend on the PCFG, with lexical conditioning only
+  on the verbs' uses. Heads of other phrases (nouns, prepositions) are not
+  lexicalised, and the "inside the dependents" share is theirs.
 * The bottom-up layers (task 4 in `COORDINATION.md`) and the "don't care"
   share (task 5) are open.
 
@@ -225,7 +258,7 @@ from nine tenths of MASC still allows most verbs many uses (a median of
 S=SCRATCH       # treebank.py's output in ann/, verbframes.py's lemmas.tsv in v2/
 cd go
 go run ./cmd/framelex -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300
-go run ./cmd/verbentropy -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300 [-lexicon core|rule] [-pcfg [-train]]
+go run ./cmd/verbentropy -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300 [-lexicon core|rule] [-pcfg [-train] [-lexweights [-grain core|pp|rule] [-alpha 5]]]
 ```
 
 The outputs of these runs are in [`runs/`](runs/). One caveat: `runs/verbentropy.txt`

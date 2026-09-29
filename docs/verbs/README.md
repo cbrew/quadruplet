@@ -81,7 +81,11 @@ tree makes. Measured on 300 held-out sentences with gold tags:
   skeleton around the top verbs, 24% their expansions, 17% how verbs embed
   one another, 5% the bottom verbs, 13% inside their dependents.
 * **With the lexicon as probabilities** (P(use | lemma) from training):
-  LEXW
+  the entropy falls from 1.67 to 1.52 digits (1.47 with
+  whole-rule uses). The complement frame's part falls by about 40% (0.27 to
+  0.17); the rest of the rule's part stays at 0.27, and falls to 0.22 only
+  when the lexicon's uses are whole rules. The smoothing hardly matters
+  (1.51 to 1.55 digits for 1 to 20 pseudo-counts).
 
 For the complement/modifier question this is the cleanest statement so
 far. Under the treebank's own frequencies, the uncertainty about a verb's

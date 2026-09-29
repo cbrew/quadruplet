@@ -44,8 +44,8 @@ phrase rule, then complement frame, then the rest).
 | 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | Fable | done as a standalone chain rule (`go/frames/layers.go`, `go/cmd/layers`, [`08-verb-layers.md`](08-verb-layers.md)): outside / top verbs / between / bottom verbs / inside, uniform or rule-weighted, tested against enumeration |
 | 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | Fable (offered by Opus) | open |
 | 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | done: `verbentropy -pcfg [-train]`, in 07 |
-| 7 | lexically conditioned weights: the treebank PCFG with each verb's use weighted by P(use given lemma) from the training lexicon (normalised per tag), so the lexicon acts as probabilities, not a filter; how much it takes out of the complement frame's and the rest's shares (07) and out of the layers (08) | Opus | in progress |
-| 8 | fold 07 and 08 into `docs/verbs/README.md` and `docs/ambiguity.md` | Opus | after 7 |
+| 7 | lexically conditioned weights: the treebank PCFG with each verb's use weighted by P(use given lemma) from the training lexicon (normalised per tag), so the lexicon acts as probabilities, not a filter; how much it takes out of the complement frame's and the rest's shares (07) and out of the layers (08) | Opus | done: `verbentropy -lexweights`, in 07 |
+| 8 | fold 07 and 08 into `docs/verbs/README.md` and `docs/ambiguity.md` | Opus | done |
 
 ## Requests
 

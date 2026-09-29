@@ -172,7 +172,12 @@ a tree makes (`cfg.Forest.Entropy`), or by layers of verbs
     expansions, 17% how verbs embed one another, 5% the bottom verbs', 13%
     inside their dependents.
 * **The lexicon as probabilities** (each verb's use weighted by P(use |
-  lemma) from training, over the rule frequencies): LEXW
+  lemma) from training, over the rule frequencies): the entropy falls to 1.52 digits (1.47 when the lexicon knows whole
+  rules), and the fall is where the lexicon's knowledge is: the complement
+  frame's part drops by about 40% (0.27 to 0.17 digits), the rest of the
+  verb phrase's rule not at all at the core grain (0.27), and by a fifth
+  (0.22) when the lexicon's uses are whole rules. Nothing outside the verbs
+  moves.
 
 So the astronomical count and the reader's problem come apart. The count
 is dominated by trees the grammar's own rule frequencies make negligible.
