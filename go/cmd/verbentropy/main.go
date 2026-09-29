@@ -23,6 +23,12 @@
 // choices of the daughters' spans given the rule, which binarization spreads
 // over auxiliary items; they are charged to the rule's phrase.
 //
+// With -pcfg, a tree is not as likely as any other but as the product of its
+// rules' relative frequencies in the treebank, P(rule | parent), so the
+// entropy is that distribution's, less than log10 of the number of trees.
+// counts.tsv counts the rules of all the documents, the test sentences' own
+// among them; with -train the counts are the training documents', plus one.
+//
 // With -lexicon GRAIN, the grammar is the one package frames renames at that
 // grain, with the frame lexicon cmd/framelex learns (frames seen once or more
 // with lemmas seen -lemma times or more), so the decomposition is of the
@@ -169,6 +175,8 @@ func main() {
 	lexicon := flag.String("lexicon", "", "filter the trees by a frame lexicon at this grain: core, pp or rule")
 	minLemma := flag.Int("lemma", 5, "restrict a lemma's frames only if it was seen this often in training")
 	seed := flag.Uint64("seed", 1, "the sample's random seed")
+	pcfg := flag.Bool("pcfg", false, "weigh each tree by its rules' relative frequencies in the treebank, not every tree alike")
+	trainOnly := flag.Bool("train", false, "with -pcfg, count the rules in the training documents only, adding one to every rule's count")
 	flag.Parse()
 	if *countsFile == "" || *annotatedFile == "" || *lemmasFile == "" {
 		flag.Usage()
@@ -178,7 +186,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "verbentropy:", err)
 		os.Exit(1)
 	}
-	rules, err := fr.ReadRules(*countsFile)
+	rules, counts, err := fr.ReadRuleCounts(*countsFile)
 	if err != nil {
 		fail(err)
 	}
@@ -208,6 +216,49 @@ func main() {
 		fail(err)
 	}
 	ctx := verbContext(g)
+	if *pcfg {
+		// the renamed rules' probabilities are the rules'
+		if *trainOnly {
+			seen := map[string]int{}
+			for _, s := range train {
+				var walk func(t *cfg.Tree)
+				walk = func(t *cfg.Tree) {
+					if t.Words != nil {
+						return
+					}
+					var rhs []string
+					for _, c := range t.Children {
+						rhs = append(rhs, c.Label)
+						walk(c)
+					}
+					seen[cfg.Rule{LHS: t.Label, RHS: rhs}.String()]++
+				}
+				walk(s.Tree)
+			}
+			counts = make([]int, len(rules))
+			for i, r := range rules {
+				counts[i] = 1 + seen[r.String()]
+			}
+		}
+		probs := fr.Probabilities(rules, counts)
+		renamed := map[string]float64{}
+		for i, r := range rn.Rules {
+			renamed[r.String()] = probs[rules[i].String()]
+		}
+		weight := make([]float64, len(g.Steps))
+		for i, st := range g.Steps {
+			weight[i] = 1
+			if st.Rule >= 0 {
+				weight[i] = renamed[g.Rules[st.Rule].String()]
+			}
+		}
+		ctx.Weight = func(e cfg.Hyperedge) float64 {
+			if e.Step < 0 {
+				return 1
+			}
+			return weight[e.Step]
+		}
+	}
 
 	// where the words other than verbs are: how many lexical verb phrases
 	// lie above them, in the trees on average and in the sentence's own tree
@@ -252,7 +303,7 @@ func main() {
 	}
 
 	// which core frame each verb has: in the trees on average, and in the
-	// sentence's own tree ("-" for a verb heading no lexical verb phrase)
+	// sentence's own tree
 	frameOfSym := make([]string, len(g.Names))
 	for sym, name := range g.Names {
 		switch {
@@ -265,8 +316,8 @@ func main() {
 	}
 	uniformFrames, goldFrames := map[string]float64{}, map[string]float64{}
 
-	totals := map[string]float64{} // class -> summed over sentences
-	var sumLog, worst float64
+	totals := map[string]float64{}  // class -> summed over sentences
+	var sumLog, sumH, worst float64 // log10 trees; entropy
 	var perWord []float64
 	parsed := 0
 	for _, s := range sample {
@@ -316,17 +367,35 @@ func main() {
 			totals[k] += v
 			sum += v
 		}
-		worst = max(worst, math.Abs(sum-lc))
+		if !*pcfg {
+			worst = max(worst, math.Abs(sum-lc))
+		}
 		sumLog += lc
+		sumH += sum
 		perWord = append(perWord, lc/float64(len(s.Words)))
+	}
+	if *pcfg {
+		from := "all of the treebank"
+		if *trainOnly {
+			from = "the training documents, each count plus one"
+		}
+		fmt.Printf("each tree weighted by its rules' relative frequencies (P(rule | parent)) in %s; entropies are of that distribution\n", from)
 	}
 	if *lexicon != "" {
 		fmt.Printf("the trees a frame lexicon at the %s grain allows (lemmas seen %d+ times in training)\n", grain, *minLemma)
 	}
 	fmt.Printf("%d of %d test sentences of %d to %d words parsed, with gold tags; log10 trees: mean %.2f, per word median %.2f\n",
 		parsed, len(sample), *minWords, *maxWords, sumLog/float64(parsed), fr.Median(perWord))
-	fmt.Printf("the parts sum to log10 of the count to within %.1g\n\n", worst)
-	fmt.Println("Words other than verbs, by how many lexical verb phrases lie above them: in the trees, each as likely as any other, and in the sentences' own trees")
+	if *pcfg {
+		fmt.Printf("entropy of the trees: mean %.2f decimal digits\n\n", sumH/float64(parsed))
+	} else {
+		fmt.Printf("the parts sum to log10 of the count to within %.1g\n\n", worst)
+	}
+	likely := "each as likely as any other"
+	if *pcfg {
+		likely = "each as likely as the treebank's rule frequencies make it"
+	}
+	fmt.Printf("Words other than verbs, by how many lexical verb phrases lie above them: in the trees, %s, and in the sentences' own trees\n", likely)
 	fmt.Println("lexical verb phrases above\tall trees\town trees")
 	sumU, sumG := 0.0, 0.0
 	for d := 0; d <= maxDepth; d++ {
@@ -338,7 +407,7 @@ func main() {
 		fmt.Printf("%d\t%.1f%%\t%.1f%%\n", d, 100*uniformWords[k]/sumU, 100*goldWords[k]/sumG)
 	}
 	fmt.Println()
-	fmt.Printf("Verbs' frames at the %s grain (- for a verb heading no lexical verb phrase): in the trees, each as likely as any other, and in the sentences' own trees\n", grain)
+	fmt.Printf("Verbs' uses at the %s grain: in the trees, %s, and in the sentences' own trees\n", grain, likely)
 	fmt.Println("frame\tall trees\town trees")
 	var names []string
 	sumU, sumG = 0, 0
@@ -359,7 +428,7 @@ func main() {
 		fmt.Printf("%s\t%.1f%%\t%.1f%%\n", k, 100*uniformFrames[k]/sumU, 100*goldFrames[k]/sumG)
 	}
 	fmt.Println()
-	fmt.Println("Each part as a mean over the sentences, in decimal digits (log10 trees), and as a share of all the sentences' log10 trees:")
+	fmt.Println("Each part as a mean over the sentences, in decimal digits, and as a share of the whole entropy:")
 
 	type row struct {
 		depth int
@@ -394,7 +463,7 @@ func main() {
 	cols := []string{"kind", "frame", "rest", "rule", "spans"}
 	fmt.Println("where\tkind of VP rule\tcomplement frame\trest of VP rule\tother phrases' rules\tdaughters' spans\ttotal")
 	cell := func(v float64) string {
-		return fmt.Sprintf("%.2f (%.0f%%)", v/float64(parsed), 100*v/sumLog)
+		return fmt.Sprintf("%.2f (%.0f%%)", v/float64(parsed), 100*v/sumH)
 	}
 	colTotals := map[string]float64{}
 	for _, r := range keys {
@@ -428,5 +497,5 @@ func main() {
 	for _, c := range cols {
 		fmt.Print("\t" + cell(colTotals[c]))
 	}
-	fmt.Println("\t" + cell(sumLog))
+	fmt.Println("\t" + cell(sumH))
 }

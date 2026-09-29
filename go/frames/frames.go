@@ -404,23 +404,49 @@ func Sample(sents []Sentence, n, lo, hi int, seed uint64) []Sentence {
 
 // ReadRules reads the rules of counts.tsv.
 func ReadRules(file string) ([]cfg.Rule, error) {
+	rules, _, err := ReadRuleCounts(file)
+	return rules, err
+}
+
+// Probabilities is each rule's relative frequency among the rules with its
+// parent, P(rule | parent), by the rule as a string.
+func Probabilities(rules []cfg.Rule, counts []int) map[string]float64 {
+	byParent := map[string]int{}
+	for i, r := range rules {
+		byParent[r.LHS] += counts[i]
+	}
+	out := map[string]float64{}
+	for i, r := range rules {
+		out[r.String()] = float64(counts[i]) / float64(byParent[r.LHS])
+	}
+	return out
+}
+
+// ReadRuleCounts reads the rules of counts.tsv with how often each is used.
+func ReadRuleCounts(file string) ([]cfg.Rule, []int, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer f.Close()
 	var rules []cfg.Rule
+	var counts []int
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		rec := strings.Split(sc.Text(), "\t")
 		if len(rec) < 4 {
-			return nil, fmt.Errorf("%s: short line %q", file, sc.Text())
+			return nil, nil, fmt.Errorf("%s: short line %q", file, sc.Text())
 		}
 		if rec[0] == "rule" {
+			k, err := strconv.Atoi(rec[1])
+			if err != nil {
+				return nil, nil, fmt.Errorf("%s: %v", file, err)
+			}
 			rules = append(rules, cfg.Rule{LHS: rec[2], RHS: rec[3:]})
+			counts = append(counts, k)
 		}
 	}
-	return rules, sc.Err()
+	return rules, counts, sc.Err()
 }
 
 // ReadLemmas reads lemmas.tsv: form, tag, lemma and count.

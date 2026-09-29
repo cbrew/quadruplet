@@ -5,8 +5,8 @@ import (
 	"math/big"
 )
 
-// Context says, for Entropy, what the forest's choices are and whose they
-// are. A tree makes one choice at each item it uses: which of the item's
+// Context says, for Entropy, how likely the forest's trees are, what their
+// choices are and whose they are. A tree makes one choice at each item it uses: which of the item's
 // hyperedges builds it. Where an item stands in a tree is summed up by a
 // state, from a small automaton run top down: Start at the goal items, and
 // Next for each item a hyperedge joins, from the state of the item it builds.
@@ -16,6 +16,12 @@ import (
 // a state: level i < len(Groups) is the choice of the i-th key given the
 // ones before, level len(Groups) that of the hyperedge given them all.
 type Context struct {
+	// Weight, if not nil, weighs the trees: a tree is as likely as the
+	// product of its hyperedges' weights (a probabilistic grammar puts the
+	// rule's probability on the step that completes it, and 1 on the others).
+	// If nil, every tree is as likely as any other, and the counts are exact.
+	Weight func(e Hyperedge) float64
+
 	Start  int
 	Next   func(state int, item Item, e Hyperedge, child Item) int
 	Groups func(item Item, e Hyperedge) []string
@@ -23,66 +29,42 @@ type Context struct {
 }
 
 // Entropy splits the entropy of the forest's trees, every tree as likely as
-// any other, among the kinds of choice the context names. The entropy of the
-// trees, log10 of their number, is the expected sum over a tree's choices of
-// each choice's own entropy, given the item and the choices above it (Li and
+// any other or as the context weighs it, among the kinds of choice the
+// context names. The entropy of the trees (log10 of their number, if they
+// are equally likely) is the expected sum over a tree's choices of each
+// choice's own entropy, given the item and the choices above it (Li and
 // Eisner 2009 do the same for weighted hypergraphs):
 //
 //	log10 T = sum over items x and states s of mu(x, s) H(x)
 //
 // where mu(x, s) is the expected number of times a tree has x in state s,
 // outside(x, s) inside(x) / T, and H(x) is the entropy of the choice among
-// x's hyperedges, each as likely as the number of trees under it. With the
+// x's hyperedges, each as likely as the trees under it together. With the
 // chain rule H(x) splits further by the context's groups. Entropy returns
-// the part of log10 T each class has, in decimal digits; with the part
+// the part of the entropy each class has, in decimal digits; with the part
 // StartChoice, where the input has several start symbols' goals, the parts
-// sum to log10 T. It returns nil for a forest with no trees.
+// sum to the entropy. It returns nil for a forest with no trees.
 func (f *Forest) Entropy(c Context) map[string]float64 {
 	if len(f.Goals) == 0 {
 		return nil
 	}
-	ways, total, order, outside := f.outside(c)
-
+	m := f.measure(c)
 	parts := map[string]float64{}
-	totalF := new(big.Float).SetInt(total)
 	if len(f.Goals) > 1 { // which start symbol is a choice too
-		var ps []float64
-		for _, g := range f.Goals {
-			v, _ := new(big.Float).Quo(new(big.Float).SetInt(ways[g]), totalF).Float64()
-			ps = append(ps, v)
-		}
-		parts[StartChoice] = entropyOf(ps)
+		parts[StartChoice] = entropyOf(m.goals)
 	}
-	w := new(big.Int)
-	q := new(big.Float)
-	ratio := func(a *big.Int, b *big.Float) float64 {
-		v, _ := q.Quo(new(big.Float).SetInt(a), b).Float64()
-		return v
-	}
-	for _, x := range order {
+	for _, x := range m.order {
 		first, end := f.EdgeRange(x)
-		if end-first < 2 || len(outside[x]) == 0 {
+		if end-first < 2 || len(m.mu[x]) == 0 {
 			continue // no choice
 		}
 		item := f.Items[x]
-		inside := new(big.Float).SetInt(ways[x])
-		// each hyperedge's probability, and the groups it falls in
-		var probs []float64
-		var keys [][]string
-		for e := first; e < end; e++ {
-			h := *f.Edge(e)
-			w.SetInt64(1)
-			if h.Left >= 0 {
-				w.Mul(w, ways[h.Left])
-			}
-			if h.Right >= 0 {
-				w.Mul(w, ways[h.Right])
-			}
-			probs = append(probs, ratio(w, inside))
-			if c.Groups != nil {
-				keys = append(keys, c.Groups(item, h))
-			} else {
-				keys = append(keys, nil)
+		probs := m.probs(x)
+		// the groups each hyperedge falls in
+		keys := make([][]string, end-first)
+		if c.Groups != nil {
+			for e := first; e < end; e++ {
+				keys[e-first] = c.Groups(item, *f.Edge(e))
 			}
 		}
 		// the entropy of each level of choice, by the chain rule
@@ -112,9 +94,7 @@ func (f *Forest) Entropy(c Context) map[string]float64 {
 			prev = hl
 		}
 		// weighted by how often the item is in each state
-		wx := new(big.Int)
-		for s, o := range outside[x] {
-			mu := ratio(wx.Mul(o, ways[x]), totalF)
+		for s, mu := range m.mu[x] {
 			for l, h := range hs {
 				if h != 0 {
 					parts[c.Class(s, item, l)] += mu * h
@@ -125,26 +105,45 @@ func (f *Forest) Entropy(c Context) map[string]float64 {
 	return parts
 }
 
-// outside is the forest's inside counts, their total over the goals, the
-// items in bottom-up order, and each item's outside counts by the context's
-// states: the number of ways to complete it to a tree of the whole input,
-// with it in each state.
-func (f *Forest) outside(c Context) (ways []*big.Int, total *big.Int, order []int32, outside []map[int]*big.Int) {
-	ways = f.ways()
-	total = new(big.Int)
+// measure is what Entropy and Occupancy need of a forest under a context:
+// the items in bottom-up order; for each item, the expected number of times
+// a tree has it in each state; the probability of each hyperedge given its
+// item; and of each goal.
+type measure struct {
+	order []int32
+	mu    []map[int]float64
+	probs func(item int32) []float64
+	goals []float64
+}
+
+// measure computes inside and outside values, from counts (exactly, with
+// big integers) or, where the context weighs hyperedges, from weights.
+func (f *Forest) measure(c Context) measure {
+	if c.Weight != nil {
+		return f.weighted(c)
+	}
+	ways := f.ways()
+	total := new(big.Int)
 	for _, g := range f.Goals {
 		total.Add(total, ways[g])
 	}
-	order = f.Order()
-
+	m := measure{order: f.Order(), mu: make([]map[int]float64, len(f.Items))}
+	totalF := new(big.Float).SetInt(total)
+	ratio := func(a *big.Int, b *big.Float) float64 {
+		v, _ := new(big.Float).Quo(new(big.Float).SetInt(a), b).Float64()
+		return v
+	}
+	for _, g := range f.Goals {
+		m.goals = append(m.goals, ratio(ways[g], totalF))
+	}
 	// outside counts, by state, from the goals down
-	outside = make([]map[int]*big.Int, len(f.Items))
+	outside := make([]map[int]*big.Int, len(f.Items))
 	for _, g := range f.Goals {
 		outside[g] = map[int]*big.Int{c.Start: big.NewInt(1)}
 	}
 	other := new(big.Int)
-	for i := len(order) - 1; i >= 0; i-- {
-		x := order[i]
+	for i := len(m.order) - 1; i >= 0; i-- {
+		x := m.order[i]
 		for s, o := range outside[x] {
 			for e, end := f.EdgeRange(x); e < end; e++ {
 				h := *f.Edge(e)
@@ -172,26 +171,127 @@ func (f *Forest) outside(c Context) (ways []*big.Int, total *big.Int, order []in
 			}
 		}
 	}
+	w := new(big.Int)
+	for x, os := range outside {
+		if len(os) == 0 {
+			continue
+		}
+		m.mu[x] = map[int]float64{}
+		for s, o := range os {
+			m.mu[x][s] = ratio(w.Mul(o, ways[x]), totalF)
+		}
+	}
+	m.probs = func(x int32) []float64 {
+		first, end := f.EdgeRange(x)
+		inside := new(big.Float).SetInt(ways[x])
+		var out []float64
+		for e := first; e < end; e++ {
+			h := f.Edge(e)
+			w.SetInt64(1)
+			if h.Left >= 0 {
+				w.Mul(w, ways[h.Left])
+			}
+			if h.Right >= 0 {
+				w.Mul(w, ways[h.Right])
+			}
+			out = append(out, ratio(w, inside))
+		}
+		return out
+	}
+	return m
+}
 
-	return ways, total, order, outside
+// weighted is measure with the context's weights, in floating point: fine
+// for the inside probabilities of sentences of tens of words, which stay far
+// above the smallest float64.
+func (f *Forest) weighted(c Context) measure {
+	m := measure{order: f.Order(), mu: make([]map[int]float64, len(f.Items))}
+	inside := make([]float64, len(f.Items))
+	edge := func(h Hyperedge) float64 {
+		v := c.Weight(h)
+		if h.Left >= 0 {
+			v *= inside[h.Left]
+		}
+		if h.Right >= 0 {
+			v *= inside[h.Right]
+		}
+		return v
+	}
+	for _, x := range m.order {
+		for e, end := f.EdgeRange(x); e < end; e++ {
+			inside[x] += edge(*f.Edge(e))
+		}
+	}
+	total := 0.0
+	for _, g := range f.Goals {
+		total += inside[g]
+	}
+	for _, g := range f.Goals {
+		m.goals = append(m.goals, inside[g]/total)
+	}
+	outside := make([]map[int]float64, len(f.Items))
+	for _, g := range f.Goals {
+		outside[g] = map[int]float64{c.Start: 1}
+	}
+	for i := len(m.order) - 1; i >= 0; i-- {
+		x := m.order[i]
+		for s, o := range outside[x] {
+			for e, end := f.EdgeRange(x); e < end; e++ {
+				h := *f.Edge(e)
+				if h.Left < 0 {
+					continue
+				}
+				kids := []int32{h.Left}
+				if h.Right >= 0 {
+					kids = append(kids, h.Right)
+				}
+				for k, kid := range kids {
+					v := o * c.Weight(h)
+					if len(kids) == 2 {
+						v *= inside[kids[1-k]]
+					}
+					ns := c.Next(s, f.Items[x], h, f.Items[kid])
+					if outside[kid] == nil {
+						outside[kid] = map[int]float64{}
+					}
+					outside[kid][ns] += v
+				}
+			}
+		}
+	}
+	for x, os := range outside {
+		if len(os) == 0 {
+			continue
+		}
+		m.mu[x] = map[int]float64{}
+		for s, o := range os {
+			m.mu[x][s] = o * inside[x] / total
+		}
+	}
+	m.probs = func(x int32) []float64 {
+		first, end := f.EdgeRange(x)
+		var out []float64
+		for e := first; e < end; e++ {
+			out = append(out, edge(*f.Edge(e))/inside[x])
+		}
+		return out
+	}
+	return m
 }
 
 // Occupancy is the expected number of times a tree has an item of each
-// class, every tree as likely as any other: the sum over items x and states
-// s of outside(x, s) inside(x) / T, by class(s, x). It returns nil for a
-// forest with no trees.
+// class: the sum over items x and states s of the expected number of times a
+// tree has x in state s, by class(s, x). It returns nil for a forest with no
+// trees.
 func (f *Forest) Occupancy(c Context, class func(state int, item Item) string) map[string]float64 {
 	if len(f.Goals) == 0 {
 		return nil
 	}
-	ways, total, _, outside := f.outside(c)
-	totalF := new(big.Float).SetInt(total)
+	m := f.measure(c)
 	out := map[string]float64{}
-	w := new(big.Int)
-	for x, os := range outside {
-		for s, o := range os {
-			v, _ := new(big.Float).Quo(new(big.Float).SetInt(w.Mul(o, ways[x])), totalF).Float64()
-			out[class(s, f.Items[x])] += v
+	for x, ss := range m.mu {
+		for s, mu := range ss {
+			out[class(s, f.Items[x])] += mu
 		}
 	}
 	return out
