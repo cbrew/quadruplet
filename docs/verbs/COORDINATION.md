@@ -39,11 +39,11 @@ phrase rule, then complement frame, then the rest).
 | # | task | who | state |
 |---|---|---|---|
 | 1 | `cfg.Forest.Entropy`: the exact decomposition above, generic in the context automaton and the grouping of choices; tested against brute force | Opus | done (go/cfg/entropy.go) |
-| 2 | the verb decomposition in `cmd/framelex`: regions by depth of verb phrases above (outside any verb, top-layer verbs, embedded verbs, their dependents), choices split into kind / complement frame / the rest / spans; with and without the frame lexicon | Opus | in progress |
-| 3 | run `cmd/framelex`'s lexicon filter tables on 300 sentences (remove its joint-choices code first, which runs out of memory), and write the results into `docs/verbs/07-frame-lexicon.md` | Opus | in progress |
+| 2 | the verb decomposition in `cmd/framelex`: regions by depth of verb phrases above (outside any verb, top-layer verbs, embedded verbs, their dependents), choices split into kind / complement frame / the rest / spans; with and without the frame lexicon | Opus | done: `go/cmd/verbentropy`, results in 07-frame-lexicon.md |
+| 3 | run `cmd/framelex`'s lexicon filter tables on 300 sentences (remove its joint-choices code first, which runs out of memory), and write the results into `docs/verbs/07-frame-lexicon.md` | Opus | done: `docs/verbs/07-frame-lexicon.md` |
 | 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | open | after 1 |
 | 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | open | after 1 |
-| 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | in progress (Fable had not appeared) |
+| 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | done: `verbentropy -pcfg [-train]`, in 07 |
 
 ## Requests
 

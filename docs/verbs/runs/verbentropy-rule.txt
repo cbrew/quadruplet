@@ -1,0 +1,37 @@
+the trees a frame lexicon at the rule grain allows (lemmas seen 5+ times in training)
+300 of 300 test sentences of 5 to 25 words parsed, with gold tags; log10 trees: mean 17.62, per word median 1.24
+the parts sum to log10 of the count to within 2e-13
+
+Words other than verbs, by how many lexical verb phrases lie above them: in the trees, each as likely as any other, and in the sentences' own trees
+lexical verb phrases above	all trees	own trees
+0	90.6%	39.6%
+1	9.0%	44.0%
+2	0.3%	12.7%
+3	0.0%	3.7%
+
+Verbs' frames at the rule grain (- for a verb heading no lexical verb phrase): in the trees, each as likely as any other, and in the sentences' own trees
+frame	all trees	own trees
+V	49.9%	8.1%
+(in NP)	27.7%	3.3%
+V NP	6.7%	22.5%
+V PP	1.5%	10.6%
+(aux)	1.0%	8.9%
+V NP PP	0.0%	6.1%
+V SxVP	0.5%	4.5%
+(in ADJP)	3.4%	1.0%
+V SBAR	0.8%	3.4%
+V ADJP	0.3%	2.8%
+V ADVP	1.1%	1.8%
+V PP PP	0.0%	2.4%
+
+Each part as a mean over the sentences, in decimal digits (log10 trees), and as a share of all the sentences' log10 trees:
+where	kind of VP rule	complement frame	rest of VP rule	other phrases' rules	daughters' spans	total
+top-layer verbs' phrases	0.55 (3%)	0.11 (1%)	0.86 (5%)	-	0.45 (3%)	1.98 (11%)
+outside any verb	-	-	-	11.69 (66%)	2.85 (16%)	14.54 (83%)
+verbs' phrases at depth 1	0.03 (0%)	0.00 (0%)	0.05 (0%)	-	0.02 (0%)	0.10 (1%)
+inside the dependents of verbs at depth 1	-	-	-	0.82 (5%)	0.16 (1%)	0.98 (6%)
+verbs' phrases at depth 2	0.00 (0%)	0.00 (0%)	0.00 (0%)	-	0.00 (0%)	0.00 (0%)
+inside the dependents of verbs at depth 2	-	-	-	0.02 (0%)	0.00 (0%)	0.03 (0%)
+verbs' phrases at depth 3+	0.00 (0%)	0.00 (0%)	0.00 (0%)	-	0.00 (0%)	0.00 (0%)
+inside the dependents of verbs at depth 3+	-	-	-	0.00 (0%)	0.00 (0%)	0.00 (0%)
+all	0.58 (3%)	0.11 (1%)	0.91 (5%)	12.53 (71%)	3.48 (20%)	17.62 (100%)

@@ -23,6 +23,7 @@ of the question. This page puts them together.
 | [04 no clause](04-no-clause.md) | verbs with no clause above them: reduced relatives, fragments, disfluencies, errors |
 | [05 residue and errors](05-residue-and-errors.md) | the frames nothing explains, and the annotation error rate |
 | [06 complements and modifiers](06-complements-and-modifiers.md) | how promiscuous complements and modifiers are, by entropy and mutual information |
+| [07 where the ambiguity is](07-frame-lexicon.md) | how much a lexicon of verb uses cuts a forest, and the exact split of a forest's entropy among the verbs' choices and the rest |
 
 Every number comes from the scripts in `tools/masc/verbs/` or
 `tools/masc/verbframes.py`, run on MASC's Penn Treebank files. Every example
@@ -231,35 +232,21 @@ hypothesis, not yet measured. The next measurement (how much a frame
 lexicon read off the treebank cuts each verb's analyses) should use frames
 with traces restored and singleton frames removed, for the reasons above.
 
-## Fixes to `verbframes.py`, not yet made
+## Fixes to `verbframes.py`, made
 
-The reports' numbers come from the current `verbframes.py`, so it is left
-as it is here. The reports agree on these fixes:
-
-* **Subject.**
-  * Walk up through UCP, which restores the subject of about 71 verbs
-    (03, 04).
-  * Accept an untagged NP before the VP as the subject; this would cover
-    about 70 of the 75 untagged subjects (05).
-  * Fix "clause coordination", which is never the right cause (03, 05).
-* **Verbs recorded.**
-  * Record every verb of `V CC V` (438) (03, 05, 06).
-  * Record verbs directly under SQ/SINV (677) (05).
-  * Handle heads tagged JJ or NN (05).
-* **Roles.**
-  * Look inside PPs for NP-LGS (974) and for stranded or passive traces
-    (393) (02, 06).
-  * Treat *EXP*/*ICH* antecedents as not complements (831) (03).
-  * Take VOC out of the modifiers; treat RB *not* apart (06).
-* **Flags.**
-  * Scope `rnr`, `ich`, `exp` and `gapping` to the verb's own dependents,
-    including the subject and a VP's own index (03, 05).
-  * Report `frame_backbone` without function tags, since the parser never
-    sees them; it now writes S where the grammar has SxVP (01, 06).
-* **Data.** Normalise `*PRO-1` and `*RNR-2`, and ignore literal asterisks
-  tagged `-NONE-` (01, 02, 06).
-* **Optionally.** Collect modifiers above the lexical VP (36% of a
-  clause's modifiers are missed now) (06).
+All the fixes the reports call for are in the current
+`tools/masc/verbframes.py`. The reports' own numbers come from the first
+version, kept unchanged as `tools/masc/verbs/verbframes_v1.py`; the report
+scripts import that. The new version records 71,218 verbs (the old one
+70,101): the second and later verbs of `V CC V`, verbs directly under
+SQ/SINV, and mistagged heads. Its subject walk goes through UCP, and an
+untagged NP before the verb phrase can be the subject (70 verbs). The by-phrase
+agent and extraposed antecedents have roles of their own, and stranded
+prepositions are marked. Negation and vocatives are no longer modifiers.
+The flags are scoped to the verb's own dependents, and the data typos are
+mended. Modifiers above the verb phrase are collected. It writes three
+frames (full, overt, backbone categories), a lemma, and `lemmas.tsv` for
+the Go tools. Only 59 verbs remain "unexplained" (was 119).
 
 ## Caveats that apply throughout
 
