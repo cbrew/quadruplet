@@ -179,6 +179,17 @@ a tree makes (`cfg.Forest.Entropy`), or by layers of verbs
   (0.22) when the lexicon's uses are whole rules. Nothing outside the verbs
   moves.
 
+* **What the meaning cannot see**
+  ([`verbs/09-dont-care.md`](verbs/09-dont-care.md)). Short sentences (3
+  to 7 words) have forests small enough to enumerate. Their 10^3.96 trees
+  have 10^1.85 distinct flat meanings. Of the entropy, 65% (50% under the
+  rule frequencies) makes no difference to the meaning: the distinctions
+  without a difference suspected above are real, and most of the ambiguity.
+  They cannot be found one item at a time, since the equivalent trees
+  differ at several items at once. An exact count of meanings for long
+  sentences would need the forest read as a dependency forest, split by
+  head word.
+
 So the astronomical count and the reader's problem come apart. The count
 is dominated by trees the grammar's own rule frequencies make negligible.
 Under those frequencies, the uncertainty that remains is a couple of
@@ -241,8 +252,9 @@ With what the measurements say so far:
   removes.
 * **Meaning as the filter.** The flat meanings of
   [`flat-semantics.md`](flat-semantics.md) as the image of each tree: how
-  many distinct meanings a forest has, against how many trees, for
-  sentences short enough to enumerate.
+  many distinct meanings a forest has, against how many trees. Done for
+  sentences short enough to enumerate (see above); for longer ones, the
+  forest split by head word and read as a dependency forest.
 
 ## Reproducing
 

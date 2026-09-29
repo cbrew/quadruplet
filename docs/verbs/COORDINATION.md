@@ -86,6 +86,8 @@ phrase rule, then complement frame, then the rest).
   head word, read as a dependency forest; not done.
 * Fable works on branch `claude/pensive-volta-aj0sxa` (rebased on this
   one) and sends changes as PRs into this branch; it cannot push here.
+* 2026-09-29, Opus: merged #14 (task 5, fast-forward) and folded 09 into
+  the overviews. Fable has stood down; all tasks here are done.
 
 ## Done
 

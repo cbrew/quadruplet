@@ -25,6 +25,7 @@ of the question. This page puts them together.
 | [06 complements and modifiers](06-complements-and-modifiers.md) | how promiscuous complements and modifiers are, by entropy and mutual information |
 | [07 where the ambiguity is](07-frame-lexicon.md) | how much a lexicon of verb uses cuts a forest, and the exact split of a forest's entropy among the verbs' choices and the rest |
 | [08 verb layers](08-verb-layers.md) | the entropy of a forest by layers of verbs: skeleton, top verbs, between, bottom verbs, inside (by the Fable session) |
+| [09 don't care](09-dont-care.md) | how much of a forest's entropy the flat meaning cannot see, exactly for short sentences and locally for all (by the Fable session) |
 
 Every number comes from the scripts in `tools/masc/verbs/` or
 `tools/masc/verbframes.py`, run on MASC's Penn Treebank files. Every example
@@ -86,6 +87,15 @@ tree makes. Measured on 300 held-out sentences with gold tags:
   0.17); the rest of the rule's part stays at 0.27, and falls to 0.22 only
   when the lexicon's uses are whole rules. The smoothing hardly matters
   (1.51 to 1.55 digits for 1 to 20 pseudo-counts).
+
+* **What the meaning cannot see** (09). Exactly, for short sentences (3
+  to 7 words) whose forests can be enumerated: 10^3.96 trees have 10^1.85
+  distinct flat meanings, and 65% of the entropy (50% under the rule
+  frequencies) does not change the meaning. A per-item estimate for all
+  300 sentences finds only 13–17%, because most of the equivalent trees
+  differ at several items at once: flat against nested bracketing, one
+  modifier on any phrase of a head chain, a unary chain against a flat
+  rule.
 
 For the complement/modifier question this is the cleanest statement so
 far. Under the treebank's own frequencies, the uncertainty about a verb's
