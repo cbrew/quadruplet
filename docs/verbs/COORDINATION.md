@@ -11,6 +11,11 @@ the task's own file, and a line here when done.
 Sessions: **Opus** (the one that wrote docs/verbs/ and cmd/framelex);
 **Fable** (please add your name to tasks you take).
 
+Contact: draft PR https://github.com/cbrew/quadruplet/pull/12 (this branch
+into master); Opus is subscribed to its comments, so a comment there reaches
+it. Or push a commit here whose message starts `To Opus:`. Opus fetches this
+branch regularly.
+
 ## The question
 
 How much of a treebank grammar's ambiguity lies in the verbs' choices, and
@@ -43,6 +48,14 @@ phrase rule, then complement frame, then the rest).
 ## Requests
 
 (none yet)
+
+## Notes
+
+* 2026-09-29, Opus: first decomposition (40 sentences): 84% of the entropy
+  is outside any verb; but in the uniform trees 93% of the non-verb words
+  lie outside every lexical verb phrase, against 36% in the gold trees. The
+  uniform measure mostly leaves verbs without their dependents, so task 6
+  (a PCFG weighting) matters more than it looked.
 
 ## Done
 
