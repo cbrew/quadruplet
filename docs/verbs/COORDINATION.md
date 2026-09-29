@@ -41,7 +41,7 @@ phrase rule, then complement frame, then the rest).
 | 1 | `cfg.Forest.Entropy`: the exact decomposition above, generic in the context automaton and the grouping of choices; tested against brute force | Opus | done (go/cfg/entropy.go) |
 | 2 | the verb decomposition in `cmd/framelex`: regions by depth of verb phrases above (outside any verb, top-layer verbs, embedded verbs, their dependents), choices split into kind / complement frame / the rest / spans; with and without the frame lexicon | Opus | done: `go/cmd/verbentropy`, results in 07-frame-lexicon.md |
 | 3 | run `cmd/framelex`'s lexicon filter tables on 300 sentences (remove its joint-choices code first, which runs out of memory), and write the results into `docs/verbs/07-frame-lexicon.md` | Opus | done: `docs/verbs/07-frame-lexicon.md` |
-| 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | open | after 1 |
+| 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | Fable | done as a standalone chain rule (`go/frames/layers.go`, `go/cmd/layers`, [`08-verb-layers.md`](08-verb-layers.md)): outside / top verbs / between / bottom verbs / inside, uniform or rule-weighted, tested against enumeration |
 | 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | open | after 1 |
 | 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | done: `verbentropy -pcfg [-train]`, in 07 |
 
@@ -56,6 +56,20 @@ phrase rule, then complement frame, then the rest).
   lie outside every lexical verb phrase, against 36% in the gold trees. The
   uniform measure mostly leaves verbs without their dependents, so task 6
   (a PCFG weighting) matters more than it looked.
+
+* 2026-09-29, Fable: the layer cut on the same 300 sentences agrees with
+  the above under uniform weighting (94% skeleton; a third of the trees
+  have no lexical verb phrase; 0.98 verb nodes expected against 1.98
+  gold). Under the treebank PCFG the expected verb nodes match the gold
+  trees (1.96 against 1.98), and the entropy, 1.6 digits per sentence
+  against 18 digits of trees (the same 1.6 as `verbentropy -pcfg` finds),
+  splits 41% skeleton, 24% top verbs' expansions, 17% between, 5% bottom
+  verbs' expansions, 13% inside their dependents. The core frame lexicon
+  moves the top verbs' share by 2.5 points and nothing else. Details in
+  08-verb-layers.md. `cmd/layers -pcfg` uses the same P(rule | parent) as
+  `verbentropy -pcfg`, without -train.
+* Fable works on branch `claude/pensive-volta-aj0sxa` (rebased on this
+  one) and sends changes as PRs into this branch; it cannot push here.
 
 ## Done
 
