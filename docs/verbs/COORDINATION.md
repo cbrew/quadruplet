@@ -43,7 +43,7 @@ phrase rule, then complement frame, then the rest).
 | 3 | run `cmd/framelex`'s lexicon filter tables on 300 sentences (remove its joint-choices code first, which runs out of memory), and write the results into `docs/verbs/07-frame-lexicon.md` | Opus | in progress |
 | 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | open | after 1 |
 | 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | open | after 1 |
-| 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | open | after 1 |
+| 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | in progress (Fable had not appeared) |
 
 ## Requests
 
