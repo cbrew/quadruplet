@@ -12,6 +12,14 @@
 //     modifiers (daughters counting zero, of labels seen as modifiers of
 //     verbs) may be added anywhere.
 //
+// Complements are slots, not a multiset, as in the frames of
+// odd_one_out's dep2tiger: a second complement of the same type is a
+// second thing and gets a slot of its own, numbered (NP, NP#2, as a, a2
+// there), in the order the tree gives them. Modifiers stay a multiset.
+// Which complement fills which slot is part of an analysis, so without
+// linear precedence a projection with two complements of one type has a
+// derivation for each assignment of them to the slots.
+//
 // For the parser, the ID rules are compiled into ordinary binary rules
 // over states that are the sub-multisets of a rule taken so far, the
 // daughters being taken in the order the sentence gives them: ID<S + x> ->
@@ -23,6 +31,7 @@ package idlp
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
@@ -94,6 +103,32 @@ type Grammar struct {
 	states    map[string]struct{} // the states made
 }
 
+// slotted numbers a projection's repeated frame daughters as slots, in
+// order: the second NP is NP#2. Modifiers are left as they are.
+func slotted(daughters []string) []string {
+	frame := inFrame(daughters)
+	out := make([]string, len(daughters))
+	seen := map[string]int{}
+	for i, d := range daughters {
+		out[i] = d
+		if frame[i] {
+			seen[d]++
+			if seen[d] > 1 {
+				out[i] = d + "#" + strconv.Itoa(seen[d])
+			}
+		}
+	}
+	return out
+}
+
+// base is the label a slot is filled by: NP#2 -> NP.
+func base(slot string) string {
+	if i := strings.LastIndex(slot, "#"); i >= 0 {
+		return slot[:i]
+	}
+	return slot
+}
+
 // State is the label of a state: a sub-multiset, sorted.
 func State(ms []string) string { return "ID<" + strings.Join(ms, " ") + ">" }
 
@@ -124,13 +159,17 @@ func Compile(trees []*cfg.Tree, free bool) *Grammar {
 			other[r.String()] = r
 			return
 		}
-		d := ds
+		d := slotted(ds)
 		if free {
-			var mods []string
-			d, mods = Frame(ds)
-			for _, m := range mods {
-				g.Modifiers[m] = true
+			var frame []string
+			for i, in := range inFrame(ds) {
+				if in {
+					frame = append(frame, d[i])
+				} else {
+					g.Modifiers[ds[i]] = true
+				}
 			}
+			d = frame
 		}
 		d = slices.Clone(d)
 		slices.Sort(d)
@@ -177,14 +216,14 @@ func Compile(trees []*cfg.Tree, free bool) *Grammar {
 				next = append(next, x)
 				slices.Sort(next)
 				if len(sub) == 0 {
-					add(cfg.Rule{LHS: State(next), RHS: []string{x}})
+					add(cfg.Rule{LHS: State(next), RHS: []string{base(x)}})
 					if free {
-						add(cfg.Rule{LHS: modified(State(next)), RHS: []string{modified(s), x}})
+						add(cfg.Rule{LHS: modified(State(next)), RHS: []string{modified(s), base(x)}})
 					}
 				} else {
-					add(cfg.Rule{LHS: State(next), RHS: []string{s, x}})
+					add(cfg.Rule{LHS: State(next), RHS: []string{s, base(x)}})
 					if free {
-						add(cfg.Rule{LHS: modified(State(next)), RHS: []string{modified(s), x}})
+						add(cfg.Rule{LHS: modified(State(next)), RHS: []string{modified(s), base(x)}})
 					}
 				}
 			}
@@ -232,6 +271,7 @@ func (g *Grammar) Derivation(t *cfg.Tree) *cfg.Tree {
 		labels[i] = k.Label
 	}
 	frame := inFrame(labels)
+	slots := slotted(labels)
 	var sub []string
 	var x *cfg.Tree
 	flag := false
@@ -240,7 +280,7 @@ func (g *Grammar) Derivation(t *cfg.Tree) *cfg.Tree {
 		if mod {
 			flag = true
 		} else {
-			sub = append(sub, k.Label)
+			sub = append(sub, slots[i])
 			slices.Sort(sub)
 		}
 		s := State(sub)

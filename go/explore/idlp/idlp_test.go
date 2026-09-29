@@ -43,3 +43,29 @@ func TestAnyOrder(t *testing.T) {
 		}
 	}
 }
+
+// Two complements of one type are two slots: without LP, each assignment
+// of them to the slots is a derivation of its own.
+func TestSlots(t *testing.T) {
+	const (
+		v  = "VBD_S1.I0.W0.N-3.P0.A0"
+		np = "NN_S0.I0.W0.N1.P0.A0"
+		vp = "V:S1.I0.W0.N-1.P0.A0"
+	)
+	seen := &cfg.Tree{Label: "Top", Children: []*cfg.Tree{{Label: vp, Children: []*cfg.Tree{
+		word(v, "gave"), word(np, "Mary"), word(np, "books")}}}}
+	for _, free := range []bool{false, true} {
+		g := Compile([]*cfg.Tree{seen}, free)
+		parser, err := cfg.New(g.Rules, map[string][]string{"gave": {v}, "Mary": {np}, "books": {np}}, []string{"Top"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		f := parser.Parse(strings.Fields("gave Mary books"))
+		if c := f.Count().Int64(); c != 2 {
+			t.Errorf("free %v: %d trees, want 2 (Mary in the first slot or the second)", free, c)
+		}
+		if !f.Contains(g.Derivation(seen)) {
+			t.Errorf("free %v: the derivation of the tree seen is not among its parses", free)
+		}
+	}
+}

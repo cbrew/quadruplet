@@ -50,6 +50,7 @@ func main() {
 	minWords := flag.Int("min", 5, "the fewest words a sampled sentence has")
 	maxWords := flag.Int("max", 25, "the most words a sampled sentence has")
 	seed := flag.Uint64("seed", 1, "the sample's random seed")
+	trainOnly := flag.Bool("train", false, "read every grammar off the training documents only, so that the held-out trees test its coverage")
 	flag.Parse()
 	if *annotatedFile == "" {
 		flag.Usage()
@@ -89,8 +90,25 @@ func main() {
 		}
 	}
 
+	// the documents the grammars are read off: all, or the training ones
+	inTrain := map[string]bool{}
+	for _, s := range train {
+		inTrain[s.ID] = true
+	}
+	source := func(all map[string]sentence) map[string]sentence {
+		if !*trainOnly {
+			return all
+		}
+		out := map[string]sentence{}
+		for id, s := range all {
+			if inTrain[id] {
+				out[id] = s
+			}
+		}
+		return out
+	}
 	var flatTrees []*cfg.Tree
-	for _, s := range flat {
+	for _, s := range source(flat) {
 		flatTrees = append(flatTrees, s.tree)
 	}
 	attested := idlp.Compile(flatTrees, false)
@@ -103,14 +121,18 @@ func main() {
 	}
 	identity := func(t *cfg.Tree) *cfg.Tree { return t }
 	grammars := []grammar{
-		{"counts, projections in layers", plain, rulesOf(plain), identity},
-		{"flat projections, attested orders (LP as attested)", flat, rulesOf(flat), identity},
+		{"counts, projections in layers", plain, rulesOf(source(plain)), identity},
+		{"flat projections, attested orders (LP as attested)", flat, rulesOf(source(flat)), identity},
 		{"ID, modifier multiset attested (no LP)", flat, attested.Rules, attested.Derivation},
 		{"ID, modifiers free (no LP)", flat, free.Rules, free.Derivation},
 	}
 	fmt.Printf("ID rules: %d with the modifier multiset, compiled over %d states; %d frames with free modifiers, over %d states, %d modifier labels\n\n",
 		len(attested.IDRules), attested.States(), len(free.IDRules), free.States(), len(free.Modifiers))
-	fmt.Printf("%d held-out sentences of %d to %d words\n", len(ids), *minWords, *maxWords)
+	from := "all the documents, the held-out ones included"
+	if *trainOnly {
+		from = "the training documents only"
+	}
+	fmt.Printf("%d held-out sentences of %d to %d words; grammars read off %s\n", len(ids), *minWords, *maxWords, from)
 	fmt.Println("grammar\trules\tlexicon\tparsed\town tree among the parses\tlog10 trees per word, median\tlog10 trees, mean")
 	for _, gr := range grammars {
 		for _, lexName := range []string{"oracle types", "types seen with the tag"} {
