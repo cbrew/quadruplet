@@ -41,48 +41,7 @@ func (f *Forest) Entropy(c Context) map[string]float64 {
 	if len(f.Goals) == 0 {
 		return nil
 	}
-	ways := f.ways()
-	total := new(big.Int)
-	for _, g := range f.Goals {
-		total.Add(total, ways[g])
-	}
-	order := f.Order()
-
-	// outside counts, by state, from the goals down
-	outside := make([]map[int]*big.Int, len(f.Items))
-	for _, g := range f.Goals {
-		outside[g] = map[int]*big.Int{c.Start: big.NewInt(1)}
-	}
-	other := new(big.Int)
-	for i := len(order) - 1; i >= 0; i-- {
-		x := order[i]
-		for s, o := range outside[x] {
-			for e, end := f.EdgeRange(x); e < end; e++ {
-				h := *f.Edge(e)
-				if h.Left < 0 {
-					continue
-				}
-				kids := []int32{h.Left}
-				if h.Right >= 0 {
-					kids = append(kids, h.Right)
-				}
-				for k, kid := range kids {
-					other.Set(o)
-					if len(kids) == 2 {
-						other.Mul(other, ways[kids[1-k]])
-					}
-					ns := c.Next(s, f.Items[x], h, f.Items[kid])
-					if outside[kid] == nil {
-						outside[kid] = map[int]*big.Int{}
-					}
-					if outside[kid][ns] == nil {
-						outside[kid][ns] = new(big.Int)
-					}
-					outside[kid][ns].Add(outside[kid][ns], other)
-				}
-			}
-		}
-	}
+	ways, total, order, outside := f.outside(c)
 
 	parts := map[string]float64{}
 	totalF := new(big.Float).SetInt(total)
@@ -164,6 +123,78 @@ func (f *Forest) Entropy(c Context) map[string]float64 {
 		}
 	}
 	return parts
+}
+
+// outside is the forest's inside counts, their total over the goals, the
+// items in bottom-up order, and each item's outside counts by the context's
+// states: the number of ways to complete it to a tree of the whole input,
+// with it in each state.
+func (f *Forest) outside(c Context) (ways []*big.Int, total *big.Int, order []int32, outside []map[int]*big.Int) {
+	ways = f.ways()
+	total = new(big.Int)
+	for _, g := range f.Goals {
+		total.Add(total, ways[g])
+	}
+	order = f.Order()
+
+	// outside counts, by state, from the goals down
+	outside = make([]map[int]*big.Int, len(f.Items))
+	for _, g := range f.Goals {
+		outside[g] = map[int]*big.Int{c.Start: big.NewInt(1)}
+	}
+	other := new(big.Int)
+	for i := len(order) - 1; i >= 0; i-- {
+		x := order[i]
+		for s, o := range outside[x] {
+			for e, end := f.EdgeRange(x); e < end; e++ {
+				h := *f.Edge(e)
+				if h.Left < 0 {
+					continue
+				}
+				kids := []int32{h.Left}
+				if h.Right >= 0 {
+					kids = append(kids, h.Right)
+				}
+				for k, kid := range kids {
+					other.Set(o)
+					if len(kids) == 2 {
+						other.Mul(other, ways[kids[1-k]])
+					}
+					ns := c.Next(s, f.Items[x], h, f.Items[kid])
+					if outside[kid] == nil {
+						outside[kid] = map[int]*big.Int{}
+					}
+					if outside[kid][ns] == nil {
+						outside[kid][ns] = new(big.Int)
+					}
+					outside[kid][ns].Add(outside[kid][ns], other)
+				}
+			}
+		}
+	}
+
+	return ways, total, order, outside
+}
+
+// Occupancy is the expected number of times a tree has an item of each
+// class, every tree as likely as any other: the sum over items x and states
+// s of outside(x, s) inside(x) / T, by class(s, x). It returns nil for a
+// forest with no trees.
+func (f *Forest) Occupancy(c Context, class func(state int, item Item) string) map[string]float64 {
+	if len(f.Goals) == 0 {
+		return nil
+	}
+	ways, total, _, outside := f.outside(c)
+	totalF := new(big.Float).SetInt(total)
+	out := map[string]float64{}
+	w := new(big.Int)
+	for x, os := range outside {
+		for s, o := range os {
+			v, _ := new(big.Float).Quo(new(big.Float).SetInt(w.Mul(o, ways[x])), totalF).Float64()
+			out[class(s, f.Items[x])] += v
+		}
+	}
+	return out
 }
 
 // StartChoice is the class of Entropy's part for the choice of start

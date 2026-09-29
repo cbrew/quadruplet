@@ -151,6 +151,30 @@ func TestEntropyAgainstEnumeration(t *testing.T) {
 						rules, tokens, k, got[k], want[k], got, want)
 				}
 			}
+			// the expected number of nodes of each symbol in a tree
+			occ := f.Occupancy(ownerContext(g), func(_ int, it Item) string {
+				if g.Aux[it.Sym] {
+					return ""
+				}
+				return g.Names[it.Sym]
+			})
+			nodes := map[string]float64{}
+			for tree := range f.Trees() {
+				var walk func(t *Tree)
+				walk = func(t *Tree) {
+					nodes[t.Label] += 1 / float64(count.Int64())
+					for _, c := range t.Children {
+						walk(c)
+					}
+				}
+				walk(tree)
+			}
+			delete(occ, "")
+			for k := range mergeKeys(occ, nodes) {
+				if math.Abs(occ[k]-nodes[k]) > 1e-9 {
+					t.Fatalf("%v on %v: %s occurs %g times in a tree, by enumeration %g", rules, tokens, k, occ[k], nodes[k])
+				}
+			}
 			if count.Int64() > 1 {
 				checked++
 			}
