@@ -7,9 +7,10 @@ modifiers come from its dependents:
 
     nsubj, csubj          n (x for *there*, and *it* before a clause)
     nsubjpass, csubjpass  a, the passive's subject; agent (by) n
-    expl                  x
+    expl                  x; after existential *there*, the first attr,
+                          nsubj or dobj is the displaced subject, n
     dobj                  a; r if reflexive; with a dative, the dative d
-    dative                d (an NP, or a to/for PP)
+    dative                d if an NP; p if a to/for PP
     attr, acomp           k; for a main-verb *be* without them, its first PP,
                           clause, or locative or wh adverb
     oprd                  o
@@ -18,7 +19,7 @@ modifiers come from its dependents:
                           nonfinite i and verbless o, with a for its subject
     prep                  p or a modifier, by the treebank's rate for the verb
                           and preposition (a prior; the score is kept)
-    prt                   joins the lemma
+    prt                   p, the particle its marker
     aux, auxpass          modifiers aux:lemma (not *to*); neg neg
     advmod, npadvmod,     modifiers adv, np, clause (with its marker or
     advcl, prep           form), pp
@@ -154,7 +155,6 @@ def modifier(c: Token) -> Modifier | None:
 def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> Frame:
     args: dict[str, Argument] = {}
     mods: list[Modifier] = []
-    particles: list[str] = []
     kids = list(v.children)
     passive = is_passive(v)
     lemma = v.lemma_.lower()
@@ -169,7 +169,7 @@ def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> 
             place(args, "n", label="", source="agent")
         if subj is not None:
             place(args, "a", label=subj.dep_, source=source, head=subj.lower_, span=span(subj))
-    elif subj is not None and subj.dep_ == "expl" or \
+    elif subj is not None and (subj.dep_ == "expl" or subj.tag_ == "EX") or \
             subj is not None and source == "overt" and subj.lower_ == "it" and \
             any(c.dep_ in ("ccomp", "xcomp") and c.i > v.i for c in kids):
         place(args, "x", label=subj.dep_, head=subj.lower_, span=span(subj))
@@ -177,6 +177,13 @@ def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> 
         place(args, "n", label=subj.dep_ if subj is not None else "", source=source,
               head=subj.lower_ if subj is not None else None,
               span=span(subj) if subj is not None and source == "overt" else None)
+
+    # existential *there*: the NP after the verb is the displaced subject
+    displaced = None
+    if subj is not None and not passive and subj.lower_ == "there" and "x" in args:
+        displaced = next((c for c in kids if c.dep_ in ("attr", "nsubj", "dobj") and c.i > v.i), None)
+        if displaced is not None:
+            place(args, "n", label=displaced.dep_, head=displaced.lower_, span=span(displaced))
 
     # a relative clause with no relative pronoun: its gap is the noun it modifies
     if v.dep_ == "relcl" and not passive and \
@@ -195,22 +202,24 @@ def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> 
                            None)
     for c in kids:
         d = c.dep_
-        if c is subj or d in IGNORED or d in SUBJECT | PASSIVE_SUBJECT | {"expl", "agent"}:
+        if c is subj or c is displaced or d in IGNORED or d in SUBJECT | PASSIVE_SUBJECT | {"expl", "agent"}:
             continue
         common = dict(label=d, span=span(c))
         if c is predicative:
             place(args, "k", marker=c.lower_ if d == "prep" else marker(c) if d == "ccomp" else None,
                   head=head_of(c), form=form(c) if d in ("ccomp", "xcomp") else None, **common)
         elif d == "prt":
-            particles.append(c.lower_)
+            place(args, "p", marker=c.lower_, **common)
         elif d == "dobj":
             if c.lower_ in REFLEXIVES:
                 place(args, "r", head=c.lower_, **common)
             else:
                 place(args, "a", head=c.lower_, **common)
         elif d == "dative":
-            place(args, "d", marker=c.lower_ if c.tag_ in ("IN", "TO") else None,
-                  head=head_of(c), **common)
+            if c.tag_ in ("IN", "TO"):
+                place(args, "p", marker=c.lower_, head=head_of(c), **common)
+            else:
+                place(args, "d", head=c.lower_, **common)
         elif d in ("attr", "acomp"):
             symbol = "o" if any(k.startswith(("a", "d", "r")) for k in args) else "k"
             place(args, symbol, head=c.lower_, **common)
@@ -252,7 +261,6 @@ def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> 
     if passive and "a" not in args and not any(k.startswith(("d", "s-", "i")) for k in args):
         if v.dep_ == "acl":
             place(args, "a", label="acl", source="trace", head=v.head.lower_)
-    lemma = "_".join([lemma] + particles)
     doc_id = v.doc.user_data.get("id", "")
     return Frame(doc_id, v.i, v.text, lemma, passive, tuple(args.values()), tuple(mods))
 
@@ -263,15 +271,15 @@ def frames_of(doc: Doc, prior: PPPrior | None = None, threshold: float = 0.5) ->
 
 def pp_prior(gold_frames, alpha: float = 1.0) -> PPPrior:
     """P(argument | verb lemma, preposition) from gold frames, as the share
-    of a verb's PPs with that preposition that are its prepositional
-    objects (p, or a dative d with a preposition); smoothed towards the
+    of a verb's PPs with that preposition that are its PP complements (p);
+    smoothed towards the
     preposition's share over all verbs, and that towards the overall share.
     """
     args, total = collections.Counter(), collections.Counter()
     for f in gold_frames:
         lemma = f.lemma.split("_")[0]
         for a in f.arguments:
-            if a.symbol[0] in "pd" and a.marker:
+            if a.symbol[0] == "p" and a.marker and a.label.lower() != "prt":   # PPs, not particles
                 args[lemma, a.marker] += 1
                 total[lemma, a.marker] += 1
                 args[None, a.marker] += 1

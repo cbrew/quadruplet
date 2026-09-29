@@ -9,17 +9,18 @@ verb's word position, and prints the commonest frames.
 The mapping, record field by field:
 
 * subject: n; *there*, or *it* where the verb's dependents hold an *EXP*
-  trace, x. An empty subject is a trace (*T*, *), controlled (*PRO*), or,
+  trace, x. After existential *there*, the first NP complement (the
+  treebank's NP-PRD or NP) is the displaced subject, n. An empty subject is a trace (*T*, *), controlled (*PRO*), or,
   with none, the addressee of an imperative or unsaid.
 * a passive (verbframes.py's flag: a VBN with an empty NP object): the
   surface subject is the object, which the empty NP already stands for in
   its place; the *by* phrase, or an unnamed agent, is n.
 * complements, in the order of the tree:
-  - a particle joins the lemma;
+  - a particle is a PP complement, p, with the particle as its marker;
   - anything tagged PRD: o after an object, else k;
   - NPs: one is a, two are d and a (the passive's empty one among them); a
     reflexive pronoun is r; a free relative (SBAR-NOM) is an NP;
-  - PP-DTV: d, with its preposition; other PPs and ADVP-CLR/-PUT: p;
+  - PPs (PP-DTV among them) and ADVP-CLR/-PUT: p, with the preposition;
   - clauses by their type: nonfinite, i; verbless, o; either with an
     overt subject and no *for*, that subject is a (*want him to go*,
     *make it better*); finite, s-that, s-2 (no complementizer) or s-X; a
@@ -97,19 +98,27 @@ def clause_slot(c: dict, info: dict | None) -> str:
     return "s-" + marker
 
 
-def complements(rec: dict, args: dict[str, Argument]) -> list[str]:
-    """Place the complements; the particles, for the lemma."""
-    particles = []
+def existential(rec: dict) -> bool:
+    s = rec["subject"]
+    return s is not None and s["realization"] == "overt" and s["words"].lower() == "there" \
+        and "passive" not in rec["flags"]
+
+
+def complements(rec: dict, args: dict[str, Argument]) -> None:
+    """Place the complements."""
     comps = rec["complements"]
+    displaced = next((c for c in comps if c["cat"] == "NP"), None) if existential(rec) else None
     nps = [c for c in comps if (c["cat"] == "NP" or c["cat"] == "SBAR" and "NOM" in c["tags"])
-           and "PRD" not in c["tags"]]
+           and "PRD" not in c["tags"] and c is not displaced]
     for c in comps:
         tags = set(c["tags"])
         cat = c["cat"]
         info = c.get("clause")
         common = dict(label=c["label"], source=_source(c), span=_span(c))
-        if cat == "PRT":
-            particles.append(c["words"].lower())
+        if c is displaced:
+            place(args, "n", head=_head(c), **common)
+        elif cat == "PRT":
+            place(args, "p", marker=c["words"].lower(), **common)
         elif "PRD" in tags:
             symbol = "o" if any(k.startswith(("a", "d", "r")) for k in args) else "k"
             place(args, symbol, head=_head(c), form=info["form"] if info else None, **common)
@@ -122,8 +131,7 @@ def complements(rec: dict, args: dict[str, Argument]) -> list[str]:
             else:
                 place(args, "a", head=head, **common)
         elif cat == "PP":
-            symbol = "d" if "DTV" in tags else "p"
-            place(args, symbol, marker=c.get("marker"), head=_head(c), **common)
+            place(args, "p", marker=c.get("marker"), head=_head(c), **common)
         elif cat in ("ADVP", "ADJP"):
             place(args, "p", head=_head(c), **common)
         elif cat in CLAUSAL:
@@ -142,7 +150,6 @@ def complements(rec: dict, args: dict[str, Argument]) -> list[str]:
                       head=_head(c), form=info["form"] if info else None, **common)
         else:
             place(args, "a", head=_head(c), **common)
-    return particles
 
 
 def modifier(m: dict, where: str = "verb") -> Modifier:
@@ -167,7 +174,7 @@ def modifier(m: dict, where: str = "verb") -> Modifier:
 def frame(rec: dict) -> Frame:
     args: dict[str, Argument] = {}
     subject(rec, args)
-    particles = complements(rec, args)
+    complements(rec, args)
     if "x" in args:
         for e in rec["extraposed"]:
             info = e.get("clause")
@@ -177,14 +184,13 @@ def frame(rec: dict) -> Frame:
             elif info is not None:
                 place(args, "i", label=e["label"], marker=info.get("marker"), head=_head(e),
                       form=info["form"], span=_span(e))
-    lemma = "_".join([rec["lemma"]] + particles)
     mods = [modifier(m) for m in rec["modifiers"]]
     mods += [modifier(m) for m in rec["modifiers_above"]]
     mods += [Modifier("aux", marker=AUXILIARY_LEMMA.get(w.lower(), w.lower()), where="auxiliary")
              for w in rec["auxiliaries"] if w.lower() != "to"]
     if rec["negated"]:
         mods.append(Modifier("neg"))
-    return Frame(rec["id"], rec["pos"], rec["verb"], lemma, "passive" in rec["flags"],
+    return Frame(rec["id"], rec["pos"], rec["verb"], rec["lemma"], "passive" in rec["flags"],
                  tuple(args.values()), tuple(mods), tuple(rec["flags"]))
 
 

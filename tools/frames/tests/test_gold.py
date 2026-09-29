@@ -24,16 +24,19 @@ def frames_of(ptb: str) -> dict[str, Frame]:
 
 
 @pytest.mark.parametrize("ptb, verb, frame", [
-    # transitive, with a particle joining the lemma
+    # a particle is a PP complement
     ("((S (NP-SBJ (PRP She)) (VP (VBD picked) (PRT (RP up)) (NP (DT the) (NN book))) (. .)))",
-     "picked", "na"),
+     "picked", "nap"),
     # double object: d then a
     ("((S (NP-SBJ (PRP She)) (VP (VBD gave) (NP (NNP Mary)) (NP (NNS books)))))", "gave", "nad"),
-    # dative PP
+    # a dative PP is a PP complement, not an indirect object
     ("((S (NP-SBJ (PRP She)) (VP (VBD gave) (NP (NNS books)) (PP-DTV (TO to) (NP (NNP Mary))))))",
-     "gave", "nad"),
-    # copula
-    ("((S (NP-SBJ (PRP She)) (VP (VBZ is) (ADJP-PRD (JJ happy)))))", "is", "k"),
+     "gave", "nap"),
+    # copula: complex-intransitive, the subject in the string
+    ("((S (NP-SBJ (PRP She)) (VP (VBZ is) (ADJP-PRD (JJ happy)))))", "is", "nk"),
+    # existential: dummy there, displaced subject
+    ("((S (NP-SBJ (EX There)) (VP (VBZ is) (NP-PRD (DT a) (NN problem)))))", "is", "nx"),
+    ("((S (NP-SBJ (EX There)) (VP (VBP remain) (NP (NNS problems)))))", "remain", "nx"),
     # passive with no agent: the surface subject is the object; n is the unnamed agent
     ("((S (NP-SBJ-1 (DT The) (NN book)) (VP (VBD was) (VP (VBN read) (NP (-NONE- *-1))))))",
      "read", "na"),
@@ -86,3 +89,8 @@ def test_extraposed_clause_beside_expletive():
     f = frames_of("((S (NP-SBJ (NP (PRP It)) (S (-NONE- *EXP*-1))) (VP (VBZ appears) "
                   "(SBAR-1 (IN that) (S (NP-SBJ (PRP it)) (VP (VBZ works)))))))")["appears"]
     assert f.symbols() == "xs-that"
+
+
+def test_particle_marks_p_and_lemma_is_the_verbs():
+    f = frames_of("((S (NP-SBJ (PRP She)) (VP (VBD picked) (PRT (RP up)) (NP (DT the) (NN book)))))")["picked"]
+    assert (f.lemma, f.refined()) == ("pick", "nap.up")

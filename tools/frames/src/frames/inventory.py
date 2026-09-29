@@ -1,8 +1,12 @@
 """The English frame inventory: what one verb occurrence subcategorises for,
 and what modifies it.
 
-It follows odd_one_out's German frames (dep2tiger/frames/frames.py), whose
-inventory is Schulte im Walde's:
+The analysis of the clause is that of Huddleston and Pullum, *The Cambridge
+Grammar of the English Language* (CGEL), chapter 4, "The clause:
+complements". Where the inventory departs from CGEL, the departure has to be
+argued for; the README lists the ones that stand. The notation is that of
+odd_one_out's German frames (dep2tiger/frames/frames.py), after Schulte im
+Walde:
 
 * A frame is a set of arguments, each under a symbol. A verb has one
   argument of each type, so a second one of a type is a second thing and is
@@ -12,33 +16,44 @@ inventory is Schulte im Walde's:
 * A frame describes the verb, not its clause. A passive's surface subject is
   its object and the agent its subject, whether the clause names one or not;
   a controlled infinitive's subject is its controller; an imperative's is
-  its addressee. So every frame has n, x or k.
-* A copula-like verb with a predicative is "k", its subject in the frame
-  but not in the string.
-* A particle belongs to the lemma: *pick up* is pick_up.
-* Modifiers are a multiset. A modifier is kept with what can be seen of it
-  (its kind, its preposition or complementizer, its lexical head), not with
-  a semantic label: a scope-bearing modifier is not told apart from others.
+  its addressee. So every frame has n or x.
+* The subject is a complement (CGEL), and is in the string: a copular
+  clause is "nk" (complex-intransitive), not "k".
+* The indirect object is an NP (CGEL): *gave Mary books* is "nad"; in *gave
+  books to Mary*, *to Mary* is a PP complement, "nap".
+* A particle is a preposition with no object, functioning as a complement
+  (CGEL): *pick up the book* is pick with "nap", the particle the p's
+  marker ("nap.up"). The verb and particle together are an idiom of the
+  lexicon, not a unit of the syntax, and the lemma is the verb's.
+* Existential *there* is a dummy subject, x, and the NP after the verb is
+  the displaced subject, n (CGEL): *there is a problem* is "nx". An
+  extraposed subject clause stands beside its dummy *it*: "xs-that".
+* Modifiers (CGEL's adjuncts) are a multiset. A modifier is kept with what
+  can be seen of it (its kind, its preposition or complementizer, its
+  lexical head), not with a semantic label: a scope-bearing modifier is not
+  told apart from others.
 
 The symbols:
 
-    n      subject (every frame has n, x or k)
-    x      expletive subject: *there*, or *it* standing for an extraposed clause
-    k      predicative of a copula-like verb: *is happy*, *became president*
-    a      direct object; a passive's surface subject; the subject of an
-           infinitive or small clause the verb takes an object of (*want him
-           to go*, *make it better*: a with i or o, as odd_one_out takes
-           *lässt ihn kommen*)
-    d      indirect object: the first NP of two, or a dative *to*/*for* PP
-    o      object predicative: *consider him foolish*, *elected him president*
-    p      prepositional object (PP-CLR, -PUT; a stranded preposition)
+    n      subject; with existential *there*, the displaced subject
+    x      dummy subject: existential *there*, or *it* standing for an
+           extraposed subject
+    k      subjective predicative complement: *is happy*, *became president*
+    a      direct object; a passive's surface subject; the object of a
+           catenative verb taking an infinitive or small clause (*want him
+           to go*, *persuade him to go*, *make it better*: a with i or o;
+           CGEL's raised and ordinary objects alike)
+    d      indirect object: the first of two NP objects
+    o      objective predicative complement: *consider him foolish*
+    p      PP complement: a specified preposition (PP-CLR, -PUT, a stranded
+           preposition), a dative *to* or *for* PP (PP-DTV), or a particle
     i      nonfinite clause: to-infinitive, bare infinitive, gerund, participle
     r      reflexive object: *availed themselves of*
-    s-that finite clause with *that*
-    s-2    finite clause with no complementizer (reported or quoted)
-    s-if   yes/no question, or a clause with *if* or *whether*
-    s-w    wh-question or wh-clause
-    s-X    finite clause with another complementizer X (*looks like*)
+    s-that finite declarative clause with *that*
+    s-2    finite declarative clause with no subordinator (reported or quoted)
+    s-if   closed interrogative: a yes/no question, or *if* or *whether*
+    s-w    open interrogative: a wh-question or wh-clause
+    s-X    finite clause with another subordinator X (*looks like*)
 """
 from __future__ import annotations
 
@@ -169,10 +184,7 @@ class Frame:
 
     def symbols(self) -> str:
         """The frame's string: the symbols in canonical order, a repeated
-        one spelled again, the clausal slots last and named once; "k" for a
-        copula-like verb with its predicative."""
-        if any(a.symbol == "k" for a in self.arguments):
-            return "k"
+        one spelled again, the clausal slots last and named once."""
         counts = collections.Counter(base(a.symbol) for a in self.arguments
                                      if not a.symbol.startswith("s-"))
         body = "".join(s * counts[s] for s in ORDER)
@@ -180,12 +192,10 @@ class Frame:
         return body + "+".join(slots)
 
     def refined(self) -> str:
-        """The string with each prepositional object's and dative's
-        preposition: "np.on", "nad.to"."""
+        """The string with its PP complements' prepositions and particles,
+        sorted: "np.on", "nap.up"."""
         s = self.symbols()
-        if s == "k":
-            return s
-        preps = [a.marker for a in self.arguments if base(a.symbol) in ("p", "d") and a.marker]
+        preps = [a.marker for a in self.arguments if base(a.symbol) == "p" and a.marker]
         return s + ("." + ".".join(sorted(preps)) if preps else "")
 
     def modifier_keys(self) -> list[str]:

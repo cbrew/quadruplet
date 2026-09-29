@@ -51,7 +51,14 @@ def test_clauses():
 
 
 def test_copula_and_particle():
-    assert parse("She/PRP/nsubj/1 is/VBZ/ROOT/1 happy/JJ/acomp/1")["is"].symbols() == "k"
-    assert parse("We/PRP/nsubj/1 are/VBP/ROOT/1 in/IN/prep/1 chambers/NNS/pobj/2")["are"].symbols() == "k"
+    assert parse("She/PRP/nsubj/1 is/VBZ/ROOT/1 happy/JJ/acomp/1")["is"].symbols() == "nk"
+    assert parse("We/PRP/nsubj/1 are/VBP/ROOT/1 in/IN/prep/1 chambers/NNS/pobj/2")["are"].symbols() == "nk"
     f = parse("She/PRP/nsubj/1 picked/VBD/ROOT/1 up/RP/prt/1 books/NNS/dobj/1")["picked"]
-    assert (f.lemma, f.symbols()) == ("picked_up", "na")
+    assert (f.lemma, f.refined()) == ("picked", "nap.up")
+
+
+def test_dative_pp_and_existential():
+    f = parse("She/PRP/nsubj/1 gave/VBD/ROOT/1 books/NNS/dobj/1 to/IN/dative/1 Mary/NNP/pobj/3")["gave"]
+    assert f.refined() == "nap.to"
+    f = parse("There/EX/expl/1 is/VBZ/ROOT/1 a/DT/det/3 problem/NN/attr/1")["is"]
+    assert f.symbols() == "nx"
