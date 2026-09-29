@@ -1,11 +1,17 @@
-package cfg
+// Package entropy splits the entropy of a forest's trees (package cfg) by
+// kind of choice: exactly, as an expected sum of local choices' entropies,
+// every tree as likely as any other or weighted. It is exploratory work on
+// the parser's forests, kept apart from the parser itself.
+package entropy
 
 import (
 	"math"
 	"math/big"
+
+	"github.com/cbrew/quadruplet/go/cfg"
 )
 
-// Context says, for Entropy, how likely the forest's trees are, what their
+// Context says, for Of, how likely the forest's trees are, what their
 // choices are and whose they are. A tree makes one choice at each item it uses: which of the item's
 // hyperedges builds it. Where an item stands in a tree is summed up by a
 // state, from a small automaton run top down: Start at the goal items, and
@@ -22,15 +28,15 @@ type Context struct {
 	// completes it, 1 on the others, and a word's probability given its tag
 	// on the lexical hyperedge). If nil, every tree is as likely as any
 	// other, and the counts are exact.
-	Weight func(item Item, e Hyperedge) float64
+	Weight func(item cfg.Item, e cfg.Hyperedge) float64
 
 	Start  int
-	Next   func(state int, item Item, e Hyperedge, child Item) int
-	Groups func(item Item, e Hyperedge) []string
-	Class  func(state int, item Item, level int) string
+	Next   func(state int, item cfg.Item, e cfg.Hyperedge, child cfg.Item) int
+	Groups func(item cfg.Item, e cfg.Hyperedge) []string
+	Class  func(state int, item cfg.Item, level int) string
 }
 
-// Entropy splits the entropy of the forest's trees, every tree as likely as
+// Of splits the entropy of the forest's trees, every tree as likely as
 // any other or as the context weighs it, among the kinds of choice the
 // context names. The entropy of the trees (log10 of their number, if they
 // are equally likely) is the expected sum over a tree's choices of each
@@ -46,11 +52,11 @@ type Context struct {
 // the part of the entropy each class has, in decimal digits; with the part
 // StartChoice, where the input has several start symbols' goals, the parts
 // sum to the entropy. It returns nil for a forest with no trees.
-func (f *Forest) Entropy(c Context) map[string]float64 {
+func Of(f *cfg.Forest, c Context) map[string]float64 {
 	if len(f.Goals) == 0 {
 		return nil
 	}
-	m := f.measure(c)
+	m := newMeasure(f, c)
 	parts := map[string]float64{}
 	if len(f.Goals) > 1 { // which start symbol is a choice too
 		parts[StartChoice] = entropyOf(m.goals)
@@ -107,7 +113,7 @@ func (f *Forest) Entropy(c Context) map[string]float64 {
 	return parts
 }
 
-// measure is what Entropy and Occupancy need of a forest under a context:
+// measure is what Of and Occupancy need of a forest under a context:
 // the items in bottom-up order; for each item, the expected number of times
 // a tree has it in each state; the probability of each hyperedge given its
 // item; and of each goal.
@@ -120,11 +126,11 @@ type measure struct {
 
 // measure computes inside and outside values, from counts (exactly, with
 // big integers) or, where the context weighs hyperedges, from weights.
-func (f *Forest) measure(c Context) measure {
+func newMeasure(f *cfg.Forest, c Context) measure {
 	if c.Weight != nil {
-		return f.weighted(c)
+		return weighted(f, c)
 	}
-	ways := f.ways()
+	ways := f.Ways()
 	total := new(big.Int)
 	for _, g := range f.Goals {
 		total.Add(total, ways[g])
@@ -206,10 +212,10 @@ func (f *Forest) measure(c Context) measure {
 // weighted is measure with the context's weights, in floating point: fine
 // for the inside probabilities of sentences of tens of words, which stay far
 // above the smallest float64.
-func (f *Forest) weighted(c Context) measure {
+func weighted(f *cfg.Forest, c Context) measure {
 	m := measure{order: f.Order(), mu: make([]map[int]float64, len(f.Items))}
 	inside := make([]float64, len(f.Items))
-	edge := func(x int32, h Hyperedge) float64 {
+	edge := func(x int32, h cfg.Hyperedge) float64 {
 		v := c.Weight(f.Items[x], h)
 		if h.Left >= 0 {
 			v *= inside[h.Left]
@@ -285,11 +291,11 @@ func (f *Forest) weighted(c Context) measure {
 // class: the sum over items x and states s of the expected number of times a
 // tree has x in state s, by class(s, x). It returns nil for a forest with no
 // trees.
-func (f *Forest) Occupancy(c Context, class func(state int, item Item) string) map[string]float64 {
+func Occupancy(f *cfg.Forest, c Context, class func(state int, item cfg.Item) string) map[string]float64 {
 	if len(f.Goals) == 0 {
 		return nil
 	}
-	m := f.measure(c)
+	m := newMeasure(f, c)
 	out := map[string]float64{}
 	for x, ss := range m.mu {
 		for s, mu := range ss {
@@ -299,7 +305,7 @@ func (f *Forest) Occupancy(c Context, class func(state int, item Item) string) m
 	return out
 }
 
-// StartChoice is the class of Entropy's part for the choice of start
+// StartChoice is the class of Of's part for the choice of start
 // symbol, where the input has more than one.
 const StartChoice = "(start symbol)"
 

@@ -40,21 +40,8 @@ func (f *Forest) Count() *big.Int {
 	return total
 }
 
-// CountFrom is the number of trees of the whole input from one start
-// symbol, sym.
-func (f *Forest) CountFrom(sym int32) *big.Int {
-	total := new(big.Int)
-	if len(f.Goals) == 0 {
-		return total
-	}
-	ways := f.ways()
-	for _, g := range f.Goals {
-		if f.Items[g].Sym == sym {
-			total.Add(total, ways[g])
-		}
-	}
-	return total
-}
+// Ways is the number of trees under each item, by item number.
+func (f *Forest) Ways() []*big.Int { return f.ways() }
 
 // ways is the number of trees under each item.
 func (f *Forest) ways() []*big.Int {

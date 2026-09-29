@@ -30,7 +30,7 @@ import (
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
-	fr "github.com/cbrew/quadruplet/go/frames"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
 )
 
 func main() {

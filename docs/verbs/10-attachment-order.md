@@ -11,8 +11,8 @@ its own class. Report 09 found that 65% of short sentences' entropy does not
 change their flat meaning. This asks how much of that the order of
 attachment is, before the parser is changed to count classes directly.
 
-Code: `go/quotient` (`Key`, with options for verbs, auxiliaries, nouns, the
-scope exemption, and forgetting phrase labels); `go/cmd/quotient`, which
+Code: `go/explore/quotient` (`Key`, with options for verbs, auxiliaries, nouns, the
+scope exemption, and forgetting phrase labels); `go/explore/cmd/quotient`, which
 enumerates forests.
 
 ## Definitions
@@ -29,7 +29,7 @@ enumerates forests.
   are negation, frequency and quantificational adverbs, *again*, focus
   particles, and a few subject- and speaker-oriented adverbs.
 
-`go/quotient/quotient_test.go` checks the equivalences on hand-made trees.
+`go/explore/quotient/quotient_test.go` checks the equivalences on hand-made trees.
 
 ## Results
 
@@ -148,7 +148,7 @@ by rule frequency.
 
 ```bash
 cd go
-go run ./cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl            # the table (about 3 minutes)
-go run ./cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -n 40 -max 6 -show 5 -limit 20000
-go run ./cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -n 300 -min 5 -max 25 -limit 20000 -estimate 100
+go run ./explore/cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl            # the table (about 3 minutes)
+go run ./explore/cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -n 40 -max 6 -show 5 -limit 20000
+go run ./explore/cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -n 300 -min 5 -max 25 -limit 20000 -estimate 100
 ```

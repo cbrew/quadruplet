@@ -44,7 +44,8 @@ import (
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
-	fr "github.com/cbrew/quadruplet/go/frames"
+	"github.com/cbrew/quadruplet/go/explore/entropy"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
 	"github.com/cbrew/quadruplet/go/interp"
 )
 
@@ -187,12 +188,12 @@ func newClassifier(g *cfg.Grammar, weight []float64) *classifier {
 	return &classifier{g, keys, lexical, isVP, weight}
 }
 
-// context is the classifier as a cfg.Context for one forest: the meaning
+// context is the classifier as a entropy.Context for one forest: the meaning
 // key of a hyperedge needs the span its top step gives the first daughters,
 // which is the forest's to know.
-func (cl *classifier) context(f *cfg.Forest) cfg.Context {
+func (cl *classifier) context(f *cfg.Forest) entropy.Context {
 	g, keys, lexical, isVP, weight := cl.g, cl.keys, cl.lexical, cl.isVP, cl.weight
-	c := cfg.Context{
+	c := entropy.Context{
 		Start: 0,
 		// state: depth (0: no lexical verb phrase above; 1: one or more)
 		// times 4, plus, for an auxiliary item, the owner of its rule
@@ -379,7 +380,7 @@ func main() {
 			continue
 		}
 		parsed++
-		parts := f.Entropy(cl.context(f))
+		parts := entropy.Of(f, cl.context(f))
 		h, dc := 0.0, 0.0
 		for k, v := range parts {
 			totals[k] += v

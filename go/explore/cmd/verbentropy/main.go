@@ -52,7 +52,8 @@ import (
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
-	fr "github.com/cbrew/quadruplet/go/frames"
+	"github.com/cbrew/quadruplet/go/explore/entropy"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
 )
 
 // ruleInfo is what a verb context needs to know of a rule.
@@ -106,7 +107,7 @@ const maxDepth = 3
 // verbContext classes a forest's choices by depth below lexical verb phrases
 // and by what they decide, as the package comment says. A state is depth*4
 // plus, for an auxiliary item, the kind of rule it belongs to.
-func verbContext(g *cfg.Grammar) cfg.Context {
+func verbContext(g *cfg.Grammar) entropy.Context {
 	infos := make([]ruleInfo, len(g.Rules))
 	for i, r := range g.Rules {
 		infos[i] = info(r)
@@ -128,7 +129,7 @@ func verbContext(g *cfg.Grammar) cfg.Context {
 		}
 		return ownOther
 	}
-	return cfg.Context{
+	return entropy.Context{
 		Start: 0,
 		Next: func(s int, item cfg.Item, e cfg.Hyperedge, child cfg.Item) int {
 			d, own := s/4, owner(s, item, e)
@@ -382,13 +383,13 @@ func main() {
 		}
 		parsed++
 		lc := fr.Log10(f.Count())
-		for k, v := range f.Occupancy(ctx, wordDepth) {
+		for k, v := range entropy.Occupancy(f, ctx, wordDepth) {
 			if k != "" {
 				uniformWords[k] += v
 			}
 		}
 		goldDepths(s.Tree)
-		for k, v := range f.Occupancy(ctx, func(_ int, it cfg.Item) string {
+		for k, v := range entropy.Occupancy(f, ctx, func(_ int, it cfg.Item) string {
 			if it.R != it.L+1 {
 				return ""
 			}
@@ -416,7 +417,7 @@ func main() {
 			}
 		}
 		walk(own)
-		parts := f.Entropy(ctx)
+		parts := entropy.Of(f, ctx)
 		sum := 0.0
 		for k, v := range parts {
 			totals[k] += v

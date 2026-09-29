@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
-	fr "github.com/cbrew/quadruplet/go/frames"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
 )
 
 // Scope is the words whose adverbs take scope: negation, frequency and

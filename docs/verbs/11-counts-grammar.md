@@ -15,7 +15,7 @@ is 1% and phrase-label choice is nearly all. This report builds the counts
 representation into the treebank itself and measures the grammar read off
 it.
 
-Code: `go/counts` (the conversion), `go/cmd/countbank` (grammar and
+Code: `go/explore/counts` (the conversion), `go/explore/cmd/countbank` (grammar and
 measures).
 
 ## The conversion
@@ -120,5 +120,5 @@ constructions:
 
 ```bash
 cd go
-go run ./cmd/countbank -annotated $S/ann/annotated.jsonl -n 300 [-o counts.tsv] [-enumerate 200000]
+go run ./explore/cmd/countbank -annotated $S/ann/annotated.jsonl -n 300 [-o counts.tsv] [-enumerate 200000]
 ```

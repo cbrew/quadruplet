@@ -1,4 +1,4 @@
-package cfg
+package entropy
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"math/rand/v2"
 	"strings"
 	"testing"
+
+	"github.com/cbrew/quadruplet/go/cfg"
 )
 
 // ownerContext attributes each choice to the symbol whose rule makes it: a
@@ -13,10 +15,10 @@ import (
 // (level 0) and of the daughters' spans given the rule (level 1); a choice
 // at an auxiliary item of binarization, which is one of spans, to the symbol
 // of the rule it belongs to, carried down as the state.
-func ownerContext(g *Grammar) Context {
+func ownerContext(g *cfg.Grammar) Context {
 	return Context{
 		Start: -1,
-		Next: func(s int, item Item, _ Hyperedge, child Item) int {
+		Next: func(s int, item cfg.Item, _ cfg.Hyperedge, child cfg.Item) int {
 			if !g.Aux[child.Sym] {
 				return -1
 			}
@@ -25,7 +27,7 @@ func ownerContext(g *Grammar) Context {
 			}
 			return int(item.Sym)
 		},
-		Groups: func(item Item, e Hyperedge) []string {
+		Groups: func(item cfg.Item, e cfg.Hyperedge) []string {
 			if g.Aux[item.Sym] {
 				return nil
 			}
@@ -34,7 +36,7 @@ func ownerContext(g *Grammar) Context {
 			}
 			return []string{g.Rules[g.Steps[e.Step].Rule].String()}
 		},
-		Class: func(s int, item Item, level int) string {
+		Class: func(s int, item cfg.Item, level int) string {
 			if g.Aux[item.Sym] {
 				return g.Names[s] + "/1"
 			}
@@ -49,25 +51,25 @@ func ownerContext(g *Grammar) Context {
 // with the probability that a subtree of the node's symbol and span, drawn
 // uniformly, makes it; the surprisals summed by class and averaged over the
 // trees.
-func bruteEntropy(f *Forest) map[string]float64 {
+func bruteEntropy(f *cfg.Forest) map[string]float64 {
 	return bruteWeighted(f, func(string) float64 { return 1 })
 }
 
 // bruteWeighted is bruteEntropy with each tree as likely as the product of
 // its rules' weights.
-func bruteWeighted(f *Forest, weight func(rule string) float64) map[string]float64 {
+func bruteWeighted(f *cfg.Forest, weight func(rule string) float64) map[string]float64 {
 	type node struct {
 		all  map[string]float64            // distinct subtrees, with their weights
 		sigs map[string]map[string]float64 // rule and spans -> subtrees
 	}
 	nodes := map[string]*node{}
-	var walk func(t *Tree, l int) (int, string, float64)
+	var walk func(t *cfg.Tree, l int) (int, string, float64)
 	type seen struct {
 		key, rule, sig string
 	}
 	var visits [][]seen
 	var cur []seen
-	walk = func(t *Tree, l int) (int, string, float64) {
+	walk = func(t *cfg.Tree, l int) (int, string, float64) {
 		r := l
 		var labels, spans []string
 		w := 1.0
@@ -147,7 +149,7 @@ func TestEntropyAgainstEnumeration(t *testing.T) {
 	checked := 0
 	for range 300 {
 		rules, lexicon := randomGrammar(rng)
-		g, err := FromGrammar(featureGrammar(rules, lexicon), "A")
+		g, err := cfg.FromGrammar(featureGrammar(rules, lexicon), "A")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,7 +163,7 @@ func TestEntropyAgainstEnumeration(t *testing.T) {
 			if count.Sign() == 0 || !count.IsInt64() || count.Int64() > 2000 {
 				continue
 			}
-			got := f.Entropy(ownerContext(g))
+			got := Of(f, ownerContext(g))
 			want := bruteEntropy(f)
 			sum := 0.0
 			for _, v := range got {
@@ -177,7 +179,7 @@ func TestEntropyAgainstEnumeration(t *testing.T) {
 				}
 			}
 			// the expected number of nodes of each symbol in a tree
-			occ := f.Occupancy(ownerContext(g), func(_ int, it Item) string {
+			occ := Occupancy(f, ownerContext(g), func(_ int, it cfg.Item) string {
 				if g.Aux[it.Sym] {
 					return ""
 				}
@@ -185,8 +187,8 @@ func TestEntropyAgainstEnumeration(t *testing.T) {
 			})
 			nodes := map[string]float64{}
 			for tree := range f.Trees() {
-				var walk func(t *Tree)
-				walk = func(t *Tree) {
+				var walk func(t *cfg.Tree)
+				walk = func(t *cfg.Tree) {
 					nodes[t.Label] += 1 / float64(count.Int64())
 					for _, c := range t.Children {
 						walk(c)
@@ -228,7 +230,7 @@ func TestWeightedEntropyAgainstEnumeration(t *testing.T) {
 	checked := 0
 	for range 300 {
 		rules, lexicon := randomGrammar(rng)
-		g, err := FromGrammar(featureGrammar(rules, lexicon), "A")
+		g, err := cfg.FromGrammar(featureGrammar(rules, lexicon), "A")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -237,7 +239,7 @@ func TestWeightedEntropyAgainstEnumeration(t *testing.T) {
 			weights[r.String()] = 0.05 + rng.Float64()
 		}
 		c := ownerContext(g)
-		c.Weight = func(_ Item, e Hyperedge) float64 {
+		c.Weight = func(_ cfg.Item, e cfg.Hyperedge) float64 {
 			if e.Step < 0 || g.Steps[e.Step].Rule < 0 {
 				return 1
 			}
@@ -253,7 +255,7 @@ func TestWeightedEntropyAgainstEnumeration(t *testing.T) {
 			if count.Sign() == 0 || !count.IsInt64() || count.Int64() > 2000 || count.Int64() < 2 {
 				continue
 			}
-			got := f.Entropy(c)
+			got := Of(f, c)
 			want := bruteWeighted(f, func(rule string) float64 { return weights[rule] })
 			for k := range mergeKeys(got, want) {
 				if math.Abs(got[k]-want[k]) > 1e-9 {

@@ -21,7 +21,7 @@ import (
 	"math"
 	"os"
 
-	fr "github.com/cbrew/quadruplet/go/frames"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
 )
 
 func main() {

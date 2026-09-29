@@ -27,10 +27,11 @@ import (
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
-	"github.com/cbrew/quadruplet/go/counts"
-	fr "github.com/cbrew/quadruplet/go/frames"
+	"github.com/cbrew/quadruplet/go/explore/counts"
+	"github.com/cbrew/quadruplet/go/explore/entropy"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
+	"github.com/cbrew/quadruplet/go/explore/quotient"
 	"github.com/cbrew/quadruplet/go/interp"
-	"github.com/cbrew/quadruplet/go/quotient"
 )
 
 type sentence struct {
@@ -286,7 +287,7 @@ func main() {
 			lc := fr.Log10(f.Count())
 			perWord = append(perWord, lc/float64(len(words)))
 			logT = append(logT, lc)
-			ctx := cfg.Context{
+			ctx := entropy.Context{
 				Start: 0,
 				Next:  func(int, cfg.Item, cfg.Hyperedge, cfg.Item) int { return 0 },
 				Class: func(int, cfg.Item, int) string { return "all" },
@@ -300,7 +301,7 @@ func main() {
 				},
 			}
 			h := 0.0
-			for _, v := range f.Entropy(ctx) {
+			for _, v := range entropy.Of(f, ctx) {
 				h += v
 			}
 			ent = append(ent, h)

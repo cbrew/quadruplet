@@ -22,9 +22,9 @@ import (
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
-	fr "github.com/cbrew/quadruplet/go/frames"
+	fr "github.com/cbrew/quadruplet/go/explore/frames"
+	"github.com/cbrew/quadruplet/go/explore/quotient"
 	"github.com/cbrew/quadruplet/go/interp"
-	"github.com/cbrew/quadruplet/go/quotient"
 )
 
 type variant struct {
@@ -302,7 +302,7 @@ func (b *bracketings) count(p quotient.Projection) float64 {
 	}
 	v := 0.0
 	if sym, ok := b.g.Symbol(p.Top); ok {
-		c, _ := new(big.Float).SetInt(b.g.Parse(p.Deps).CountFrom(sym)).Float64()
+		c, _ := new(big.Float).SetInt(countFrom(b.g.Parse(p.Deps), sym)).Float64()
 		v = c
 	}
 	b.memo[key] = v
@@ -409,4 +409,19 @@ func respell(s fr.Sentence) *cfg.Tree {
 		return out
 	}
 	return copy(s.Tree)
+}
+
+// countFrom is the number of trees of the whole input from one start symbol.
+func countFrom(f *cfg.Forest, sym int32) *big.Int {
+	total := new(big.Int)
+	if len(f.Goals) == 0 {
+		return total
+	}
+	ways := f.Ways()
+	for _, g := range f.Goals {
+		if f.Items[g].Sym == sym {
+			total.Add(total, ways[g])
+		}
+	}
+	return total
 }

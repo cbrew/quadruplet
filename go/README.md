@@ -26,6 +26,14 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 | `interp` | readings of parse trees: heads, a fold over a tree, dependencies, learned function tags, and flat meanings ([`docs/flat-semantics.md`](../docs/flat-semantics.md)) |
 | `cmd/readings`, `cmd/functions` | give MASC's trees their dependencies and flat meanings; learn and test the function-tag table |
 | `cmd/prototype` | the earlier prototype comparing agenda and wavefront parsing, with and without goroutines ([below](#prototype)) |
+| `explore/...` | exploratory work on the ambiguity of treebank grammars and on verbs, which uses `cfg`'s forests but is kept apart from it ([`explore/README.md`](explore/README.md)) |
+
+`cfg` is the stable implementation of BitPar's approach: bit-vector
+recognition, pair binarization shared across rules, a packed forest, exact
+counts. Exploratory code does not go into it. It reads forests through
+`cfg`'s exported API (`Items`, `Goals`, `EdgeRange`, `Edge`, `Order`,
+`Ways`, `Trees`, `Sampler`), and anything it needs that `cfg` lacks goes in
+`explore`.
 
 ## Design
 
