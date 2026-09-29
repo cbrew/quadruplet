@@ -12,14 +12,15 @@ subject to), which daughters of a coordination are shared by its conjuncts,
 the antecedents of *RNR*, *ICH* and *EXP* and where they sit, the gapped
 conjuncts (=N), and the coordinations of unlike categories (UCP). Writes
 OUT_DIR/coordination.jsonl (one object per verb: id, pos, verb, and the
-fields below) and OUT_DIR/coordination-trees.jsonl (per tree counts of
-gapped conjuncts etc.); with --tables, prints the tables used in
+fields below) and OUT_DIR/coordination-trees.jsonl (per tree: gapped
+conjuncts, multi-verb VPs, UCPs, clause coordinations, non-local traces); with --tables, prints the tables used in
 docs/verbs/03-coordination.md from those two files.
 
 A verb's *local* frame is the frame a reading of the backbone by heads
 gives it: the overt subject only if every verb phrase between the verb's own
-and the clause passes the verb up as its (semantic) head, an auxiliary's
-verb phrase counting as transparent, as it is in go/interp's Flat reading;
+and the clause passes the verb up as its head (Collins's VP rule; a verb
+phrase whose head word is followed by a verb phrase is transparent, as in
+verbframes.is_aux_vp and go/interp's Flat reading);
 and the overt complements of its own verb phrase, as in frame_backbone.
 """
 import collections, json, os, re, sys

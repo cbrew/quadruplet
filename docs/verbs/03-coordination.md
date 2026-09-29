@@ -22,24 +22,23 @@ suffice.
 
 ## Data and method
 
-Script: `tools/masc/verbs/coordination.py` (standard library; imports `../masctrees.py` and
-`../verbframes.py`). It rebuilds every verb record exactly as `verbframes.py` does (70,101 records,
-identical to `verbs.jsonl`) and adds:
+`tools/masc/verbs/coordination.py` (standard library) imports `../masctrees.py` and
+`../verbframes.py`. It rebuilds each verb record exactly as `verbframes.py` does (70,101 records, the
+same as `verbs.jsonl`) and adds:
 
-* **frame_local**, the frame that a head-driven reading of the backbone gives: the overt subject
-  only if each VP between the verb and its clause passes the verb up as its head (Collins's VP rule
-  over overt daughters; a VP whose head word is followed by a VP counts as transparent, as in
-  `is_aux_vp`), plus the overt complements, as in `frame_backbone`. In `VP → VP CC VP` the first VP
-  is the head, as in `go/interp/heads.go`, so only the first conjunct sees the subject.
-  `frame_backbone` in `verbframes.py` is more generous, since it walks up through all VPs.
-* **reasons** why frame_local differs from frame_full: an empty subject of a given kind, an overt
-  subject shared into a non-head conjunct, or an empty complement of a given kind.
+* **frame_local**, the frame a head-driven reading of the backbone gives. It contains the overt
+  subject only if every VP between the verb and its clause passes the verb up as its head, and the
+  overt complements as in `frame_backbone`. Heads follow Collins's VP rule over overt daughters;
+  a VP whose head word is followed by a VP is transparent, as in `is_aux_vp`. In `VP → VP CC VP`
+  the first VP is the head (as in `go/interp/heads.go`), so only the first conjunct sees the
+  subject. `frame_backbone` walks up through all VPs and is more generous.
+* **reasons** why frame_local differs from frame_full: an empty subject or complement of a given
+  kind, or an overt subject shared into a non-head conjunct.
 * for each coordination on the way up: the conjunct's position, whether it is the head, and the
-  coordination's other daughters (before the first conjunct, between conjuncts, after the last),
-  with any trace they are antecedent to.
-* for each tree: gapped conjuncts (an S/VP/SINV/SQ with `=N` daughters and no verb, MD, TO or VP
-  daughter), VPs with more than one verb daughter, UCPs, coordinated clauses and their other
-  daughters, and every *RNR*/*ICH*/*EXP* trace with its antecedent's position.
+  other daughters (before, between, after the conjuncts) with any trace they antecede. For each
+  tree: gapped conjuncts (S/VP/SINV/SQ with `=N` daughters and no verb, MD, TO or VP daughter),
+  VPs with several verb daughters, UCPs, coordinated clauses, and every *RNR*/*ICH*/*EXP* trace
+  with the position of its antecedent.
 
 ```
 S=/tmp/claude-0/-home-user/32748c59-1ad9-5140-855d-e9a1edeaf50a/scratchpad
@@ -89,15 +88,10 @@ Two conjuncts: 5,845 verbs; three or more: 977. Nested coordinations on the way 
 
 | position | kind | count |
 |---|---|---|
-| after last conjunct | complement, antecedent of *RNR* | 55 |
-| after | complement, no trace (16 are `NP-ETC` "or whatever"; 3 are errors) | 19 |
-| after | complement, antecedent of *ICH* | 6 |
-| after | modifier, no trace | 83 |
-| after | modifier, antecedent of *RNR* | 6 |
-| before first conjunct | auxiliary (MD, TO) | 29 |
-| before | modifier | 16 |
-| between conjuncts | modifier (mostly `and then`, `and also`) | 371 |
-| between | CODE, SYM, PRN, EDITED, INTJ … | 171 |
+| after the last conjunct | complement: antecedent of *RNR* 55, of *ICH* 6; no trace 19 (16 `NP-ETC`, 3 errors) | 80 |
+| after | modifier: no trace 83, antecedent of *RNR* 6 | 89 |
+| before the first conjunct | auxiliary (MD, TO) 29, modifier 16 | 45 |
+| between conjuncts | modifier (mostly `and then`, `and also`) 371; CODE, SYM, PRN, EDITED, INTJ … 171 | 542 |
 
 **Table 5. *RNR* and gapping.** *RNR*: 214 traces in 103 trees, each with an antecedent (4 of
 them word-level, `NN-4`). The trace stands for NP 130, PP 35, VP 18, SBAR 12, other 19. Its host is
@@ -147,8 +141,8 @@ Trees are trimmed. "local" is frame_local.
    gives `sbj(came,people)`, `and(came,ate)`, `obj(ate,food)`, and no subject for *ate*.
 2. **journal/VOL15_3#274**, RNR of an object. `(VP (VP (VBZ quotes) (NP *RNR*-1)) (CC and) (ADVP
    presumably) (VP (VBZ accepts) (NP *RNR*-1)) (NP-1 another source which …))`. *quotes* and
-   *accepts*: full `SBJ NP(*RNR*)`, backbone `SBJ`, local `SBJ` for *quotes* and nothing for *accepts*. Flat gives
-   `and(quotes, source)`: the shared object becomes a conjunct.
+   *accepts*: full `SBJ NP(*RNR*)`, backbone `SBJ`, local `SBJ` for *quotes* and nothing for
+   *accepts*. Flat gives `and(quotes, source)`: the shared object becomes a conjunct.
 3. **court-transcript/Day3PMSession#210**, RNR across clauses. `(S (S (NP-SBJ I) (VP understand (NP
    *RNR*-1))) and (S (NP-SBJ I) (VP respect (NP *RNR*-1))) (NP-1 that argument))`. Both are `SBJ
    NP(*RNR*)` in full and `SBJ` in the backbone. Flat: `and(understand, argument)`.
@@ -188,12 +182,6 @@ Trees are trimmed. "local" is frame_local.
 13. **journal/ArticleIP_1059#12**, annotation error. `(VP (VP (VBD acquired) (NP Palestine)) (CC
     and) (VP (VBD promised) (PP-LOC in the Balfour Declaration)) (NP the creation of a Jewish
     state))`. *promised*: full `SBJ`. Its object is attached to the coordination and has no trace.
-14. **face-to-face/Bmr021#279**, annotation error. `(VP (VP (VBD did) (RB n't)) (VP (VBP know) (NP
-    that)))`. This gives a spurious lexical verb *did* (`SBJ`) and a spurious VP coordination.
-    *know* is local `NP`.
-15. **blog/blog-jet-lag#13**, annotation error. `(S (S (PP-TMP …) , (NP this signal) (VP (VBZ
-    subsides))) , and (S (NP-SBJ s$$he) …))`. *subsides* has no subject and its cause is given as
-    "clause coordination", but the NP simply lacks `-SBJ`.
 
 ## Findings
 
@@ -215,7 +203,7 @@ Trees are trimmed. "local" is frame_local.
    11 VP). Of the 8 verbs whose cause is "clause coordination", only 1 is sharing (example 5). The
    other 7 are annotation errors: a subject without `-SBJ`, or an omitted subject (see Annotation
    errors).
-4. **RNR is small and always within a coordination.** Of 214 traces (Table 5), 61% stand for an NP
+4. **RNR is small and tied to coordination.** Of 214 traces (Table 5), 61% stand for an NP
    and 16% for a PP. In 82% the antecedent is a daughter of the coordination itself. 59 traces sit
    inside a PP (example 4), so restoring them means reaching into the conjunct.
 5. **The PTB uses a trace for a shared complement and plain attachment for a shared modifier.**
@@ -230,7 +218,7 @@ Trees are trimmed. "local" is frame_local.
    when the conjuncts are bare verbs, RNR when a conjunct has material of its own (example 2,
    *presumably*). Both encode the same sharing.
 7. **Gapping loses events, and its indices are inconsistent.** 73% of the 204 gapped conjuncts are
-   VP gapping inside VP coordination. The full conjunct's verb is most often a copula (51 of 204).
+   VP gapping inside VP coordination. A quarter of the full conjuncts' verbs are copulas (51 of 204).
    168 conjuncts mark the correlates `=N` on both sides instead of `-N` (example 8). The `gapping`
    flag fires for 261 verbs, but 127 of them only dominate a gapped coordination further down. It
    misses full-conjunct verbs whose correlates carry `-N`.
@@ -239,8 +227,9 @@ Trees are trimmed. "local" is frame_local.
    *it*) or an *ICH* trace (in an NP inside the VP or in the subject). `role()` counts this daughter
    as a complement, being an untagged S or SBAR. So *it's important that …* is
    `SBJ ADJP-PRD SBAR` in both frames (example 10), and the SBAR is really the logical subject. The
-   flags test the subtree below the verb's VP, not its daughters or its subject. `exp` therefore
-   marks 19 of the 522 affected verbs, while `ich` and `rnr` over-mark (Table 9).
+   flags look for a trace anywhere below the verb's VP. They ignore the subject, and antecedents
+   whose trace is elsewhere. So `exp` marks 19 of the 522 affected verbs, while `ich` and `rnr`
+   over-mark (Table 9).
 9. **UCP at the root is mostly not coordination.** Of 1,210 UCPs, 834 are roots, and 670 of those
    have no conjunction: they label juxtaposed pieces. In 19 of them an NP-SBJ and a VP should
    form an S (e.g. blog/Anti-Terrorist#41). Where a UCP really coordinates a VP with an ADJP, PP or
@@ -286,9 +275,9 @@ are artefacts of extraposition.
 
 **(c) The flat neo-Davidsonian semantics.** `interp.Flat` takes the first conjunct as the head. The
 subject is therefore predicated only of the first event (`sbj(came, people)`, nothing for *ate*),
-and every later conjunct, and every untagged daughter after the conjunction, is related to the
-first event by `and`. The RNR'd object becomes `and(quotes, source)` (example 2), the shared object
-of `V CC V` becomes `and(surrounds, us)` (example 6), and gapping remnants become `comp`/`and`
+and every later conjunct is related to the first event by `and`. So is every later daughter
+that has neither a function tag nor a preposition or complementizer of its own. The RNR'd object
+becomes `and(quotes, source)` (example 2), the shared object of `V CC V` becomes `and(surrounds, us)` (example 6), and gapping remnants become `comp`/`and`
 dependents of the full verb's event (example 7). Treating *and* as a relation between events is
 defensible, but the participant relations of every non-first event are lost. Relations (i)–(iv)
 supply them, and gapping also needs one new event variable per gapped conjunct. A flat conjunction
@@ -303,37 +292,32 @@ cannot leave the distributive/collective question for shared modifiers open (spe
 | technical/1468-6708-3-3#8 | NP *80 mg or placebo once daily* attached to the coordination; it belongs in the second conjunct |
 | ficlets/1401#251 | `(NP (VBN hurt))` conjoined with VP *shocked*; the root is labelled UCP |
 | enron/21257#12 | index 2 used twice (`NP-2 *-1` and `NP-2 the Policies…`), so `*PRO*-2` and `*RNR*-2` are ambiguous |
-| face-to-face/Bmr021#279, ficlets/1399#427, movie-script/pirates#929, twitter/tweets1#149 | `(VP (VP did n't) (VP know …))`: the auxiliary is bracketed as a VP conjunct, giving a spurious verb *did* |
-| debate-transcript/2nd_Gore-Bush#383 | the same with `(VP (VP has) (VP got …))` |
-| blog/blog-jet-lag#13, fiction/hotel-california#156, jokes/jokes12#67, face-to-face/Bed012#144 | subject NP of a coordinated clause lacks `-SBJ` |
-| ficlets/1399#289 | subject clause tagged `S-NOM-DIR`, should be `S-NOM-SBJ` |
-| travel-guides/WhereToHongKong#460 | postposed subject of SINV lacks `-SBJ` |
+| face-to-face/Bmr021#279, ficlets/1399#427, movie-script/pirates#929, twitter/tweets1#149, debate-transcript/2nd_Gore-Bush#383 | `(VP (VP did n't) (VP know …))`, `(VP (VP has) (VP got …))`: the auxiliary is bracketed as a VP conjunct, giving a spurious verb *did*/*has* and a spurious coordination |
+| blog/blog-jet-lag#13, fiction/hotel-california#156, jokes/jokes12#67, face-to-face/Bed012#144, travel-guides/WhereToHongKong#460 | subject NP of a coordinated clause (in the last, postposed in SINV) lacks `-SBJ`; verbframes reports "clause coordination" |
+| ficlets/1399#289 | subject clause tagged `S-NOM-DIR` instead of `S-NOM-SBJ` |
+| debate-transcript/2nd_Gore-Bush#314 | S-ADV with no `*PRO*` subject; verbframes reports "clause coordination" |
 | debate-transcript/2nd_Gore-Bush#611 | gapped clause: remnant `NP-SBJ-2`, full subject `NP-SBJ=3-1`; indices garbled |
 | blog/Effing-Idiot#52 | vocative *Pea* tagged `NP-SBJ` as a daughter of the clause coordination |
-| debate-transcript/3rd_Bush-Kerry#28 | `*PRO-1` (final `*` missing) |
-| twitter/tweets1#134 | `*RNR-2` (final `*` missing) |
-| 168 gapped conjuncts, e.g. debate-transcript/3rd_Bush-Kerry#150 | correlates marked `=N` on both sides, not `-N` (systematic deviation from Bies et al. 1995) |
+| debate-transcript/3rd_Bush-Kerry#28, twitter/tweets1#134 | `*PRO-1`, `*RNR-2` (final `*` missing) |
+| 168 gapped conjuncts, e.g. debate-transcript/3rd_Bush-Kerry#150 | correlates marked `=N` on both sides, not `-N` (systematic; from memory, Bies et al. 1995 put `-N` on the full conjunct) |
 | 19 root UCPs, e.g. blog/Anti-Terrorist#41 | NP-SBJ and VP under a root UCP, not bracketed as S |
 
-Questionable classifications in `verbframes.py`, not fixed here: (1) the walk to the clause stops at
-UCP (71 verbs lose a recoverable subject); (2) the second and later verbs of `(VP V CC V …)` get no
+Questionable classifications in `verbframes.py` (not fixed): (1) the walk to the clause stops at
+UCP, so 71 verbs lose a recoverable subject; (2) the second and later verbs of `(VP V CC V …)` get no
 record (438); (3) `role()` counts *EXP*/*ICH* antecedents as complements (831 verbs); (4) the
-`exp`/`ich`/`rnr`/`gapping` flags test the whole subtree below the verb's VP, not the verb's own
-daughters, and the subject, so they neither find nor exclude the affected verbs (Table 10); (5) the
-"clause coordination" cause is mostly missing `-SBJ` tags (finding 3); (6) `vp-coordination` also
-fires for 920 coordinations without a conjunction. Most of these are comma lists, but they also
-include the split-auxiliary errors and 34 "coordinations" with a single VP (`VP CC NP-ETC`, `MD CC
-MD VP`).
+`exp`/`ich`/`rnr`/`gapping` flags fire for a trace or `=` anywhere below the verb's VP, but ignore the
+subject and antecedents whose trace is elsewhere (Table 9); (5) the "clause coordination" cause is mostly missing `-SBJ` tags;
+(6) `vp-coordination` also fires for 920 coordinations with no conjunction, mostly comma lists but
+also split auxiliaries and 34 with a single VP (`VP CC NP-ETC`, `MD CC MD VP`).
 
 ## Open questions
 
-* Do shared modifiers after a VP coordination (83) and before or around clause coordinations (156)
-  distribute over the conjuncts? This needs inspection by hand. The annotation does not say.
-* Should a right-node-raised VP across clauses (example 5) count as one verb occurrence or as one
-  per conjunct? The same question arises for the event count of a gapped conjunct.
-* Can gapping remnants be paired with correlates without indices, by category and function tag, well
-  enough for parser output? The 24 PTB-style and 168 `=`-style cases could serve as a test set.
-* How many of the 670 root UCPs without a conjunction hide an S (NP-SBJ + VP)? 19 do so visibly. The
-  rest need a closer look (another report may cover fragments).
-* Would a learned table of function tags, as in `docs/flat-semantics.md`, recover *RNR* sites from
-  the backbone? The site is the right edge of each conjunct, but 59 of 214 are inside PPs.
+* Do the shared modifiers after VP coordinations (83) and around clause coordinations (156)
+  distribute over the conjuncts? The annotation does not say; this needs inspection by hand.
+* Should a VP right-node raised across clauses (example 5), or a gapped conjunct, count as one verb
+  occurrence or as one per conjunct?
+* Can gapping remnants be paired with correlates without indices, by category and function tag, on
+  parser output? The 24 PTB-style and 168 `=`-style cases could be the test set.
+* How many of the 670 root UCPs without a conjunction hide an S? 19 do so visibly.
+* Could a learned function-tag table (`docs/flat-semantics.md`) find *RNR* sites in the backbone?
+  59 of the 214 are inside PPs.
