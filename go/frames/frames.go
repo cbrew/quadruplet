@@ -152,15 +152,35 @@ func (l Lemmas) Of(word, tag string) string {
 	return strings.ToLower(word)
 }
 
-// Use is a verb heading a lexical verb phrase in a tree.
-type Use struct {
-	Leaf  *cfg.Tree
-	Lemma string
-	RHS   []string // the verb phrase rule's daughters
+// Label is how a verb is used, as the daughter of a rule: in a lexical verb
+// phrase rule, the rule's frame at the grain; in another verb phrase rule,
+// one with a verb phrase daughter, "(aux)"; in any other rule, "(in X)",
+// X the bottom of the parent's chain, as in (in NP) for a participle in a
+// noun phrase.
+func Label(lhs string, rhs []string, grain string) string {
+	switch {
+	case LexicalVP(lhs, rhs):
+		return Frame(rhs, grain)
+	case IsVP(lhs):
+		return "(aux)"
+	}
+	c := Chain(lhs)
+	return "(in " + c[len(c)-1] + ")"
 }
 
-// Uses are the verbs heading lexical verb phrases in a tree; every verb of
-// the phrase, where it has several (VP V CC V NP).
+// Use is a verb in a tree, with the rule it is a daughter of.
+type Use struct {
+	Leaf    *cfg.Tree
+	Lemma   string
+	LHS     string
+	RHS     []string
+	Lexical bool // the rule is a lexical verb phrase's
+}
+
+// Label is the use's label at a grain.
+func (u Use) Label(grain string) string { return Label(u.LHS, u.RHS, grain) }
+
+// Uses are the verbs of a tree, each with the rule it is a daughter of.
 func Uses(t *cfg.Tree, lemmas Lemmas) []Use {
 	var out []Use
 	var walk func(t *cfg.Tree)
@@ -172,11 +192,10 @@ func Uses(t *cfg.Tree, lemmas Lemmas) []Use {
 		for i, c := range t.Children {
 			rhs[i] = c.Label
 		}
-		if LexicalVP(t.Label, rhs) {
-			for _, c := range t.Children {
-				if c.Words != nil && IsVerbTag(c.Label) {
-					out = append(out, Use{c, lemmas.Of(c.Words[0], c.Label), rhs})
-				}
+		lexical := LexicalVP(t.Label, rhs)
+		for _, c := range t.Children {
+			if c.Words != nil && IsVerbTag(c.Label) {
+				out = append(out, Use{c, lemmas.Of(c.Words[0], c.Label), t.Label, rhs, lexical})
 			}
 		}
 		for _, c := range t.Children {
@@ -187,52 +206,29 @@ func Uses(t *cfg.Tree, lemmas Lemmas) []Use {
 	return out
 }
 
-// Lexicon is what some sentences say of verbs' frames at one grain.
+// Lexicon is what some sentences say of verbs' uses at one grain.
 type Lexicon struct {
 	Grain  string
-	Tokens map[string]int            // lemma -> lexical verb tokens
-	Frames map[string]map[string]int // lemma -> frame -> tokens
+	Tokens map[string]int            // lemma -> verb tokens
+	Frames map[string]map[string]int // lemma -> use label -> tokens
 }
 
-// Plain is the frame Learn records for a verb that heads no lexical verb
-// phrase: an auxiliary, or a verb tagged VB* inside another phrase.
-const Plain = "-"
-
-// Learn reads a lexicon off the sentences' trees: each verb's frame, or
-// Plain.
+// Learn reads a lexicon off the sentences' trees: each verb's use label.
 func Learn(sents []Sentence, lemmas Lemmas, grain string) *Lexicon {
 	lx := &Lexicon{grain, map[string]int{}, map[string]map[string]int{}}
-	add := func(lemma, frame string) {
-		lx.Tokens[lemma]++
-		if lx.Frames[lemma] == nil {
-			lx.Frames[lemma] = map[string]int{}
-		}
-		lx.Frames[lemma][frame]++
-	}
 	for _, s := range sents {
-		heads := map[*cfg.Tree]bool{}
 		for _, u := range Uses(s.Tree, lemmas) {
-			heads[u.Leaf] = true
-			add(u.Lemma, Frame(u.RHS, grain))
-		}
-		var walk func(t *cfg.Tree)
-		walk = func(t *cfg.Tree) {
-			if t.Words != nil {
-				if IsVerbTag(t.Label) && !heads[t] {
-					add(lemmas.Of(t.Words[0], t.Label), Plain)
-				}
-				return
+			lx.Tokens[u.Lemma]++
+			if lx.Frames[u.Lemma] == nil {
+				lx.Frames[u.Lemma] = map[string]int{}
 			}
-			for _, c := range t.Children {
-				walk(c)
-			}
+			lx.Frames[u.Lemma][u.Label(grain)]++
 		}
-		walk(s.Tree)
 	}
 	return lx
 }
 
-// Allowed is the frames the lexicon allows a lemma, Plain among them: those seen with it at
+// Allowed is the uses the lexicon allows a lemma: those seen with it at
 // least least times, if the lemma was seen at least minLemma times; else
 // nil, for any frame.
 func (lx *Lexicon) Allowed(lemma string, minLemma, least int) map[string]bool {
@@ -248,38 +244,33 @@ func (lx *Lexicon) Allowed(lemma string, minLemma, least int) map[string]bool {
 	return out
 }
 
-// Renamed is a grammar whose lexical verb phrase rules have their verbs'
-// tags renamed by the rule's frame at a grain: VBD -> VBD~F7. A tree of the
-// grammar corresponds to at most one tree of the renamed grammar under a
-// lexicon that gives each verb its plain tag (for its uses as an auxiliary,
-// or outside a verb phrase) and the renamed tags of the frames it allows;
-// to one exactly when the lexicon allows every verb's frame. So the renamed
-// grammar counts the trees a lexicon allows, and the renamed tags over a
-// verb in a forest are the frames it has in some tree.
+// Renamed is a grammar whose rules have their verb daughters' tags renamed
+// by the verb's use (Label) at a grain: VBD -> VBD~F7. A tree of the grammar
+// corresponds to at most one tree of the renamed grammar under a lexicon
+// that gives each verb the renamed tags of some uses; to one exactly when
+// the lexicon allows every verb's use. So the renamed grammar counts the
+// trees a lexicon allows, and the renamed tags over a verb in a forest are
+// the uses it has in some tree.
 type Renamed struct {
 	Grain string
-	IDs   map[string]string          // frame -> F0, F1, ...
+	IDs   map[string]string          // use label -> F0, F1, ...
 	Rules []cfg.Rule                 // the renamed rules
-	ByTag map[string]map[string]bool // tag -> frames it heads in some rule
+	ByTag map[string]map[string]bool // tag -> the uses it has in some rule
 }
 
-// Rename renames a grammar's rules by their frames at a grain.
+// Rename renames a grammar's rules by their verbs' uses at a grain.
 func Rename(rules []cfg.Rule, grain string) *Renamed {
 	rn := &Renamed{grain, map[string]string{}, nil, map[string]map[string]bool{}}
 	for _, r := range rules {
-		if !LexicalVP(r.LHS, r.RHS) {
-			rn.Rules = append(rn.Rules, r)
-			continue
-		}
-		f := Frame(r.RHS, grain)
+		label := Label(r.LHS, r.RHS, grain)
 		rhs := slices.Clone(r.RHS)
 		for i, d := range rhs {
 			if IsVerbTag(d) {
-				rhs[i] = d + "~" + rn.id(f)
+				rhs[i] = d + "~" + rn.id(label)
 				if rn.ByTag[d] == nil {
 					rn.ByTag[d] = map[string]bool{}
 				}
-				rn.ByTag[d][f] = true
+				rn.ByTag[d][label] = true
 			}
 		}
 		rn.Rules = append(rn.Rules, cfg.Rule{LHS: r.LHS, RHS: rhs})
@@ -312,8 +303,7 @@ func (rn *Renamed) FrameOf(sym string) string {
 
 // Grammar is the renamed grammar with a lexicon for the sentences' words,
 // spelled word|tag with their gold tags: a verb has the renamed tags of the
-// frames allow gives its lemma, and its plain tag if they include Plain (all
-// of them, where allow gives nil).
+// uses allow gives its lemma (all of them, where allow gives nil).
 func (rn *Renamed) Grammar(sents []Sentence, lemmas Lemmas, allow func(lemma string) map[string]bool) (*cfg.Grammar, error) {
 	lex := map[string][]string{}
 	for _, s := range sents {
@@ -324,10 +314,8 @@ func (rn *Renamed) Grammar(sents []Sentence, lemmas Lemmas, allow func(lemma str
 			}
 			entry := []string{tag}
 			if IsVerbTag(tag) {
+				entry = nil
 				a := allow(lemmas.Of(w, tag))
-				if a != nil && !a[Plain] {
-					entry = nil
-				}
 				for f := range rn.ByTag[tag] {
 					if a == nil || a[f] {
 						entry = append(entry, tag+"~"+rn.IDs[f])
@@ -344,12 +332,12 @@ func (rn *Renamed) Grammar(sents []Sentence, lemmas Lemmas, allow func(lemma str
 // word|tag, or word|tag|position if indexed.
 func (rn *Renamed) Own(s Sentence, indexed bool) *cfg.Tree {
 	i := 0
-	var copy func(t *cfg.Tree, parentRHS []string, lexical bool) *cfg.Tree
-	copy = func(t *cfg.Tree, parentRHS []string, lexical bool) *cfg.Tree {
+	var copy func(t *cfg.Tree, label string) *cfg.Tree
+	copy = func(t *cfg.Tree, label string) *cfg.Tree {
 		out := &cfg.Tree{Label: t.Label}
 		if t.Words != nil {
-			if lexical && IsVerbTag(t.Label) {
-				out.Label = t.Label + "~" + rn.IDs[Frame(parentRHS, rn.Grain)]
+			if IsVerbTag(t.Label) {
+				out.Label = t.Label + "~" + rn.IDs[label]
 			}
 			out.Words = []string{s.Words[i] + "|" + s.Tags[i]}
 			if indexed {
@@ -362,19 +350,18 @@ func (rn *Renamed) Own(s Sentence, indexed bool) *cfg.Tree {
 		for k, c := range t.Children {
 			rhs[k] = c.Label
 		}
-		lex := LexicalVP(t.Label, rhs)
+		l := Label(t.Label, rhs, rn.Grain)
 		for _, c := range t.Children {
-			out.Children = append(out.Children, copy(c, rhs, lex))
+			out.Children = append(out.Children, copy(c, l))
 		}
 		return out
 	}
-	return copy(s.Tree, nil, false)
+	return copy(s.Tree, "")
 }
 
 // Oracle is the renamed grammar with each word of the sentence its own
 // lexical entry, spelled word|tag|position, allowed only the tag its own
-// tree gives it: a verb only its own frame, or only its plain tag if it
-// heads no lexical verb phrase.
+// tree gives it: a verb only its own use.
 func (rn *Renamed) Oracle(s Sentence) (*cfg.Grammar, error) {
 	lex := map[string][]string{}
 	var walk func(t *cfg.Tree)

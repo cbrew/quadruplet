@@ -6,13 +6,15 @@
 // (package frames): core complements, those and PP, and the whole rule. The
 // lexicon is learned from nine tenths of the documents (as cmd/functions
 // splits them, by a hash of the document's name) and tested on sentences of
-// the other tenth, with gold tags. For each lemma seen at least -lemma times,
-// it allows the frames seen with the lemma at least once, or twice; other
-// verbs are unrestricted. As an upper bound on what any frame lexicon could
-// do, the oracle allows each verb only the frame its own tree gives it.
+// the other tenth, with gold tags. A verb's use is its frame, where it heads a
+// lexical verb phrase, or that it is an auxiliary, or the kind of phrase it is
+// in otherwise (frames.Label). For each lemma seen at least -lemma times, the
+// lexicon allows the uses seen with the lemma at least once, or twice; other
+// verbs are unrestricted. As an upper bound on what any such lexicon could
+// do, the oracle allows each verb only the use its own tree gives it.
 //
 // The filter is exact: the grammar is renamed so that a verb's tag carries its
-// phrase's frame (frames.Renamed), and its count is the number of trees the
+// use (frames.Renamed), and its count is the number of trees the
 // lexicon allows. Without a lexicon it counts as many trees as the grammar,
 // which the command checks.
 //
@@ -24,6 +26,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
@@ -74,14 +77,14 @@ func main() {
 	for _, g := range fr.Grains {
 		grammarFrames[g] = map[string]bool{}
 		for _, r := range rules {
-			if fr.LexicalVP(r.LHS, r.RHS) {
-				grammarFrames[g][fr.Frame(r.RHS, g)] = true
+			if slices.ContainsFunc(r.RHS, fr.IsVerbTag) {
+				grammarFrames[g][fr.Label(r.LHS, r.RHS, g)] = true
 			}
 		}
 	}
 
 	// how well each lexicon covers the verbs of every test sentence
-	fmt.Println("grain\tframes in the grammar\tfewest tokens for a frame\ttest verbs restricted\tof which own frame allowed\tframes allowed a restricted verb, median")
+	fmt.Println("grain\tverb uses in the grammar\tfewest tokens for a use\ttest verbs restricted\tof which own use allowed\tuses allowed a restricted verb, median")
 	total := 0
 	for _, s := range test {
 		total += len(fr.Uses(s.Tree, lemmas))
@@ -98,7 +101,7 @@ func main() {
 					}
 					restricted++
 					sizes = append(sizes, float64(len(a)))
-					if a[fr.Frame(u.RHS, g)] {
+					if a[u.Label(g)] {
 						own++
 					}
 				}
@@ -126,7 +129,7 @@ func main() {
 	}
 
 	fmt.Println()
-	fmt.Println("grain\tlexicon\tparsed\town tree among the parses\tlog10 trees per word, median\tlog10 trees cut, median (mean)\tframes a verb can have, median (mean)")
+	fmt.Println("grain\tlexicon\tparsed\town tree among the parses\tlog10 trees per word, median\tlog10 trees cut, median (mean)\tuses a verb can have, median (mean)")
 	for _, g := range fr.Grains {
 		rn := fr.Rename(rules, g)
 		baseline := map[string]float64{}
@@ -192,9 +195,9 @@ func main() {
 			if err != nil {
 				fail(err)
 			}
-			report(fmt.Sprintf("frames seen %d+ times", least), fixed(gr))
+			report(fmt.Sprintf("uses seen %d+ times", least), fixed(gr))
 		}
-		report("oracle: each verb its own frame", func(s fr.Sentence) (*cfg.Grammar, []string, bool) {
+		report("oracle: each verb its own use", func(s fr.Sentence) (*cfg.Grammar, []string, bool) {
 			gr, err := rn.Oracle(s)
 			if err != nil {
 				fail(err)
