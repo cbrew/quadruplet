@@ -251,6 +251,20 @@ func main() {
 		walk(t, 0)
 	}
 
+	// which core frame each verb has: in the trees on average, and in the
+	// sentence's own tree ("-" for a verb heading no lexical verb phrase)
+	frameOfSym := make([]string, len(g.Names))
+	for sym, name := range g.Names {
+		switch {
+		case g.Aux[sym] || !fr.IsVerbTag(name):
+		case !strings.Contains(name, "~"):
+			frameOfSym[sym] = "-"
+		default:
+			frameOfSym[sym] = rn.FrameOf(name)
+		}
+	}
+	uniformFrames, goldFrames := map[string]float64{}, map[string]float64{}
+
 	totals := map[string]float64{} // class -> summed over sentences
 	var sumLog, worst float64
 	var perWord []float64
@@ -268,6 +282,34 @@ func main() {
 			}
 		}
 		goldDepths(s.Tree)
+		for k, v := range f.Occupancy(ctx, func(_ int, it cfg.Item) string {
+			if it.R != it.L+1 {
+				return ""
+			}
+			return frameOfSym[it.Sym]
+		}) {
+			if k != "" {
+				uniformFrames[k] += v
+			}
+		}
+		own := rn.Own(s, false)
+		var walk func(t *cfg.Tree)
+		walk = func(t *cfg.Tree) {
+			if t.Words != nil {
+				if fr.IsVerbTag(t.Label) {
+					if f := rn.FrameOf(t.Label); f != "" {
+						goldFrames[f]++
+					} else {
+						goldFrames["-"]++
+					}
+				}
+				return
+			}
+			for _, c := range t.Children {
+				walk(c)
+			}
+		}
+		walk(own)
 		parts := f.Entropy(ctx)
 		sum := 0.0
 		for k, v := range parts {
@@ -294,6 +336,27 @@ func main() {
 	for d := 0; d <= maxDepth; d++ {
 		k := fmt.Sprint(d)
 		fmt.Printf("%d\t%.1f%%\t%.1f%%\n", d, 100*uniformWords[k]/sumU, 100*goldWords[k]/sumG)
+	}
+	fmt.Println()
+	fmt.Printf("Verbs' frames at the %s grain (- for a verb heading no lexical verb phrase): in the trees, each as likely as any other, and in the sentences' own trees\n", grain)
+	fmt.Println("frame\tall trees\town trees")
+	var names []string
+	sumU, sumG = 0, 0
+	for k, v := range uniformFrames {
+		names = append(names, k)
+		sumU += v
+	}
+	for k, v := range goldFrames {
+		if _, ok := uniformFrames[k]; !ok {
+			names = append(names, k)
+		}
+		sumG += v
+	}
+	slices.SortFunc(names, func(a, b string) int {
+		return int(math.Copysign(1, uniformFrames[b]/sumU+goldFrames[b]/sumG-uniformFrames[a]/sumU-goldFrames[a]/sumG))
+	})
+	for _, k := range names[:min(12, len(names))] {
+		fmt.Printf("%s\t%.1f%%\t%.1f%%\n", k, 100*uniformFrames[k]/sumU, 100*goldFrames[k]/sumG)
 	}
 	fmt.Println()
 	fmt.Println("Each part as a mean over the sentences, in decimal digits (log10 trees), and as a share of all the sentences' log10 trees:")

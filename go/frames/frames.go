@@ -194,22 +194,45 @@ type Lexicon struct {
 	Frames map[string]map[string]int // lemma -> frame -> tokens
 }
 
-// Learn reads a lexicon off the sentences' trees.
+// Plain is the frame Learn records for a verb that heads no lexical verb
+// phrase: an auxiliary, or a verb tagged VB* inside another phrase.
+const Plain = "-"
+
+// Learn reads a lexicon off the sentences' trees: each verb's frame, or
+// Plain.
 func Learn(sents []Sentence, lemmas Lemmas, grain string) *Lexicon {
 	lx := &Lexicon{grain, map[string]int{}, map[string]map[string]int{}}
-	for _, s := range sents {
-		for _, u := range Uses(s.Tree, lemmas) {
-			lx.Tokens[u.Lemma]++
-			if lx.Frames[u.Lemma] == nil {
-				lx.Frames[u.Lemma] = map[string]int{}
-			}
-			lx.Frames[u.Lemma][Frame(u.RHS, grain)]++
+	add := func(lemma, frame string) {
+		lx.Tokens[lemma]++
+		if lx.Frames[lemma] == nil {
+			lx.Frames[lemma] = map[string]int{}
 		}
+		lx.Frames[lemma][frame]++
+	}
+	for _, s := range sents {
+		heads := map[*cfg.Tree]bool{}
+		for _, u := range Uses(s.Tree, lemmas) {
+			heads[u.Leaf] = true
+			add(u.Lemma, Frame(u.RHS, grain))
+		}
+		var walk func(t *cfg.Tree)
+		walk = func(t *cfg.Tree) {
+			if t.Words != nil {
+				if IsVerbTag(t.Label) && !heads[t] {
+					add(lemmas.Of(t.Words[0], t.Label), Plain)
+				}
+				return
+			}
+			for _, c := range t.Children {
+				walk(c)
+			}
+		}
+		walk(s.Tree)
 	}
 	return lx
 }
 
-// Allowed is the frames the lexicon allows a lemma: those seen with it at
+// Allowed is the frames the lexicon allows a lemma, Plain among them: those seen with it at
 // least least times, if the lemma was seen at least minLemma times; else
 // nil, for any frame.
 func (lx *Lexicon) Allowed(lemma string, minLemma, least int) map[string]bool {
@@ -288,9 +311,9 @@ func (rn *Renamed) FrameOf(sym string) string {
 }
 
 // Grammar is the renamed grammar with a lexicon for the sentences' words,
-// spelled word|tag with their gold tags: a verb has its plain tag and the
-// renamed tags of the frames allow gives its lemma (all, where allow gives
-// nil).
+// spelled word|tag with their gold tags: a verb has the renamed tags of the
+// frames allow gives its lemma, and its plain tag if they include Plain (all
+// of them, where allow gives nil).
 func (rn *Renamed) Grammar(sents []Sentence, lemmas Lemmas, allow func(lemma string) map[string]bool) (*cfg.Grammar, error) {
 	lex := map[string][]string{}
 	for _, s := range sents {
@@ -302,6 +325,9 @@ func (rn *Renamed) Grammar(sents []Sentence, lemmas Lemmas, allow func(lemma str
 			entry := []string{tag}
 			if IsVerbTag(tag) {
 				a := allow(lemmas.Of(w, tag))
+				if a != nil && !a[Plain] {
+					entry = nil
+				}
 				for f := range rn.ByTag[tag] {
 					if a == nil || a[f] {
 						entry = append(entry, tag+"~"+rn.IDs[f])
