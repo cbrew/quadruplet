@@ -137,6 +137,10 @@ trees, so these are upper bounds on what a verb's analyses would be under
 any sensible constraint; how far a subcategorization lexicon alone would
 cut them is the next measurement.
 
+What the treebank's empty elements and function tags say about verb frames,
+and how far complements are predictable from the verb where modifiers are
+not, is in [`verbs/`](verbs/README.md).
+
 ## Candidate missing pieces
 
 With what the measurements say so far:
