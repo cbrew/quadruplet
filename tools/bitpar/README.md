@@ -6,7 +6,6 @@ treebank grammar and sentences. The results are in `results.jsonl` and in
 
 | file | what it does |
 |---|---|
-| `treebank.py` | reads the context-free grammar `tb.fcfg` off the MASC trees, and lists the sentences in `sents.txt` |
 | `convert.py` | writes that grammar in BitPar's formats, `bp.gram` and `bp.lex` |
 | `input.py` | writes sentences as BitPar input, each word with its lexicon tags |
 | `forest-time.patch` | makes `bitpar -i` report the time of its forest pass and the forest's size |
@@ -28,7 +27,7 @@ tar xzf BitPar.tar.gz
 Then, with the MASC data unpacked as `tools/masc` expects:
 
 ```bash
-python3 treebank.py MASC_DATA_DIR work     # tb.fcfg, sents.txt
+python3 ../masc/treebank.py MASC_DATA_DIR work   # tb.fcfg, sents.txt, trees.jsonl
 python3 convert.py work                    # bp.gram, bp.lex
 (cd ../../go && go build -o /tmp/qp ./cmd/quadruplet)
 python3 bench.py /tmp/qp BitPar/src/bitpar work 5,10,15,20,25,30,35,40,45,50,55,60,70,80 3 > results.jsonl

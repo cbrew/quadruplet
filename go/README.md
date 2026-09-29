@@ -22,6 +22,9 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/sem2.fcfg -trees 1 \
 | `chart` | the chart parser (sequential agenda, or parallel wavefront), tree counting and enumeration, `FeatureGrammar`, and the `TreeGrammar` benchmark grammar |
 | `cfg` | a fast parser for context-free grammars, whose categories are plain symbols ([below](#context-free-grammars)) |
 | `cmd/quadruplet` | command-line parser (`-workers`, `-trees`) |
+| `cmd/forests` | parses a whole corpus with a context-free grammar, a line per sentence ([below](#all-of-masc)) |
+| `interp` | readings of parse trees: heads, a fold over a tree, dependencies, learned function tags, and flat meanings ([`docs/flat-semantics.md`](../docs/flat-semantics.md)) |
+| `cmd/readings`, `cmd/functions` | give MASC's trees their dependencies and flat meanings; learn and test the function-tag table |
 | `cmd/prototype` | the earlier prototype comparing agenda and wavefront parsing, with and without goroutines ([below](#prototype)) |
 
 ## Design
@@ -112,6 +115,29 @@ categories are ground and no two different ones unify. On the command line,
 
 [`docs/fast-parser.md`](../docs/fast-parser.md) §6 compares it with BitPar
 on sentences of up to 80 words.
+
+### All of MASC
+
+`cmd/forests` parses every sentence of a corpus, shortest first, one at a
+time, and writes a tab-separated line for each: its words, the forest's
+items and hyperedges, what the first pass found derivable, the time of each
+pass, the heap in use, whether the corpus's own tree is in the forest, and
+the number of trees. For MASC,
+
+```bash
+tools/masc/forests.sh MASC_DATA_DIR OUT_DIR
+```
+
+reads the grammar off the trees (`tools/masc/treebank.py`), builds the
+command, and runs it over all 34,582 sentences into `OUT_DIR/forests.tsv`,
+with progress in `OUT_DIR/forests.log`. A 139-word sentence took 5.5
+minutes, 50 s to parse and the rest to count its trees exactly, and 11.8 GB
+at its peak (its forest, of 422 million hyperedges, took 6 GB). From that,
+the whole run should take two to three hours on one core, and the longest
+sentence, of 174 words, 22 to 25 GB, so it wants a 32 GB machine.
+`-count=false` saves the time and memory of counting, and `-maxwords 60`
+makes a quick first run. Interrupted, it carries on where it stopped when
+run again.
 
 ## Differences from the Kotlin version
 

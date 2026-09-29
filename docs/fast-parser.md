@@ -332,6 +332,31 @@ Extrapolating (roughly) to MASC's longest sentence, 174 words: its exact
 forest would have about 0.8 billion hyperedges, about 11 GB in `go/cfg`
 and 15 GB in BitPar.
 
+### All of MASC
+
+`tools/masc/forests.sh` (with `go/cmd/forests`) parsed every one of
+MASC's 34,582 sentences, 576,353 words, on a 32 GB machine, one sentence at
+a time, and counted each forest's trees exactly. Every sentence parsed, and
+every sentence's own tree was in its forest. Parsing took 1.5 hours in all;
+the longest sentence, of 174 words, took 75 s and a forest of 945 million
+hyperedges, 12 GB of heap before its trees were counted.
+
+| words | sentences | parse time, median | hyperedges, median | log10 trees, median | per word |
+|---|---|---|---|---|---|
+| 1–10 | 13,440 | 3 ms | 11 thousand | 8.5 | 1.45 |
+| 11–20 | 10,780 | 27 ms | 323 thousand | 25.4 | 1.70 |
+| 21–30 | 5,907 | 0.11 s | 1.7 million | 43.2 | 1.76 |
+| 31–40 | 2,612 | 0.30 s | 5.0 million | 61.1 | 1.79 |
+| 41–60 | 1,489 | 0.87 s | 13 million | 83.5 | 1.81 |
+| 61–80 | 259 | 3.0 s | 44 million | 121.5 | 1.81 |
+| 81–120 | 80 | 9.0 s | 131 million | 170.0 | 1.82 |
+| 121–174 | 15 | 30 s | 422 million | 251.8 | 1.82 |
+
+The most ambiguous sentence, of 160 words, has 10^294 trees. The number of
+trees per word levels off at about 10^1.82, some 66: a forest's trees grow
+as a constant raised to the length of the sentence, the signature of local
+choices multiplied together independently.
+
 ### What next
 
 * **Parallel recognition**, cell by cell, as `go/chart` does, or

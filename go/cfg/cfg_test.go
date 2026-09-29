@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"math/big"
+	mrand "math/rand"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
@@ -377,4 +378,39 @@ func TestItemTable(t *testing.T) {
 	if tab.n != len(want) || 2*tab.n >= len(tab.keys) {
 		t.Errorf("%d keys in %d slots, want %d", tab.n, len(tab.keys), len(want))
 	}
+}
+
+// The sampler draws every tree, and each about as often as any other.
+func TestSampler(t *testing.T) {
+	g, err := New([]Rule{
+		{"S", []string{"S", "S"}}, {"S", []string{"A", "S"}}, {"A", []string{"S"}},
+	}, map[string][]string{"a": {"S"}}, []string{"S"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := g.Parse(strings.Fields("a a a a"))
+	all := map[string]int{}
+	for tree := range f.Trees() {
+		all[tree.String()] = 0
+	}
+	if int64(len(all)) != f.Count().Int64() {
+		t.Fatalf("%d distinct trees, count %s", len(all), f.Count())
+	}
+	s := f.Sampler(mrand.New(mrand.NewSource(1)))
+	const draws = 20000
+	for range draws {
+		tree := s.Tree()
+		if _, ok := all[tree.String()]; !ok {
+			t.Fatalf("drew %s, which is not in the forest", tree)
+		}
+		all[tree.String()]++
+	}
+	want := float64(draws) / float64(len(all))
+	for tree, n := range all {
+		// within five standard deviations of a uniform draw
+		if d := float64(n) - want; d*d > 25*want {
+			t.Errorf("%s drawn %d times, want about %.0f", tree, n, want)
+		}
+	}
+	t.Logf("%d trees, each drawn about %.0f times", len(all), want)
 }

@@ -1,0 +1,24 @@
+learned from 31197 sentences; tested on 300 sentences of 5 to 25 words from the other documents, with gold tags
+a lemma's frames are restricted if it was seen 5 times or more in training
+
+grain	verb uses in the grammar	fewest tokens for a use	test verbs restricted	of which own use allowed	uses allowed a restricted verb, median
+core	267	1	91.8% of 9107	95.3%	15
+core	267	2	91.8% of 9107	92.3%	10
+pp	478	1	91.8% of 9107	92.1%	24
+pp	478	2	91.8% of 9107	87.6%	13
+rule	2322	1	91.8% of 9107	86.8%	40
+rule	2322	2	91.8% of 9107	81.5%	16
+
+grain	lexicon	parsed	own tree among the parses	log10 trees per word, median	log10 trees cut, median (mean)	uses a verb can have, median (mean)
+core	none	100.0%	100.0%	1.29	-	59 (54.5)
+core	uses seen 1+ times	100.0%	93.0%	1.25	0.40 (0.48)	11 (18.2)
+core	uses seen 2+ times	100.0%	87.7%	1.24	0.53 (0.66)	8 (14.7)
+core	oracle: each verb its own use	100.0%	100.0%	1.05	3.00 (3.35)	1 (1.0)
+pp	none	100.0%	100.0%	1.29	-	93 (86.3)
+pp	uses seen 1+ times	100.0%	87.7%	1.25	0.41 (0.55)	15 (27.1)
+pp	uses seen 2+ times	100.0%	80.7%	1.23	0.57 (0.83)	10 (20.8)
+pp	oracle: each verb its own use	100.0%	100.0%	0.95	4.21 (4.70)	1 (1.0)
+rule	none	100.0%	100.0%	1.29	-	161 (156.0)
+rule	uses seen 1+ times	100.0%	80.3%	1.24	0.45 (0.64)	18 (40.5)
+rule	uses seen 2+ times	99.3%	71.7%	1.23	0.61 (0.91)	11 (29.8)
+rule	oracle: each verb its own use	100.0%	100.0%	0.93	4.76 (5.13)	1 (1.0)
