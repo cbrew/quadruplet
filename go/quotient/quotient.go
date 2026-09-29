@@ -22,6 +22,7 @@
 package quotient
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -51,6 +52,38 @@ type Options struct {
 	// projection depends on their labels, so the combination is not a
 	// coarsening of either.
 	Unlabelled bool
+	// Counts relabels each phrase by the counts of its category's basic
+	// types, S, NP and PP, without slashes (CountLabel). Like Unlabelled,
+	// not meant to be combined with Verbs or Nouns.
+	Counts bool
+	// Unary, with Counts, removes a phrase with a single daughter, giving
+	// the daughter the counts of the top of its unary chain: a word then
+	// carries the type of its largest single-word projection.
+	Unary bool
+}
+
+// CountLabel is a phrase label's counts of the basic types S, NP and PP, a
+// categorial category with its slashes and their order dropped: a clause is
+// S; a verb phrase, or any chain ending in one (SxVP), is a clause lacking
+// a subject, S - NP; a noun phrase NP; a prepositional phrase PP; and
+// anything else a modifier, X/X, which counts nothing. Top stays Top.
+func CountLabel(label string) string {
+	if label == "Top" {
+		return label
+	}
+	c := fr.Chain(label)
+	var s, np, pp int
+	switch top, bottom := c[0], c[len(c)-1]; {
+	case bottom == "VP":
+		s, np = 1, -1
+	case top == "S" || top == "SQ" || top == "SINV" || top == "SBARQ" || top == "SBAR" || top == "FRAG":
+		s = 1
+	case top == "NP" || top == "NML" || top == "NX" || top == "WHNP":
+		np = 1
+	case top == "PP" || top == "WHPP":
+		pp = 1
+	}
+	return fmt.Sprintf("S%dNP%dPP%d", s, np, pp)
 }
 
 // Key is the tree's class, as a string: equal for trees in one class. The
@@ -179,15 +212,35 @@ func top(n *node) bool {
 }
 
 func (q *quot) write(b *strings.Builder, n *node) {
+	q.writeAs(b, n, "")
+}
+
+// writeAs writes n, as the top of a unary chain labelled as if it were one
+// node: with label, the counts of the chain's top, if not "".
+func (q *quot) writeAs(b *strings.Builder, n *node, label string) {
+	if q.o.Unary && q.o.Counts && len(n.kids) == 1 {
+		if label == "" {
+			label = CountLabel(n.t.Label)
+		}
+		q.writeAs(b, n.kids[0], label)
+		return
+	}
 	if n.t.Words != nil {
-		b.WriteString("(" + n.t.Label + " " + strings.Join(n.t.Words, " ") + ")")
+		b.WriteString("(" + n.t.Label)
+		if label != "" {
+			b.WriteString(":" + label)
+		}
+		b.WriteString(" " + strings.Join(n.t.Words, " ") + ")")
 		return
 	}
 	if top(n) {
 		q.segment(b, n)
 		return
 	}
-	b.WriteString("(" + q.label(n))
+	if label == "" {
+		label = q.label(n)
+	}
+	b.WriteString("(" + label)
 	for _, k := range n.kids {
 		b.WriteByte(' ')
 		q.write(b, k)
@@ -195,10 +248,59 @@ func (q *quot) write(b *strings.Builder, n *node) {
 	b.WriteByte(')')
 }
 
+// Projection is a projection segment of a tree: its top label and the
+// labels of its dependents in surface order, a lower segment among them by
+// its top label.
+type Projection struct {
+	Top  string
+	Deps []string
+}
+
+// Projections are the tree's projection segments.
+func Projections(t *cfg.Tree, o Options) []Projection {
+	q := &quot{o: o}
+	var out []Projection
+	var walk func(n *node)
+	walk = func(n *node) {
+		if top(n) || n.member && n.scope && n.parent != nil && n.parent.member && n.parent.head >= 0 && n.parent.kids[n.parent.head] == n {
+			var deps []*node
+			for m := n; ; {
+				for i, k := range m.kids {
+					if i != m.head {
+						deps = append(deps, k)
+					}
+				}
+				if m.head < 0 {
+					break
+				}
+				if h := m.kids[m.head]; h.scope {
+					deps = append(deps, h)
+					break
+				}
+				m = m.kids[m.head]
+			}
+			slices.SortFunc(deps, func(a, c *node) int { return a.l - c.l })
+			p := Projection{Top: n.t.Label}
+			for _, d := range deps {
+				p.Deps = append(p.Deps, d.t.Label)
+			}
+			out = append(out, p)
+		}
+		for _, k := range n.kids {
+			walk(k)
+		}
+	}
+	walk(q.index(t, nil, 0))
+	return out
+}
+
 // label is a phrase's label as the class keeps it.
 func (q *quot) label(n *node) string {
 	if q.o.Unlabelled {
 		return "X"
+	}
+	if q.o.Counts {
+		return CountLabel(n.t.Label)
 	}
 	return n.t.Label
 }

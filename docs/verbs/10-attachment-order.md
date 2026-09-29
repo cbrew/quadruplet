@@ -49,6 +49,8 @@ don't-care entropy is 2.56 and 0.18.
 | nouns | 3.90 | 3.87 | 0.35 | 3% | 6% | 0.031 | 0.010 |
 | verbs, auxiliaries and nouns | 3.89 | 3.86 | 0.35 | 4% | 6% | 0.031 | 0.010 |
 | phrase labels forgotten | 1.85 | 1.38 | 0.19 | 101% | 95% | 0.909 | 0.050 |
+| phrase labels as counts of S, NP, PP | 3.48 | 3.33 | 0.26 | 25% | 57% | 0.179 | 0.009 |
+| counts, unary chains collapsed | 3.19 | 3.00 | 0.24 | 38% | 68% | 0.322 | 0.017 |
 
 * **The verb quotient is sound but, here, small.** It never merges trees of
   different meaning (H(meaning given class) is 0). It accounts for 1% of the
@@ -74,6 +76,53 @@ Printing the trees of one meaning (`quotient -show N`) shows why:
 The grammar lets almost any word or short span project to almost any phrase
 category, because the treebank has unary phrases over single words. The
 flat semantics mostly relates the words the same way whatever the label.
+
+## Counts instead of labels
+
+A suggestion from the project's owner: write a phrase's label categorially,
+as counts of a few basic types (S, NP, PP), with no slashes and no order.
+This is the count invariant of categorial grammar. Function application
+adds counts, (X − Y) + Y = X, so a mother's counts are the sum of its
+daughters'. A modifier X/X counts nothing, so every modifier label
+(ADJP, ADVP, PRN, ...) is the same zero. `quotient.CountLabel` maps a label
+by its category alone:
+* clauses are S;
+* anything ending in VP, SxVP included, is S − NP;
+* noun phrases are NP, prepositional phrases PP;
+* everything else is 0.
+
+The two rows above that use it show:
+* **Counts alone** account for 25% of the don't-care entropy (57% weighted),
+  merging few meanings (H(meaning given class) 0.18, weighted 0.009).
+* **Collapsing unary chains too**, so that a word carries the counts of the
+  top of its single-word projection (its type, categorially), takes this to
+  38% (68% weighted).
+* **What remains** is mostly a word or short phrase labelled NP in one tree
+  and ADJP or ADVP in another: argument against modifier. That can't be
+  decided by category alone. It is where lexical types would come in.
+
+## Long sentences, estimated
+
+With `quotient -estimate K`, K trees are drawn uniformly from each forest,
+and the size of each one's class is counted exactly. The size is the product
+over its projections of the parses of the projection's dependents by the
+lexical and layer rules. On forests small enough to enumerate, the mean of
+log10 class size agrees with log10 T − H(class) to 1e-12.
+
+On the 300 sentences of 5 to 25 words (log10 T 18.26), with 100 draws each:
+
+| quotient | entropy removed (digits, uniform) | share | log10 class size of the sentence's own tree |
+|---|---|---|---|
+| verbs, no scope exemption | 0.03 | 0.2% | 0.25 |
+| verbs and auxiliaries, no scope exemption | 0.03 | 0.2% | 0.48 |
+
+Uniform trees rarely give verbs several dependents, so the quotient removes
+almost nothing from them. The gold trees are the realistic case, and there a
+tree's class holds on average about 1.8 bracketings, or 3 with auxiliaries.
+The weighted entropy is 1.67 digits, and trees drawn by rule frequency look
+like the gold ones. So the verb quotient's part of the weighted entropy may
+be a tenth to a quarter. That is not measured: it needs a sampler weighted
+by rule frequency.
 
 ## Caveats, and what it means for the parser change
 
@@ -101,4 +150,5 @@ flat semantics mostly relates the words the same way whatever the label.
 cd go
 go run ./cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl            # the table (about 3 minutes)
 go run ./cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -n 40 -max 6 -show 5 -limit 20000
+go run ./cmd/quotient -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -n 300 -min 5 -max 25 -limit 20000 -estimate 100
 ```
