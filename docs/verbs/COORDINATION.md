@@ -61,3 +61,11 @@ phrase rule, then complement frame, then the rest).
 
 * `tools/masc/verbframes.py` fixed (commit 6f02633); the reports' version is
   `tools/masc/verbs/verbframes_v1.py`.
+* 2026-09-29, Opus: task 6 in (`verbentropy -pcfg [-train]`). Weighted by
+  P(rule | parent), the trees' entropy is about 1.6 digits (against log10
+  17.7 trees), the words fall under verb phrases as in the gold trees, and
+  the verbs' own choices are 38% of it (complement frame 17%, the rest of
+  the rule 15%); outside any verb 37%, inside their dependents 24% (40
+  sentences; 300 running). The lexicon is now of verbs' *uses* (frame,
+  (aux), (in X)), since the frame alone never stopped a verb being read as
+  an auxiliary.
