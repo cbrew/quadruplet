@@ -85,6 +85,22 @@ func TestNormalVerbs(t *testing.T) {
 	}
 }
 
+func TestFlatVerbs(t *testing.T) {
+	flat := Options{FlatVerbs: true}
+	a, err := ConvertWith(tree(t, "(S (NP-SBJ (PRP I)) (VP (MD will) (VP (VP (VB see) (NP (PRP her))) (PP-TMP (IN on) (NP (NNP Tuesday))))))"), flat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := ConvertWith(tree(t, "(S (NP-SBJ (PRP I)) (VP (MD will) (VP (VB see) (NP (PRP her)) (PP-TMP (IN on) (NP (NNP Tuesday))))))"), flat)
+	if a.String() != b.String() {
+		t.Errorf("flat projections differ:\n %s\n %s", a, b)
+	}
+	// one node: the modal, the verb, the object and the modifier
+	if vp := a.Children[0].Children[1]; vp.Label != "V:S1.I0.W0.N-1.P0.A0" || len(vp.Children) != 4 {
+		t.Errorf("the projection is %s", vp)
+	}
+}
+
 func TestClauseTypes(t *testing.T) {
 	for _, c := range []struct{ s, verb, want string }{
 		// a subjectless infinitive is the collapsed chain SxVP, I - NP

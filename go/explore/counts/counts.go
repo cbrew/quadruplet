@@ -337,6 +337,13 @@ type Options struct {
 	// the projection's top by its counts. So a projection's tree is fixed
 	// by its verb and its dependents, whatever the order of attachment was.
 	NormalVerbs bool
+	// FlatVerbs makes each verb's projection one node, labelled V:counts,
+	// whose daughters are the verb (or the coordination heading the
+	// lowest verb phrase) and all the projection's dependents, in the
+	// order of the words: complements and modifiers, auxiliaries and
+	// modals among them. It is the verb's normal form as an unordered
+	// (ID) rule, the order being the sentence's.
+	FlatVerbs bool
 }
 
 // Convert relabels a tree as annotated.jsonl gives it, rooted at Top.
@@ -365,7 +372,7 @@ func (cv converter) convert(n *interp.Node, c Vec) *Tree {
 	if len(n.Kids) == 1 {
 		return cv.convert(n.Kids[0], c)
 	}
-	if cv.o.NormalVerbs && n.Bottom() == "VP" && conjuncts(n) == nil {
+	if (cv.o.NormalVerbs || cv.o.FlatVerbs) && n.Bottom() == "VP" && conjuncts(n) == nil {
 		return cv.normal(n, c)
 	}
 	counts := cv.share(n, c)
@@ -475,6 +482,22 @@ func (cv converter) normal(n *interp.Node, c Vec) *Tree {
 		}
 		m, cm = hk, counts[h]
 	}
+	if cv.o.FlatVerbs {
+		all := append([]dependent{{nil, Vec{}, coreFirst}}, deps...)
+		slices.SortFunc(all, func(a, b dependent) int { return a.first - b.first })
+		out := &Tree{Label: "V:" + c.String()}
+		for _, d := range all {
+			if d.n == nil {
+				out.Children = append(out.Children, core)
+			} else {
+				out.Children = append(out.Children, cv.convert(d.n, d.c))
+			}
+		}
+		if len(out.Children) == 1 {
+			return core
+		}
+		return out
+	}
 	var left, right []dependent
 	for _, d := range deps {
 		if d.first < coreFirst {
@@ -506,7 +529,9 @@ func Parse(label string) (Vec, bool) {
 	if i := strings.LastIndex(label, "_"); i >= 0 {
 		label = label[i+1:]
 	}
-	label = strings.TrimPrefix(strings.TrimPrefix(label, "R:"), "L:")
+	for _, p := range []string{"R:", "L:", "V:"} {
+		label = strings.TrimPrefix(label, p)
+	}
 	var v Vec
 	_, err := fmt.Sscanf(label, "S%d.I%d.W%d.N%d.P%d.A%d", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5])
 	return v, err == nil
