@@ -26,7 +26,7 @@ import collections, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from masctrees import *
-import verbframes as vf
+import verbframes_v1 as vf
 
 RESIDUE = ('unexplained', 'question or inversion, no SBJ',
            'clause coordination', 'imperative', 'fragment or headline')

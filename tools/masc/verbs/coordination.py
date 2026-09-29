@@ -27,7 +27,7 @@ import collections, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from masctrees import *
-import verbframes as vf
+import verbframes_v1 as vf
 
 PUNCT = {',', '.', ':', '``', "''", '"', "'", '-LRB-', '-RRB-', '-LSB-', '-RSB-', 'HYPH', 'NFP'}
 VP_HEADS = ['TO', 'VBD', 'VBN', 'MD', 'VBZ', 'VB', 'VBG', 'VBP', 'VP', 'ADJP', 'NN', 'NNS', 'NP']

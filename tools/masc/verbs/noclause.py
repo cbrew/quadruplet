@@ -19,7 +19,7 @@ import collections, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from masctrees import *
-import verbframes as vf
+import verbframes_v1 as vf
 
 SPOKEN = {'face-to-face', 'telephone', 'court-transcript', 'debate-transcript'}
 NOMINAL = {'NN', 'NNS', 'NNP', 'NNPS', 'PRP', 'CD', 'NP', 'NML', 'EX', 'DT', 'QP', 'JJ', 'ADJP', 'NX'}

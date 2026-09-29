@@ -24,7 +24,7 @@ import collections, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from masctrees import *
-from verbframes import Node, number, nodes, is_aux_vp, empty_kind, words, CLAUSES, VERB_TAGS
+from verbframes_v1 import Node, number, nodes, is_aux_vp, empty_kind, words, CLAUSES, VERB_TAGS
 
 ADVERBIAL = {'ADV', 'PRP', 'MNR', 'TMP', 'LOC', 'DIR', 'EXT', 'BNF', 'CND'}
 
