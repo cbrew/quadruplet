@@ -139,6 +139,16 @@ The commonest errors (gold → spaCy):
   and quotations.
 * **`i` with `a`** does not tell raising to object (*want him to go*) from
   object control (*persuade him to go*). As in odd_one_out, the accusative
-  is `a` either way.
+  is `a` either way. The distinction can still be recovered from
+  `Argument.label`:
+
+  | | raising (MASC: S with an overt subject) | object control (MASC: NP + S with a co-indexed `*PRO*`) |
+  |---|---|---|
+  | gold `label` | `S:subject` | the NP's own label (`NP`, `NP-1`) |
+  | spaCy `label` | `ccomp:subject` | `dobj` |
+  | spaCy structure | `ccomp` with its own `nsubj`: 246 of 276 | `dobj` + `xcomp`: 281 of 354 |
+
+  MASC annotates *like*, *allow*, *help* and *enable* both ways. spaCy
+  parses *like* and *allow* uniformly as raising.
 * **Gerund objects** (*enjoy swimming*) are `i`. Free relatives (*get what
   they want*) are `a`.
