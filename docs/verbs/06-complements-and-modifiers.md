@@ -483,7 +483,7 @@ B = of `frame_backbone`, M = modifiers.
 |---|---|
 | `debate-transcript/3rd_Bush-Kerry#28` | `(-NONE- *PRO-1)` for `*PRO*-1`. `empty_kind` then yields a subject kind `*PRO` |
 | `twitter/tweets1#134` | `(-NONE- *RNR-2)` for `*RNR*-2` |
-| `spam/ucb31#5` and 25 more | literal asterisks (list bullets, rules) tagged `-NONE-`: `**` ×16, `***` ×5, longer in `enron/53536#30`, `enron/9159#15`, `spam/221197#12`, `w3c/lists-003-2148080#16` |
+| `spam/ucb31#5` and others | literal asterisks (list bullets, rules) tagged `-NONE-`, 30 leaves: `**` ×16 (e.g. `(LS (-NONE- **))`), `***` ×5, `****` ×3 (`jokes/jokes10#99`), longer runs in `enron/53536#30`, `enron/9159#15`, `spam/221197#12`, `w3c/lists-003-2148080#16` |
 | `debate-transcript/2nd_Gore-Bush#286` vs `3rd_Bush-Kerry#836` | *work with* NP untagged vs PP-CLR in the same sense; one of the 49 mixed pairs |
 
 Questionable classifications in `tools/masc/verbframes.py` (not fixed):
