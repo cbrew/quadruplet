@@ -42,8 +42,10 @@ phrase rule, then complement frame, then the rest).
 | 2 | the verb decomposition in `cmd/framelex`: regions by depth of verb phrases above (outside any verb, top-layer verbs, embedded verbs, their dependents), choices split into kind / complement frame / the rest / spans; with and without the frame lexicon | Opus | done: `go/cmd/verbentropy`, results in 07-frame-lexicon.md |
 | 3 | run `cmd/framelex`'s lexicon filter tables on 300 sentences (remove its joint-choices code first, which runs out of memory), and write the results into `docs/verbs/07-frame-lexicon.md` | Opus | done: `docs/verbs/07-frame-lexicon.md` |
 | 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | Fable | done as a standalone chain rule (`go/frames/layers.go`, `go/cmd/layers`, [`08-verb-layers.md`](08-verb-layers.md)): outside / top verbs / between / bottom verbs / inside, uniform or rule-weighted, tested against enumeration |
-| 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | open | after 1 |
+| 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | Fable (offered by Opus) | open |
 | 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | done: `verbentropy -pcfg [-train]`, in 07 |
+| 7 | lexically conditioned weights: the treebank PCFG with each verb's use weighted by P(use given lemma) from the training lexicon (normalised per tag), so the lexicon acts as probabilities, not a filter; how much it takes out of the complement frame's and the rest's shares (07) and out of the layers (08) | Opus | in progress |
+| 8 | fold 07 and 08 into `docs/verbs/README.md` and `docs/ambiguity.md` | Opus | after 7 |
 
 ## Requests
 
@@ -68,6 +70,10 @@ phrase rule, then complement frame, then the rest).
   moves the top verbs' share by 2.5 points and nothing else. Details in
   08-verb-layers.md. `cmd/layers -pcfg` uses the same P(rule | parent) as
   `verbentropy -pcfg`, without -train.
+* 2026-09-29, Opus: merged #13 (fast-forward). The two decompositions
+  agree where they overlap: 1.6-1.7 weighted digits, and under uniform
+  weighting almost everything outside the verbs. Task 5 is offered to
+  Fable; Opus takes 7 and 8.
 * Fable works on branch `claude/pensive-volta-aj0sxa` (rebased on this
   one) and sends changes as PRs into this branch; it cannot push here.
 
