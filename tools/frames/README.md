@@ -11,9 +11,16 @@ and parsers extend it to unlabeled text.
   canonical order, and the `Frame`, `Argument` and `Modifier` records.
 * `src/frames/gold.py`: gold frames from MASC's Penn trees, by way of
   `tools/masc/verbframes.py`.
-* The spaCy analyzer is next: `en_core_web_trf` dependencies, n-best parses
-  through odd_one_out's `spacy_beam_docbin`, evaluated against the gold
-  frames.
+* `src/frames/analyze.py`: the same frames from `en_core_web_trf`
+  dependencies (ClearNLP labels). A PP counts as a prepositional object by
+  the treebank's rate for its verb and preposition, which is a prior, and
+  the score is kept.
+* `src/frames/parse.py`: parses MASC on MASC's own tokens, so that verbs
+  align by word position.
+* `src/frames/evaluate.py`: the analyzer against the gold frames, on
+  held-out documents.
+* **Not done yet:** n-best parses through odd_one_out's
+  `spacy_beam_docbin`.
 
 ## The inventory
 
@@ -78,6 +85,53 @@ commonest:
 | `nad` | 1.3% |
 | `nao` | 1.3% |
 | `ns-w` | 1.1% |
+
+## spaCy against the gold, greedy parses
+
+```bash
+uv run python -m frames.parse $S/v3/verbs.jsonl $S/v3/masc-greedy.spacy     # 14 minutes, 4 CPUs
+uv run python -m frames.evaluate $S/v3/gold.jsonl $S/v3/masc-greedy.spacy
+```
+
+The test set is the held-out fifth of the documents: 19,712 gold verbs.
+The PP prior is read off the other four fifths.
+
+* **Verbs found:** P 96.0, R 98.8.
+* **Exact frame:** 82.6% of the verbs both sides find. The lemma, with its
+  particle, is right for 98.0%.
+* **By symbol (F):**
+
+  | symbol | F |
+  |---|---|
+  | n | 99.6 |
+  | a | 93.2 |
+  | k | 93.3 |
+  | i | 90.0 |
+  | r | 90.0 |
+  | s-that | 84.4 |
+  | x | 82.6 |
+  | s-if | 79.3 |
+  | d | 77.4 |
+  | p | 67.7 (P 75.5, R 61.3) |
+  | s-w | 66.8 |
+  | s-2 | 65.8 |
+  | o | 60.9 |
+
+* **Modifier multiset:** P 76.9, R 83.9.
+* **Per lemma:** for 141 lemmas with at least 20 held-out occurrences, the
+  mean total variation distance between the gold's and spaCy's frame
+  distributions is 0.139. Between two halves of the gold it is 0.145, but
+  each half has half the occurrences. At the full count, sampling noise
+  would be about 0.10, so spaCy adds a little on top of noise.
+
+The commonest errors (gold → spaCy):
+* **Missed objects, `na → n` (436).** Gaps spaCy has no token for: relative
+  clauses through an infinitive (*the pain I was beginning to
+  experience*), and *get X covered*.
+* **PP objects taken for modifiers, `np → n` (314), and the reverse,
+  `na → nap` (110).** The prior's threshold is a trade-off here; the score
+  is kept for adjudication.
+* **Finite clauses where the gold has none, `na → nas-2` (147).**
 
 ## Known conflations
 

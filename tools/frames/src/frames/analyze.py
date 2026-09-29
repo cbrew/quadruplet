@@ -10,7 +10,8 @@ modifiers come from its dependents:
     expl                  x
     dobj                  a; r if reflexive; with a dative, the dative d
     dative                d (an NP, or a to/for PP)
-    attr, acomp           k
+    attr, acomp           k; for a main-verb *be* without them, its first PP,
+                          clause, or locative or wh adverb
     oprd                  o
     xcomp                 i (a verb), o (an adjective or noun)
     ccomp                 by its head: finite s-that, s-2, s-if, s-w, s-X;
@@ -43,6 +44,9 @@ FINITE = {"VBD", "VBZ", "VBP", "MD"}
 WH = {"WDT", "WP", "WP$", "WRB"}
 SUBJECT = {"nsubj", "csubj"}
 PASSIVE_SUBJECT = {"nsubjpass", "csubjpass"}
+PREDICATIVE_ADVERBS = {"here", "there", "where", "everywhere", "nowhere", "somewhere", "anywhere",
+                       "home", "away", "out", "in", "up", "down", "off", "on", "over", "back",
+                       "so", "how", "like"}
 IGNORED = {"punct", "cc", "conj", "relcl", "intj", "parataxis", "dep", "discourse", "meta",
            "preconj", "appos", "mark", "case", "det", "predet", "nmod", "poss", "compound"}
 
@@ -181,13 +185,23 @@ def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> 
             own_subject(v) is not None and not any(c.dep_ in ("dobj", "ccomp", "xcomp") for c in kids):
         place(args, "a", label="relcl", source="trace", head=v.head.lower_)
 
-    has_dative = any(c.dep_ == "dative" for c in kids)
+    # a main-verb *be*: its predicative, where spaCy has no attr or acomp, is
+    # its first prepositional phrase, clause, or locative or wh adverb
+    # (*is in chambers*, *that's why*, *where is he*)
+    predicative = None
+    if lemma == "be" and not passive and not any(c.dep_ in ("attr", "acomp") for c in kids):
+        predicative = next((c for c in kids if c.dep_ in ("prep", "ccomp", "xcomp") and c.i > v.i
+                            or c.dep_ == "advmod" and (c.tag_ == "WRB" or c.lower_ in PREDICATIVE_ADVERBS)),
+                           None)
     for c in kids:
         d = c.dep_
         if c is subj or d in IGNORED or d in SUBJECT | PASSIVE_SUBJECT | {"expl", "agent"}:
             continue
         common = dict(label=d, span=span(c))
-        if d == "prt":
+        if c is predicative:
+            place(args, "k", marker=c.lower_ if d == "prep" else marker(c) if d == "ccomp" else None,
+                  head=head_of(c), form=form(c) if d in ("ccomp", "xcomp") else None, **common)
+        elif d == "prt":
             particles.append(c.lower_)
         elif d == "dobj":
             if c.lower_ in REFLEXIVES:
@@ -221,10 +235,7 @@ def frame_of(v: Token, prior: PPPrior | None = None, threshold: float = 0.5) -> 
                           form=f, **common)
         elif d == "prep":
             score = prior(lemma, c.lower_) if prior is not None else 0.0
-            if lemma == "be" and not any(k.dep_ in ("attr", "acomp", "ccomp", "xcomp") for k in kids) \
-                    and "k" not in args and c.i > v.i:
-                place(args, "k", marker=c.lower_, head=head_of(c), **common)
-            elif score >= threshold:
+            if score >= threshold:
                 place(args, "p", marker=c.lower_, head=head_of(c), score=score, **common)
             else:
                 mods.append(pp_modifier(c, score=score))
