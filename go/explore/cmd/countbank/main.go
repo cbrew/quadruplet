@@ -49,6 +49,8 @@ func main() {
 	seed := flag.Uint64("seed", 1, "the sample's random seed")
 	out := flag.String("o", "", "write the counts grammar here, as counts.tsv")
 	limit := flag.Int64("enumerate", 0, "also enumerate the oracle forests of at most this many trees and measure the order of attachment")
+	nf := flag.Bool("nf", false, "put verbs' projections in normal form (counts.Options.NormalVerbs)")
+	perSentence := flag.String("persentence", "", "write, per sentence, log10 of the oracle forest's trees and (with -enumerate) of its classes, here")
 	flag.Parse()
 	if *annotatedFile == "" {
 		flag.Usage()
@@ -81,7 +83,7 @@ func main() {
 		if err != nil {
 			fail(fmt.Errorf("%s: %v", rec.ID, err))
 		}
-		t, err := counts.Convert(node)
+		t, err := counts.ConvertWith(node, counts.Options{NormalVerbs: *nf})
 		if err != nil {
 			bad++
 			if bad <= 5 {
@@ -306,8 +308,8 @@ func main() {
 			}
 			ent = append(ent, h)
 		}
-		if *limit > 0 && lx.name == lexicons[0].name {
-			attachment(g, sample, spelled, weight, tagWord, tagCount, *limit)
+		if lx.name == lexicons[0].name && (*limit > 0 || *perSentence != "") {
+			attachment(g, sample, spelled, weight, tagWord, tagCount, *limit, *perSentence)
 		}
 		fmt.Printf("%s\t%.1f%%\t%.1f%%\t%.2f\t%.2f\t%.2f\n", lx.name, fr.Pct(parsed, len(sample)), fr.Pct(own, len(sample)),
 			fr.Median(perWord), fr.Mean(logT), fr.Mean(ent))
@@ -347,14 +349,14 @@ func respell(t *cfg.Tree, words []string) *cfg.Tree {
 // whose sisters count zero, is spliced into its mother, unless it has a
 // scope-taking daughter of its own. With only, only phrases whose counts
 // pass it are spliced.
-func flatKey(t *cfg.Tree, only func(v counts.Vec) bool) string {
+func flatKey(t *cfg.Tree, only func(v counts.Vec) bool, barriers bool) string {
 	var b strings.Builder
 	var write func(t *cfg.Tree)
 	var kids func(t *cfg.Tree) []*cfg.Tree
 	kids = func(t *cfg.Tree) []*cfg.Tree {
 		var out []*cfg.Tree
 		for _, c := range t.Children {
-			if c.Words == nil && c.Label == t.Label && zeroSisters(t, c) && !scoped(c) {
+			if c.Words == nil && c.Label == t.Label && zeroSisters(t, c) && !(barriers && scoped(c)) {
 				if v, _ := counts.Parse(c.Label); only == nil || only(v) {
 					out = append(out, kids(c)...)
 					continue
@@ -427,15 +429,26 @@ func scoped(t *cfg.Tree) bool {
 // attachment enumerates the oracle forests small enough and measures how
 // much of their entropy is the order of attachment within projections.
 func attachment(g *cfg.Grammar, sample []sentence, spelled [][]string, weight []float64,
-	tagWord map[[2]string]int, tagCount map[string]int, limit int64) {
+	tagWord map[[2]string]int, tagCount map[string]int, limit int64, perSentence string) {
 	type variant struct {
-		name string
-		only func(v counts.Vec) bool
+		name     string
+		only     func(v counts.Vec) bool
+		barriers bool
 	}
+	clause := func(v counts.Vec) bool { return v[0]+v[1]+v[2] > 0 }
 	vs := []variant{
-		{"every projection", nil},
-		{"verbs' projections (counts with S)", func(v counts.Vec) bool { return v[0] > 0 }},
-		{"nouns' projections (counts NP)", func(v counts.Vec) bool { return v == counts.Vec{0, 1, 0, 0} }},
+		{"every projection", nil, true},
+		{"verbs' projections (counts with a clause)", clause, true},
+		{"verbs' projections, no scope barriers", clause, false},
+		{"nouns' projections (counts NP)", func(v counts.Vec) bool { return v == counts.Vec{0, 0, 0, 1, 0, 0} }, true},
+	}
+	var out *os.File
+	if perSentence != "" {
+		var err error
+		if out, err = os.Create(perSentence); err != nil {
+			panic(err)
+		}
+		defer out.Close()
 	}
 	var done int
 	var hT, hTW float64
@@ -443,6 +456,9 @@ func attachment(g *cfg.Grammar, sample []sentence, spelled [][]string, weight []
 	for i, s := range sample {
 		f := g.Parse(spelled[i])
 		c := f.Count()
+		if out != nil {
+			fmt.Fprintf(out, "%s\ttrees\t%.4f\n", s.id, fr.Log10(c))
+		}
 		if c.Sign() == 0 || !c.IsInt64() || c.Int64() > limit {
 			continue
 		}
@@ -460,18 +476,23 @@ func attachment(g *cfg.Grammar, sample []sentence, spelled [][]string, weight []
 			k++
 			trees[key], treesW[key] = 1, w
 			for j, v := range vs {
-				q := flatKey(t, v.only)
+				q := flatKey(t, v.only, v.barriers)
 				classes[j][q]++
 				classesW[j][q] += w
 			}
 		}
 		hT += entropyOf(trees)
 		hTW += entropyOf(treesW)
-		for j := range vs {
+		for j, v := range vs {
 			hC[j] += entropyOf(classes[j])
 			hCW[j] += entropyOf(classesW[j])
+			if out != nil {
+				fmt.Fprintf(out, "%s\tclasses: %s\t%.4f\n", s.id, v.name, math.Log10(float64(len(classes[j]))))
+			}
 		}
-		_ = s
+	}
+	if done == 0 {
+		return
 	}
 	d := float64(done)
 	fmt.Printf("\nOrder of attachment, auxiliaries and modifiers counting zero: the oracle forests of at most %d trees (%d sentences), enumerated\n", limit, done)

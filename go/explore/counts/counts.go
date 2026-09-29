@@ -32,30 +32,131 @@ package counts
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/cbrew/quadruplet/go/cfg"
 	"github.com/cbrew/quadruplet/go/interp"
 )
 
-// Vec is counts of S, NP, PP and AP.
-type Vec [4]int
+// Vec is counts of the basic types: S (a finite clause), I (a nonfinite
+// one), W (a wh- or if/whether clause, or a question), NP, PP and AP.
+type Vec [6]int
 
-func (v Vec) add(w Vec) Vec { return Vec{v[0] + w[0], v[1] + w[1], v[2] + w[2], v[3] + w[3]} }
-func (v Vec) sub(w Vec) Vec { return Vec{v[0] - w[0], v[1] - w[1], v[2] - w[2], v[3] - w[3]} }
-func (v Vec) scale(k int) Vec {
-	return Vec{k * v[0], k * v[1], k * v[2], k * v[3]}
+func (v Vec) add(w Vec) Vec {
+	for i := range v {
+		v[i] += w[i]
+	}
+	return v
 }
 
-// String is the counts as a grammar symbol: S1.N-1.P0.A0.
-func (v Vec) String() string { return fmt.Sprintf("S%d.N%d.P%d.A%d", v[0], v[1], v[2], v[3]) }
+func (v Vec) sub(w Vec) Vec {
+	for i := range v {
+		v[i] -= w[i]
+	}
+	return v
+}
+
+func (v Vec) scale(k int) Vec {
+	for i := range v {
+		v[i] *= k
+	}
+	return v
+}
+
+// String is the counts as a grammar symbol: S1.I0.W0.N-1.P0.A0.
+func (v Vec) String() string {
+	return fmt.Sprintf("S%d.I%d.W%d.N%d.P%d.A%d", v[0], v[1], v[2], v[3], v[4], v[5])
+}
 
 var (
-	vS  = Vec{1, 0, 0, 0}
-	vNP = Vec{0, 1, 0, 0}
-	vPP = Vec{0, 0, 1, 0}
-	vAP = Vec{0, 0, 0, 1}
+	vS  = Vec{1, 0, 0, 0, 0, 0}
+	vI  = Vec{0, 1, 0, 0, 0, 0}
+	vW  = Vec{0, 0, 1, 0, 0, 0}
+	vNP = Vec{0, 0, 0, 1, 0, 0}
+	vPP = Vec{0, 0, 0, 0, 1, 0}
+	vAP = Vec{0, 0, 0, 0, 0, 1}
 )
+
+// clauseType is the type of the clause n is or ends in: W for a question or
+// a clause introduced by a wh-phrase, if or whether; else S if its verb
+// chain (the verb phrases down its heads) has a finite verb or a modal,
+// and I if not.
+func clauseType(n *interp.Node) Vec {
+	top := n.Chain[0]
+	if top == "SQ" || top == "SBARQ" {
+		return vW
+	}
+	if top == "SBAR" {
+		if wh(n) >= 0 {
+			return vW
+		}
+		if c := clauseDaughter(n); c >= 0 {
+			return clauseType(n.Kids[c])
+		}
+		return vS
+	}
+	// the verb chain: n itself if it ends in VP, else its VP daughter
+	v := n
+	if n.Bottom() != "VP" {
+		v = nil
+		for _, k := range n.Kids {
+			if !k.IsWord() && k.Chain[0] == "VP" {
+				v = k
+				break
+			}
+		}
+		if v == nil {
+			if top == "FRAG" || top == "RRC" {
+				return vS
+			}
+			return vI // a verbless small clause
+		}
+	}
+	for v != nil && !v.IsWord() {
+		var next *interp.Node
+		for _, k := range v.Kids {
+			switch {
+			case k.IsWord():
+				switch k.Cat {
+				case "VBD", "VBZ", "VBP", "MD":
+					return vS
+				}
+			case k.Chain[0] == "VP" && next == nil:
+				next = k
+			}
+		}
+		v = next
+	}
+	return vI
+}
+
+// wh is the daughter of an SBAR that makes it a W clause: a wh-phrase, or
+// if or whether; -1 if none.
+func wh(n *interp.Node) int {
+	for i, k := range n.Kids {
+		if k.IsWord() {
+			if w := strings.ToLower(k.Word); k.Cat == "IN" && (w == "if" || w == "whether") {
+				return i
+			}
+			continue
+		}
+		if strings.HasPrefix(k.Chain[0], "WH") {
+			return i
+		}
+	}
+	return -1
+}
+
+// clauseDaughter is an SBAR's clause, or -1.
+func clauseDaughter(n *interp.Node) int {
+	for i, k := range n.Kids {
+		if !k.IsWord() && clauses[k.Chain[0]] {
+			return i
+		}
+	}
+	return -1
+}
 
 var clauses = map[string]bool{"S": true, "SQ": true, "SINV": true, "SBARQ": true, "SBAR": true, "FRAG": true, "RRC": true}
 var nouns = map[string]bool{"NP": true, "NML": true, "NX": true, "WHNP": true, "NAC": true}
@@ -78,9 +179,9 @@ func category(n *interp.Node) Vec {
 	top, bottom := n.Chain[0], n.Bottom()
 	switch {
 	case bottom == "VP":
-		return vS.sub(vNP)
+		return clauseType(n).sub(vNP)
 	case clauses[top]:
-		return vS
+		return clauseType(n)
 	case nouns[top]:
 		return vNP
 	case top == "PP" || top == "WHPP":
@@ -226,26 +327,57 @@ func conjuncts(n *interp.Node) []int {
 // spelled as in n.
 type Tree = cfg.Tree
 
+// Options are choices in the conversion.
+type Options struct {
+	// NormalVerbs puts each verb's projection in a normal form: the
+	// verb, and its dependents (complements, and modifiers counting zero,
+	// auxiliaries among them) attached one at a time, head outward: those
+	// on its right first, nearest first, then those on its left, nearest
+	// first. The phrases in between are labelled R:counts and L:counts, and
+	// the projection's top by its counts. So a projection's tree is fixed
+	// by its verb and its dependents, whatever the order of attachment was.
+	NormalVerbs bool
+}
+
 // Convert relabels a tree as annotated.jsonl gives it, rooted at Top.
-func Convert(root *interp.Node) (*Tree, error) {
+func Convert(root *interp.Node) (*Tree, error) { return ConvertWith(root, Options{}) }
+
+// ConvertWith is Convert with options.
+func ConvertWith(root *interp.Node, o Options) (*Tree, error) {
 	if len(root.Kids) != 1 {
 		return nil, fmt.Errorf("root %s has %d daughters", root.Label, len(root.Kids))
 	}
-	out := &Tree{Label: "Top", Children: []*Tree{convert(root.Kids[0], category(root.Kids[0]))}}
+	cv := converter{o}
+	out := &Tree{Label: "Top", Children: []*Tree{cv.convert(root.Kids[0], category(root.Kids[0]))}}
 	if err := Check(out); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func convert(n *interp.Node, c Vec) *Tree {
+type converter struct{ o Options }
+
+func (cv converter) convert(n *interp.Node, c Vec) *Tree {
 	if n.IsWord() {
 		return &Tree{Label: n.Cat + "_" + c.String(), Words: []string{n.Word}}
 	}
 	// a phrase over one daughter is that daughter, with the same counts
 	if len(n.Kids) == 1 {
-		return convert(n.Kids[0], c)
+		return cv.convert(n.Kids[0], c)
 	}
+	if cv.o.NormalVerbs && n.Bottom() == "VP" && conjuncts(n) == nil {
+		return cv.normal(n, c)
+	}
+	counts := cv.share(n, c)
+	out := &Tree{Label: c.String()}
+	for i, k := range n.Kids {
+		out.Children = append(out.Children, cv.convert(k, counts[i]))
+	}
+	return out
+}
+
+// share gives each daughter of n its counts, n having c.
+func (cv converter) share(n *interp.Node, c Vec) []Vec {
 	counts := make([]Vec, len(n.Kids))
 	if cj := conjuncts(n); cj != nil {
 		in := map[int]bool{}
@@ -270,6 +402,18 @@ func convert(n *interp.Node, c Vec) *Tree {
 				counts[i] = each.scale(-(len(cj) - 1))
 			}
 		}
+	} else if n.Bottom() == "SBAR" && clauseDaughter(n) >= 0 {
+		// the clause keeps its own type; a wh-phrase, if or whether (or
+		// else the first daughter) carries the difference
+		cl := clauseDaughter(n)
+		counts[cl] = clauseType(n.Kids[cl])
+		carrier := wh(n)
+		if carrier < 0 {
+			carrier = cl
+			counts[cl] = c
+		} else {
+			counts[carrier] = c.sub(counts[cl])
+		}
 	} else {
 		h := head(n)
 		rest := Vec{}
@@ -281,11 +425,80 @@ func convert(n *interp.Node, c Vec) *Tree {
 		}
 		counts[h] = c.sub(rest)
 	}
-	out := &Tree{Label: c.String()}
-	for i, k := range n.Kids {
-		out.Children = append(out.Children, convert(k, counts[i]))
+	return counts
+}
+
+// dependent is a daughter on a verb's projection that is not on its chain
+// of heads, with its counts and the position of its first word.
+type dependent struct {
+	n     *interp.Node
+	c     Vec
+	first int
+}
+
+func firstWord(n *interp.Node) int {
+	for !n.IsWord() {
+		n = n.Kids[0]
 	}
-	return out
+	return n.Pos
+}
+
+// normal is the verb projection topped by n in normal form: down its
+// chain of heads (layers of adjunction and auxiliaries, whose head is a
+// verb phrase) to the lexical verb phrase and its verb, gathering the
+// dependents; then the verb (the core: the head of the lowest phrase, which
+// may also be a coordination) with the dependents attached head outward.
+func (cv converter) normal(n *interp.Node, c Vec) *Tree {
+	var deps []dependent
+	m, cm := n, c
+	var core *Tree
+	coreFirst := 0
+	for {
+		for len(m.Kids) == 1 && !m.IsWord() {
+			m = m.Kids[0]
+		}
+		if m.IsWord() || conjuncts(m) != nil {
+			core, coreFirst = cv.convert(m, cm), firstWord(m)
+			break
+		}
+		counts := cv.share(m, cm)
+		h := head(m)
+		for i, k := range m.Kids {
+			if i != h {
+				deps = append(deps, dependent{k, counts[i], firstWord(k)})
+			}
+		}
+		hk := m.Kids[h]
+		if hk.IsWord() || hk.Bottom() != "VP" {
+			core, coreFirst = cv.convert(hk, counts[h]), firstWord(hk)
+			break
+		}
+		m, cm = hk, counts[h]
+	}
+	var left, right []dependent
+	for _, d := range deps {
+		if d.first < coreFirst {
+			left = append(left, d)
+		} else {
+			right = append(right, d)
+		}
+	}
+	slices.SortFunc(right, func(a, b dependent) int { return a.first - b.first })
+	slices.SortFunc(left, func(a, b dependent) int { return b.first - a.first })
+	x := core
+	cur, _ := Parse(core.Label)
+	for _, d := range right {
+		cur = cur.add(d.c)
+		x = &Tree{Label: "R:" + cur.String(), Children: []*Tree{x, cv.convert(d.n, d.c)}}
+	}
+	for _, d := range left {
+		cur = cur.add(d.c)
+		x = &Tree{Label: "L:" + cur.String(), Children: []*Tree{cv.convert(d.n, d.c), x}}
+	}
+	if x != core {
+		x.Label = c.String()
+	}
+	return x
 }
 
 // Parse reads a counts label: a phrase's, or the part after a word's tag.
@@ -293,8 +506,9 @@ func Parse(label string) (Vec, bool) {
 	if i := strings.LastIndex(label, "_"); i >= 0 {
 		label = label[i+1:]
 	}
+	label = strings.TrimPrefix(strings.TrimPrefix(label, "R:"), "L:")
 	var v Vec
-	_, err := fmt.Sscanf(label, "S%d.N%d.P%d.A%d", &v[0], &v[1], &v[2], &v[3])
+	_, err := fmt.Sscanf(label, "S%d.I%d.W%d.N%d.P%d.A%d", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5])
 	return v, err == nil
 }
 
