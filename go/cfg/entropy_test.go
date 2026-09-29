@@ -237,7 +237,7 @@ func TestWeightedEntropyAgainstEnumeration(t *testing.T) {
 			weights[r.String()] = 0.05 + rng.Float64()
 		}
 		c := ownerContext(g)
-		c.Weight = func(e Hyperedge) float64 {
+		c.Weight = func(_ Item, e Hyperedge) float64 {
 			if e.Step < 0 || g.Steps[e.Step].Rule < 0 {
 				return 1
 			}

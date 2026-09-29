@@ -29,6 +29,12 @@
 // counts.tsv counts the rules of all the documents, the test sentences' own
 // among them; with -train the counts are the training documents', plus one.
 //
+// With -pcfg -lexweights, each verb's use (its tag renamed by package
+// frames, at the -lexicon grain or core) is weighted besides by
+// P(use | lemma, tag) / P(use | tag), learned from the training documents and
+// smoothed toward P(use | tag): the grammar with split tags and lexical
+// emission probabilities, the lexicon as probabilities rather than a filter.
+//
 // With -lexicon GRAIN, the grammar is the one package frames renames at that
 // grain, with the frame lexicon cmd/framelex learns (frames seen once or more
 // with lemmas seen -lemma times or more), so the decomposition is of the
@@ -176,6 +182,9 @@ func main() {
 	minLemma := flag.Int("lemma", 5, "restrict a lemma's frames only if it was seen this often in training")
 	seed := flag.Uint64("seed", 1, "the sample's random seed")
 	pcfg := flag.Bool("pcfg", false, "weigh each tree by its rules' relative frequencies in the treebank, not every tree alike")
+	grainFlag := flag.String("grain", "core", "the grain of verbs' uses, where -lexicon does not give it: core, pp or rule")
+	lexWeights := flag.Bool("lexweights", false, "with -pcfg, weigh each verb's use by P(use | lemma, tag) / P(use | tag) from the training documents")
+	alpha := flag.Float64("alpha", 5, "with -lexweights, smooth P(use | lemma, tag) toward P(use | tag) with this many pseudo-counts")
 	trainOnly := flag.Bool("train", false, "with -pcfg, count the rules in the training documents only, adding one to every rule's count")
 	flag.Parse()
 	if *countsFile == "" || *annotatedFile == "" || *lemmasFile == "" {
@@ -203,7 +212,7 @@ func main() {
 
 	grain := *lexicon
 	if grain == "" {
-		grain = "core" // renamed but unfiltered: the same trees as the grammar
+		grain = *grainFlag // renamed but unfiltered: the same trees as the grammar
 	}
 	rn := fr.Rename(rules, grain)
 	allow := func(string) map[string]bool { return nil }
@@ -216,6 +225,7 @@ func main() {
 		fail(err)
 	}
 	ctx := verbContext(g)
+	var current fr.Sentence // the sentence being measured, for lexical weights
 	if *pcfg {
 		// the renamed rules' probabilities are the rules'
 		if *trainOnly {
@@ -252,9 +262,53 @@ func main() {
 				weight[i] = renamed[g.Rules[st.Rule].String()]
 			}
 		}
-		ctx.Weight = func(e cfg.Hyperedge) float64 {
-			if e.Step < 0 {
+		// a verb's use given its lemma, against its use given its tag alone:
+		// the lexical hyperedge of tag~use over the word is its emission
+		// probability in the grammar with split tags, up to P(word), which
+		// is the same in every tree of the sentence
+		useOf := map[string]string{}
+		for use, id := range rn.IDs {
+			useOf[id] = use
+		}
+		byLemma := map[[2]string]map[string]float64{} // (lemma, tag) -> use -> tokens
+		byTag := map[string]map[string]float64{}      // tag -> use -> tokens
+		if *lexWeights {
+			for _, s := range train {
+				for _, u := range fr.Uses(s.Tree, lemmas) {
+					k := [2]string{u.Lemma, u.Leaf.Label}
+					if byLemma[k] == nil {
+						byLemma[k] = map[string]float64{}
+					}
+					if byTag[u.Leaf.Label] == nil {
+						byTag[u.Leaf.Label] = map[string]float64{}
+					}
+					byLemma[k][u.Label(grain)]++
+					byTag[u.Leaf.Label][u.Label(grain)]++
+				}
+			}
+		}
+		total := func(m map[string]float64) float64 {
+			t := 0.0
+			for _, v := range m {
+				t += v
+			}
+			return t
+		}
+		lexical := func(word, sym string) float64 {
+			tag, id, ok := strings.Cut(sym, "~")
+			if !ok || !*lexWeights {
 				return 1
+			}
+			use := useOf[id]
+			// P(use | tag), add-one over the uses the grammar has for the tag
+			pTag := (byTag[tag][use] + 1) / (total(byTag[tag]) + float64(len(rn.ByTag[tag])))
+			k := [2]string{lemmas.Of(word, tag), tag}
+			pLemma := (byLemma[k][use] + *alpha*pTag) / (total(byLemma[k]) + *alpha)
+			return pLemma / pTag
+		}
+		ctx.Weight = func(it cfg.Item, e cfg.Hyperedge) float64 {
+			if e.Step < 0 {
+				return lexical(current.Words[it.L], g.Names[it.Sym])
 			}
 			return weight[e.Step]
 		}
@@ -321,6 +375,7 @@ func main() {
 	var perWord []float64
 	parsed := 0
 	for _, s := range sample {
+		current = s
 		f := g.Parse(s.Spell())
 		if len(f.Goals) == 0 {
 			continue
@@ -380,6 +435,9 @@ func main() {
 			from = "the training documents, each count plus one"
 		}
 		fmt.Printf("each tree weighted by its rules' relative frequencies (P(rule | parent)) in %s; entropies are of that distribution\n", from)
+		if *lexWeights {
+			fmt.Printf("and each verb's use by P(use | lemma, tag) / P(use | tag) at the %s grain, from the training documents, smoothed with %g pseudo-counts\n", grain, *alpha)
+		}
 	}
 	if *lexicon != "" {
 		fmt.Printf("the trees a frame lexicon at the %s grain allows (lemmas seen %d+ times in training)\n", grain, *minLemma)

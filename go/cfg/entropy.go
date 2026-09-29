@@ -17,10 +17,12 @@ import (
 // ones before, level len(Groups) that of the hyperedge given them all.
 type Context struct {
 	// Weight, if not nil, weighs the trees: a tree is as likely as the
-	// product of its hyperedges' weights (a probabilistic grammar puts the
-	// rule's probability on the step that completes it, and 1 on the others).
-	// If nil, every tree is as likely as any other, and the counts are exact.
-	Weight func(e Hyperedge) float64
+	// product of its hyperedges' weights, each given with the item it builds
+	// (a probabilistic grammar puts the rule's probability on the step that
+	// completes it, 1 on the others, and a word's probability given its tag
+	// on the lexical hyperedge). If nil, every tree is as likely as any
+	// other, and the counts are exact.
+	Weight func(item Item, e Hyperedge) float64
 
 	Start  int
 	Next   func(state int, item Item, e Hyperedge, child Item) int
@@ -207,8 +209,8 @@ func (f *Forest) measure(c Context) measure {
 func (f *Forest) weighted(c Context) measure {
 	m := measure{order: f.Order(), mu: make([]map[int]float64, len(f.Items))}
 	inside := make([]float64, len(f.Items))
-	edge := func(h Hyperedge) float64 {
-		v := c.Weight(h)
+	edge := func(x int32, h Hyperedge) float64 {
+		v := c.Weight(f.Items[x], h)
 		if h.Left >= 0 {
 			v *= inside[h.Left]
 		}
@@ -219,7 +221,7 @@ func (f *Forest) weighted(c Context) measure {
 	}
 	for _, x := range m.order {
 		for e, end := f.EdgeRange(x); e < end; e++ {
-			inside[x] += edge(*f.Edge(e))
+			inside[x] += edge(x, *f.Edge(e))
 		}
 	}
 	total := 0.0
@@ -246,7 +248,7 @@ func (f *Forest) weighted(c Context) measure {
 					kids = append(kids, h.Right)
 				}
 				for k, kid := range kids {
-					v := o * c.Weight(h)
+					v := o * c.Weight(f.Items[x], h)
 					if len(kids) == 2 {
 						v *= inside[kids[1-k]]
 					}
@@ -272,7 +274,7 @@ func (f *Forest) weighted(c Context) measure {
 		first, end := f.EdgeRange(x)
 		var out []float64
 		for e := first; e < end; e++ {
-			out = append(out, edge(*f.Edge(e))/inside[x])
+			out = append(out, edge(x, *f.Edge(e))/inside[x])
 		}
 		return out
 	}
