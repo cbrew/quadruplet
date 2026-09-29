@@ -25,7 +25,9 @@ The mapping, record field by field:
     *make it better*); finite, s-that, s-2 (no complementizer) or s-X; a
     question or wh-clause, s-if or s-w. An empty clause is typed by its
     antecedent; one with none (*?*) is s-2, or s-that for an SBAR.
-* extraposed clauses belong to the expletive's host, and are left out.
+* an extraposed clause whose expletive is the verb's subject (*it appears
+  that ...*) is placed as a clause, beside x (Schulte im Walde's xs-dass);
+  other extraposed dependents (*ICH*) are left out.
 * modifiers: the verb phrase's own, its auxiliaries' and its clause's; the
   auxiliaries and modals, by lemma (*to* is not one); negation.
 """
@@ -166,6 +168,15 @@ def frame(rec: dict) -> Frame:
     args: dict[str, Argument] = {}
     subject(rec, args)
     particles = complements(rec, args)
+    if "x" in args:
+        for e in rec["extraposed"]:
+            info = e.get("clause")
+            if info is not None and info["type"] in ("S", "W"):
+                place(args, clause_slot(e, info), label=e["label"], marker=info.get("marker"),
+                      head=_head(e), form=info["form"], span=_span(e))
+            elif info is not None:
+                place(args, "i", label=e["label"], marker=info.get("marker"), head=_head(e),
+                      form=info["form"], span=_span(e))
     lemma = "_".join([rec["lemma"]] + particles)
     mods = [modifier(m) for m in rec["modifiers"]]
     mods += [modifier(m) for m in rec["modifiers_above"]]

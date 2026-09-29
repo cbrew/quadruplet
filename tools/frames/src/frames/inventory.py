@@ -108,7 +108,9 @@ class Argument:
     `marker` is a prepositional object's preposition or a clause's
     complementizer or wh-word; `head` the filler's lexical head; `form` a
     clause's verb form (finite, to, bare, ing, en, verbless). `span` is the
-    filler's words, [first, last + 1], where it has any.
+    filler's words, [first, last + 1], where it has any. `score` is an
+    analyzer's confidence that it is an argument at all (a prepositional
+    phrase's, say); None where that was not in question.
     """
 
     symbol: str
@@ -118,6 +120,7 @@ class Argument:
     head: str | None = None
     form: str | None = None
     span: tuple[int, int] | None = None
+    score: float | None = None
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -125,7 +128,8 @@ class Modifier:
     """One modifier of the verb, with what can be seen of it. `tag` is the
     treebank's function tag (TMP, LOC ...), which a parser does not give;
     `where` says whether it stood in the verb's own phrase, an auxiliary's,
-    or the clause's."""
+    or the clause's. `score` is as an argument's: the confidence that it is
+    an argument, for a modifier that might have been one."""
 
     kind: Kind
     marker: str | None = None
@@ -134,6 +138,7 @@ class Modifier:
     tag: str | None = None
     where: str = "verb"
     span: tuple[int, int] | None = None
+    score: float | None = None
 
     def key(self) -> str:
         """The modifier as the multiset counts it: its kind, and its

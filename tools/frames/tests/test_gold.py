@@ -80,3 +80,9 @@ def test_refined_and_modifiers():
 def test_json_round_trip():
     f = frames_of("((S (NP-SBJ (PRP She)) (VP (VBD gave) (NP (NNP Mary)) (NP (NNS books)))))")["gave"]
     assert Frame.from_json(f.to_json()) == f
+
+
+def test_extraposed_clause_beside_expletive():
+    f = frames_of("((S (NP-SBJ (NP (PRP It)) (S (-NONE- *EXP*-1))) (VP (VBZ appears) "
+                  "(SBAR-1 (IN that) (S (NP-SBJ (PRP it)) (VP (VBZ works)))))))")["appears"]
+    assert f.symbols() == "xs-that"
