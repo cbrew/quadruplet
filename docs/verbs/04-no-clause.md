@@ -14,12 +14,10 @@ object of a passive participle is left unbound.
 
 ## Question
 
-What are the verbs that `verbframes.py` reports as having "no clause above"
-(1,983 in an NP, 234 FRAG, 195 root, 113 UCP, 70 EDITED, and smaller
-groups), how are they spread over MASC's spoken and written genres, what is
-the understood subject of each construction and does the annotation record
-it, and how many are genuine constructions, how many annotation errors, and
-how many artefacts of spoken language?
+Which constructions are the verbs `verbframes.py` finds with "no clause
+above" (1,983 in NP, 234 FRAG, 195 root, 113 UCP, 70 EDITED, ...), how do
+they spread over genres, what is their understood subject and is it
+annotated, and how many are genuine, errors, or artefacts of speech?
 
 ## Data and method
 
@@ -61,9 +59,8 @@ court and debate transcripts).
 
 | class | spoken | written | all |
 |---|---|---|---|
-| reduced relative: VBN | 58 | 1175 | 1233 |
+| reduced relative: VBN (+5 tagged VBD, written) | 58 | 1175 | 1233 |
 | reduced relative: VBG | 58 | 651 | 709 |
-| reduced relative: VBD (tag error) | 0 | 5 | 5 |
 | root: gerund or participle | 4 | 168 | 172 |
 | root: bare VP, other (mostly imperatives) | 0 | 21 | 21 |
 | FRAG: VP with other material | 12 | 73 | 85 |
@@ -77,8 +74,7 @@ court and debate transcripts).
 | disfluency (EDITED) | 67 | 8 | 75 |
 | error: subject is a sister of the VP (no S) | 13 | 79 | 92 |
 | error: S closed before its VP | 7 | 15 | 22 |
-| finite or base VP inside a phrase | 0 | 11 | 11 |
-| SBAR without S | 0 | 3 | 3 |
+| finite VP inside a phrase (11), SBAR without S (3) | 0 | 14 | 14 |
 | other | 1 | 9 | 10 |
 | **all** | 256 | 2452 | 2708 |
 
