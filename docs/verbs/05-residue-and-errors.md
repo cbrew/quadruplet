@@ -37,7 +37,7 @@ $R sample 150 20260928; $R sample 150 7; $R show 'essays/Ohio_Steel#17' 18 2
 empty NP; an untagged overt NP before the VP (after the verb in SQ); a
 preceding sister S holding only an -SBJ; or no subject position at all. I
 then read every one of the 146 trees. `HAND` in the script records the 21
-where I overrode the mechanical class; `OTHER_ERRORS` lists the 54 errors
+where I overrode the mechanical class; `OTHER_ERRORS` lists the 56 errors
 found outside the residue. The error-rate sample is 2 × 150 verbs drawn
 with fixed seeds (one verb drawn twice), each read with its clause. I counted as an error only
 what contradicts the Penn Treebank bracketing guidelines (Bies et al. 1995)
@@ -89,7 +89,7 @@ Searches for other odd frames (`wacky`, `singletons`):
 | VB* on a non-verb form | 28 | 2 (the rest: 24 × "=" as VBZ; dialect "it" = *hit*) |
 | S complement with two -SBJ | 1 | 1 |
 | clause with two -SBJ daughters | 4 verbs, 3 sentences | 3 sentences |
-| VP daughter with more than one function tag | 1,408 | 5 NP-SBJ inside VP, 2 duplicated tags; the rest legitimate (LOC-PRD, CLR-LOC, PRD-PRP ...) |
+| VP daughter tagged SBJ, or with more than one function tag | 1,408 | 5 NP-SBJ inside VP, 2 duplicated tags; the rest legitimate (LOC-PRD, CLR-LOC, PRD-PRP ...) |
 | verbs with an NP object in ≥95% of ≥20 active uses (62), used with no object, clause or trace | 47 | 7 |
 | frames occurring once (208 of 559 distinct full frames) | 208 | 23 (11%) |
 | random sample of verbs (2 × 150 draws, 1 repeat) | 299 | 4 (1.3%; 95% CI 0.4–3.4%) |
@@ -191,10 +191,10 @@ SQ/SBARQ/SINV, UCP, EQUA), or a malformed tag (4).
      subject *PRO" and `*RNR-2` the frame `NP(*RNR)`; duplicated tags give
      frames like `PP-CLR-CLR`.
    - A suggestion, untested: accepting an untagged NP daughter before the
-     VP (after the verb in SQ/SINV) as the subject would absorb 70 of the
-     75 untagged subjects.
+     VP (after the verb in SQ/SINV) as the subject would absorb about 70
+     of the 75 untagged subjects.
 5. **Beyond subjects, frame errors are rare and cluster in rare frames.**
-   The targeted searches confirm 54 further errors (table below): spurious
+   The targeted searches confirm 56 further errors (table below): spurious
    or missing -PRD (object tagged PRD, ex. 14; adverbial *tonight* as a
    second PRD), NPs misplaced outside their VP or PP (ex. 12, 13, 15),
    untagged temporal or locative NPs read as objects (*tomorrow*,
@@ -209,7 +209,7 @@ SQ/SBARQ/SINV, UCP, EQUA), or a malformed tag (4).
    errors (ex. 14, 15; `blog/Anti-Terrorist#42`, NP-SBJ and VP under UCP;
    `movie-script/pirates#808`, *bodes ill* with *ill* as an NP object):
    1.3%, 95% interval 0.4–3.4% (Clopper–Pearson). The exhaustive searches
-   give a lower bound of about 190 verbs (136 + 54), 0.27% of 70,101; they
+   give a lower bound of about 190 verbs (136 + 56), 0.27% of 70,101; they
    find only the kinds searched for, so the sample figure is the better
    estimate. Excluded: -CLR decisions (too inconsistent in PTB practice to
    call errors verb by verb) and faithful renderings of disfluent speech.
@@ -226,14 +226,14 @@ survive stripping are the 41 overt-subject and bracketing errors and the
 misattachments of finding 5. They give the backbone rules that exist only
 because of them (`S → S VP CC S`, `SBARQ → CC WHADVP SQ ADVP VP`, `VP → NP
 ADVP VBZ NP`, `INTJ → VP`, `ADJP → ADJP VP`, categories IP and RS), or hide
-in ordinary rules: *cried Time this week* becomes `VP → VBD NP NP`. Each is seen a handful of times; they add
-spurious ambiguity to the forests rather than affecting common analyses
-(speculative: I have not measured parser output). Pruning rules seen once
-or twice, or applying a short correction list to the gold trees before
-reading off the grammar, would remove most of them. The untagged subjects do
-not matter to the CFG, which has no function tags, but they are wrong
-training data for `interp.FunctionTable`'s SBJ (a few dozen of 4,249 test
-SBJs is negligible for its 98.5 F1).
+in ordinary rules: *cried Time this week* becomes `VP → VBD NP NP`. Each
+is seen a handful of times; they add spurious ambiguity to the forests
+rather than affecting common analyses (speculative: I have not measured
+parser output). Pruning rules seen once or twice, or a short correction
+list applied to the gold trees before reading off the grammar, would remove
+most of them. The untagged subjects do not matter to the CFG, which has no
+function tags; as training data for `interp.FunctionTable`'s SBJ they are
+75 among some 64,000 clause subjects, which is negligible.
 
 **(b) Verb frames and the complement/modifier distinction.** At about 1%,
 annotation error is well below the variation that -CLR and -PRD judgments
@@ -257,7 +257,7 @@ bracketing errors relate the subject to the wrong referent or to none (ex.
 6 makes *Time* an object of *cried*). Missing or untagged empty subjects do
 not matter to Flat as it stands, which ignores traces; they would matter as
 soon as traces are kept for gold trees (the 39,212 empty elements of
-flat-semantics.md), where 95 controlled subjects would lack their `sbj`
+flat-semantics.md), where 95 empty subjects would lack their `sbj`
 link. On parser output the learned function table would probably tag most
 clause-initial NPs SBJ regardless (speculative), so these gold-tree errors
 matter most for gold-tree readings.
@@ -273,14 +273,14 @@ The 136 residue errors (verb occurrence: `id:verb`; positions in
 | no empty subject (42) | 2nd_Gore-Bush#152:rebuild, 2nd_Gore-Bush#314:acting, 3rd_Bush-Kerry#233:blame, #345:vote, #811:see, #858:protect, Bmr021#751:combine, Anti-Terrorist#49:invite, Uprooted_Bike#36:tuning, #66:riding, #66:driving, Uprooted_Farming-on-Sand#36:tuning, #66:riding, #66:driving, blog-jet-lag#53:reset, detroit#125:take, lessig_blog-carbon#94:see, enron/54263#8:coming, ucb40#5:spend, ucb43#4:spend, lists-046-11493928#76:cover, Ant_Robot#231:assign, ficlets/1401#61:worry, ficlets/1402#82:Grabbing, The_Black_Willow#208:walk, #219:Emerging, captured_moments#114:remember, hotel-california#81:realize, jokes5#145:Drive, jokes5#146:Fill, :hit, :let, jokes8#31:right, ArticleIP_1059#15:Following, pirates#160:Recover (imperative, no IMP), pirates#704:putting, NYTnewswire6#56:keep, NYTnewswire8#10:Intending, :ease, rybczynski-ch3#181:divine, tweets1#288:watching, tweets2#645:go |
 | subject and VP in wrong constituents (19) | 2nd_Gore-Bush#608:made, Uprooted_Bike#12:are, Uprooted_Farming-on-Sand#12:are, Fastest_Reader#21:is, lists-046-12119260#4:was, A_defense_of_Michael_Moore#76:is, Madame_White_Snake#53:harmed, jokes11#32:rushed, 20020731-nyt#166:are, tweets1#510:hosting, tweets2#542:play (all: subject alone in a sister S); Ohio_Steel#17:fail, jokes4#32:make (VP outside SQ); Black_and_white#50:lifted (subject inside WHPP); jokes1#172:screamed, Article247_328#5:cried, rybczynski-ch3#70:is (subject inside VP); NYTnewswire2#19:put (subject trace as object, by-phrase PP-LOC); rybczynski-ch3#195:granted ("for granted" as SBAR + S; cf. #42) |
 
-The 54 errors found outside the residue (`OTHER_ERRORS` in the script has one
+The 56 errors found outside the residue (`OTHER_ERRORS` in the script has one
 line each, with verb positions):
 
 | kind | id: verb, and what is wrong |
 |---|---|
 | verb that is not a verb | non-fiction/CUP1#189: "2" (×2), superscript of km² tagged VBN with VP and passive trace |
 | verb not tagged as a verb | JJ heading a VP: wsj/wsj_0027#0 resigned, wsj/wsj_0151#7 scared, wsj/wsj_0173#0 peaked, blog/Fermentation_HR5034#19 shocked, journal/Article247_328#2 exact; NN heading a VP: spam/FBI_urgent#33 advice(d), journal/VOL15_3#312 effect, wsj/wsj_0120#11 set, fiction/captured_moments#512 island-hopping; NN elsewhere: govt-docs/chapter-10#157 refining (as NP-PRD of *been*), fiction/easy_money#41 push |
-| two subjects | philanthropic-fundraising/116CUL032#16 call (NP-SBJ *-1 and NP-SBJ *PRO*); journal/VOL15_3#124 is ×2 (two clauses flat in one S); journal/VOL15_3#136 has (dislocated NP tagged SBJ) |
+| two subjects, or object tagged SBJ | philanthropic-fundraising/116CUL032#16 call (NP-SBJ *-1 and NP-SBJ *PRO*); journal/VOL15_3#7 leap (*thou* as NP-SBJ inside the VP of a *PRO* infinitive); debate-transcript/2nd_Gore-Bush#734 convince (object tagged NP-SBJ-1); journal/VOL15_3#124 is ×2 (two clauses flat in one S); journal/VOL15_3#136 has (dislocated NP tagged SBJ) |
 | wrong or extra -PRD | fiction/Nathans_Bylichka#735 looked (NP-TMP-PRD *tonight*); movie-script/pirates#1153 's (NP-PRD and ADVP-LOC-PRD); non-fiction/ch5#81 transforms and face-to-face/Bmr021#655 got (object tagged NP-PRD); fiction/hotel-california#52 called (predicate trace without -PRD) |
 | object lost or misplaced | court-transcript/Day3PMSession#748, #767 put (title bracketed PP-TTL); twitter/tweets2#666 Thank and twitter/tweets2#19 gain (object outside VP); travel-guides/WhereToHongKong#23 carrying (object made subject of *guard*); non-fiction/rybczynski-ch3#256 judging (conjuncts outside the PP); solicitation-brochures/aspca1#39 handle (no object gap); spam/ucb45#6 are (NP-PRD outside VP) |
 | adverbial read as object | twitter/tweets1#386 do (*tomorrow* untagged); enron/9085#12 take (location of *take place* untagged); movie-script/pirates#808 bodes (*ill* as NP) |

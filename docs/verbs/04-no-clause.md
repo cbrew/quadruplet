@@ -32,33 +32,27 @@ python3 noclause.py $S/masc/data --show ID ...           # raw trees by sentence
 ```
 
 `noclause.py` walks the raw trees with `verbframes.py`'s own `Node`,
-lexical-verb test and upward walk through verb phrases, so it selects
-exactly the same 2,708 verbs (every one matches a record in `verbs.jsonl`
-by id and word position). For each it records the *attachment node* (the
-first non-VP ancestor), the sisters of the topmost VP, the empty elements
-in the VP, and assigns a class by rules applied in this order: (1) an
-EDITED ancestor; (2) an -SBJ sister of the VP (a subject with no S);
-(3) a left sister that is an S containing only an -SBJ (an S closed before
-its VP); (4) a movie-script VP after a bracketed character name, or
-*CONT'D*; (5) REF; (6) a TTL or HLN tag above; (7) no attachment node
-(root), by tag; (8) a VP in NP, NML, NX, QP, WHNP, PP, ADJP, NAC or RRC
-after nominal material: reduced relative, by tag (VBZ/VBP/VB/MD: "finite
-or base VP inside a phrase"); (9) a VP first in NP/NML; (10) UCP, split by
-whether a clause is reached going up through UCP and VP; (11) FRAG, split
-by whether other material precedes the VP; (12) SBAR; (13) other.
+lexical-verb test and upward walk, so it selects the same 2,708 verbs (each
+matches a `verbs.jsonl` record by id and position). It records the
+*attachment node* (first non-VP ancestor), the VP's sisters and its empty
+elements, and classifies by rules in this order: EDITED ancestor; an -SBJ
+sister of the VP; a left-sister S holding only an -SBJ; movie-script VP
+after a bracketed name, or *CONT'D*; REF; TTL/HLN above; root, by tag; VP
+in NP, NML, NX, QP, WHNP, PP, ADJP, NAC or RRC after nominal material
+(reduced relative by tag; VBZ/VBP/VB/MD as "finite or base VP inside a
+phrase"); VP first in NP/NML; UCP, by whether a clause is reached through
+UCP and VP; FRAG, by whether material precedes the VP; SBAR; other.
 
-To estimate what the rules cannot see, I read 150 verbs drawn at random
-from the 2,708 (seed 20260928) and judged each from its tree and sentence
-as **G** (a genuine construction annotated as the guidelines intend),
-**F** (a non-sentential unit), **D** (a disfluency), **E** (annotation
-error) or **e** (arguable error). Because the first sample showed that
-errors among reduced relatives concentrate in *NP , V-ing* sequences, I
-also judged a random 50 of the 111 VBG reduced relatives with a comma
-before the VP (seed 7). The judgements are in `noclause_sample.py`.
-Intervals are Wilson 95% intervals. Smaller counts quoted below (root
-conventions, `you know` brackets, coindexation, backbone rules) come from
-short one-off Python loops over the same files; each is described where
-it is used.
+To estimate what rules cannot see, I read 150 verbs drawn at random (seed
+20260928) and judged each from tree and sentence as **G** (genuine
+construction, annotated as the guidelines intend), **F** (non-sentential
+unit), **D** (disfluency), **E** (annotation error) or **e** (arguable
+error); and, since errors among reduced relatives clustered in *NP , V-ing*,
+a random 50 of the 111 VBG reduced relatives with a comma before the VP
+(seed 7). The judgements are in `noclause_sample.py`; intervals are Wilson
+95%. The smaller counts below (root conventions, *you know* brackets,
+coindexation, backbone rules) come from one-off loops over the same files,
+described where used.
 
 ## Counts
 
@@ -127,7 +121,7 @@ EDIT; ERR the four error-like classes of Table 1; OTH.
 
 | construction | n | understood subject (or object) | recorded? |
 |---|---|---|---|
-| reduced relative, VBN | 1233 | the modified noun, as logical object (as subject for unaccusatives: *stars gone supernova*) | no index: 1097 have an unindexed `(NP (-NONE- *))` object; 70 an indexed one that only controls a small-clause `*PRO*` below (*called X*); 33 a `*` in a PP or S; 36 no `*` at all |
+| reduced relative, VBN | 1233 | the modified noun, as logical object (as subject for unaccusatives: *stars gone supernova*) | no index: 1097 have an unindexed `(NP (-NONE- *))` object; 70 an indexed one that only controls a small-clause `*PRO*` below (*called X*); 33 a `*` in a PP or S; 9 other empty elements only; 24 none |
 | reduced relative, VBG | 709 | the modified noun, as subject | no: nothing in the VP stands for it |
 | UCP under a clause | 72 | the clause's subject | 23 VBN have `*-n` bound to the NP-SBJ; the rest only by structure |
 | root gerund or participle | 172 | generic, or the writer (*Singing in the shower.*), or the poster (*Posted by ...*) | no |
@@ -137,11 +131,6 @@ EDIT; ERR the four error-like classes of Table 1; OTH.
 | title, headline, compound, citation | 71 | none, generic, or the author | no |
 | EDITED | 75 | the subject of the repair | only by structure |
 | error classes | 128 | an NP-SBJ that is there, but outside any S | yes, but invisible to `verbframes.py` |
-
-Of the 1,947 reduced relatives, the modified noun phrase carries an index
-in exactly one case (`w3c/lists-046-12122969#36`, an NP-TPC-3 whose index
-happens to be used inside the VP); in the other 1,946 no index relates the
-noun to the verb.
 
 **Table 4.** How the clauseless verbs divide. Left: the random sample.
 Right: an estimate from the rule classes (all 2,708 classified) with the
@@ -154,15 +143,13 @@ within-class rates the samples give.
 | D disfluency | 5 (3.3%) | 1.4–7.6 | 75 (2.8%) |
 | E error (+ e arguable) | 11+2 (8.7%) | 5.1–14.3 | ≈210 (7.8%); ≈250 with arguable |
 
-The rule classes agreed with the judgements in every non-RR item (all 6
-"error" items were errors, all 24 root/FRAG/title/citation/stage items
-were F, all 5 EDITED were D). Inside the reduced relatives 5 of 109 were
-errors (2.0–10.3%) and 2 more arguable. The class-based estimate is:
-errors = 117 rule-detected (92 + 22 + 3, 25 of the 92 checked, all errors,
-interval for the rate 87–100%) + about 5 of the 11 finite VPs in NPs +
-1,947 × 5/109 ≈ 89 misattached participles (interval 39–200) ≈ 210. In the
-comma sample, 15 of 50 VBG reduced relatives were misattached (30%,
-19–44%) and 4 more arguable, so about 33 of the 111 comma cases alone.
+The rule classes matched the judgements for every item outside the
+reduced relatives (6 "error" items all E, 24 root/FRAG/title/citation/stage
+items all F, 5 EDITED all D); inside them 5 of 109 were errors (2.0–10.3%)
+and 2 arguable. Class-based errors: 117 rule-detected (25 of the 92
+checked, all errors: rate 87–100%) + about 5 of the 11 finite VPs in NPs +
+1,947 × 5/109 ≈ 89 misattached participles (39–200) ≈ 210. In the comma
+sample, 15 of 50 were misattached (30%, 19–44%), 4 more arguable.
 
 ## Examples
 
@@ -173,147 +160,121 @@ and `frame_backbone` from `verbs.jsonl`.
 2. `debate-transcript/2nd_Gore-Bush#1070` *too many issues left unresolved* — `(NP (NP ... (NNS issues)) (VP (VBN left) (NP-1 (-NONE- *)) (S (NP-SBJ (-NONE- *PRO*-1)) (ADJP-PRD (JJ unresolved)))))`; full `NP(*) S`, bb `S`. The index chain runs from the small-clause subject to the gap and stops.
 3. `debate-transcript/3rd_Bush-Kerry#613` *People listening out there know ...* — `(NP-SBJ (NP (NNS People)) (VP (VBG listening) (ADVP-LOC (RP out) (RB there))))`; full and bb empty. Active reduced relative: nothing represents the subject.
 4. `debate-transcript/2nd_Gore-Bush#1083` *promises kept* — `(NP-PRD (NP (NNS promises)) (VP (VBN kept)))`; full and bb empty. Passive with its `(NP *)` missing, unlike 1,097 others.
-5. `wsj/wsj_0127#0` *the six months ended Oct. 1* — `(NP (NP (DT the) (CD six) (NNS months)) (VP (VBD ended) (NP-TMP (NNP Oct.) (CD 1))))`; full and bb empty. Reduced relative with a VBD tag for a participle (also `wsj_0136#0`, `wsj_0189#3`, `wsj_0176#4`).
-6. `ficlets/1403#545` *Emilie plopped down on the couch, pulling a down pillow onto her lap* — `(NP (NP (DT the) (NN couch)) (VP (, ,) (VBG pulling) (NP ...)))`; full and bb `NP`. A free adjunct whose subject is *Emilie*, attached as if the couch pulled the pillow; the usual analysis is `S-ADV (NP-SBJ *PRO*)`.
-7. `non-fiction/rybczynski-ch3#24` *The library board had conducted a national search for an architect, visited new libraries ..., and solicited proposals* — `(NP (NP an architect) (VP (VP (, ,) (VBN visited) (NP ...)) (, ,) (CC and) (VP (VBN solicited) ...)))`; full and bb `NP`. Coordinated finite VPs of *the library board* attached as a participle modifying *an architect*.
-8. `blog/detroit#33` *Houses and businesses are boarded up, painted up, bombed out and falling down* — `(VP (VBP are) (UCP (VP (VBN boarded) (NP (-NONE- *-1)) (PRT up)) , (VP (VBN painted) (NP (-NONE- *-1)) (PRT up)) , (ADJP-PRD bombed out) (CC and) (VP (VBG falling) (PRT down))))`; *painted* full `NP(*) PRT`, bb `PRT`; *falling* `PRT`. Genuine unlike coordination; the passives' `*-1` is bound to NP-SBJ-1, but `verbframes.py` stops at UCP.
-9. `ficlets/1402#720` *Building a snow-man.* — `(VP (VBG Building) (NP (DT a) (NN snow-man)) (. .))`; full and bb `NP`. A list item ("things I love") as a bare VP at the root; elsewhere 311 such sentences are `S` with an empty subject.
-10. `solicitation-brochures/appalachian1#36` *Build an igloo?* — `(VP (VB Build) (NP (DT an) (NN igloo)) (. ?))`; `NP` / `NP`. Imperative as a bare VP, against 663 imperatives annotated `S-IMP` with `*PRO*`.
-11. `movie-script/JurassicParkIV-Scene_3#18` *IAN MALCOLM (smirking) Well, I don't ...* — `(REF (FRAG (NP (NNP IAN) (NNP MALCOLM)) (CODE -LRB-) (VP (VBG smirking))))`; empty / empty. Stage direction; its subject is the sister NP.
-12. `non-fiction/CUP1#219` *(modified after Stevens, 1974)* — `(REF (VP (VBN modified) (NP (-NONE- *)) (PP (IN after) (NP (NNP Stevens) , (NN 1974)))))`; `NP(*)` / empty. Citation formula; the object is the figure, the agent the author.
-13. `journal/VOL15_3#12` *Paradise Lost* — `(NP-TTL (NP (NN Paradise)) (VP (VBN Lost) (NP (-NONE- *))))`; `NP(*)` / empty. A reduced relative inside a title.
-14. `solicitation-brochures/defenders5#36` *get-out-the-vote efforts* — `(NML (VP (VB get) (HYPH -) (PRT (RP out)) (HYPH -) (NP (DT the) (HYPH -) (NN vote))))`; `PRT NP` / `PRT NP`. A lexicalized VP as a prenominal compound modifier; no subject is understood.
-15. `face-to-face/Bed012#812` *you can probably count - count the ways* — `(EDITED (VP (VB count)))`; empty / empty. Reparandum; the repair *count the ways* has the subject.
-16. `face-to-face/Bed012#766` *And not meet tomorrow?* — `(FRAG (CC And) (RB not) (VP (VB meet) (NP-TMP (NN tomorrow))) (. ?))`; empty / empty. A spoken fragment; the subject (*we*) is understood from the conversation.
-17. `jokes/jokes3#36` *Good Advice: The Japanese eat very little fat and suffer fewer heart attacks ...* — `(FRAG (NP Good Advice) (: :) (NP-SBJ (DT The) (NNP Japanese)) (VP (VP (VBP eat) ...) (CC and) (VP (VBP suffer) ...)))`; *eat* full `NP`, bb `NP`. The subject is annotated but the S is missing, so the frame has no SBJ.
-18. `telephone/sw2071-UTF16-ms98-a-trans#34` *you know* — `(PRN (S (NP-SBJ (PRP you))) (VP (VBP know)))`; empty / empty. The S closes before its VP (91 other *you know* parentheticals are bracketed correctly); the backbone learns `PRN -> SxNP VP` (7 times in MASC).
-19. `jokes/jokes1#82` *"You're in incredible shape," the doctor said.* — `(S-TPC-1 (NP-SBJ (PRP You) (VP (VBP 're) (PP-PRD ...))))`; `PP-PRD` / `PP-PRD`. A finite clause bracketed as a noun phrase.
+5. `ficlets/1403#545` *Emilie plopped down on the couch, pulling a down pillow onto her lap* — `(NP (NP (DT the) (NN couch)) (VP (, ,) (VBG pulling) (NP ...)))`; full and bb `NP`. A free adjunct whose subject is *Emilie*, attached as if the couch pulled the pillow; the usual analysis is `S-ADV (NP-SBJ *PRO*)`.
+6. `non-fiction/rybczynski-ch3#24` *The library board had conducted a national search for an architect, visited new libraries ..., and solicited proposals* — `(NP (NP an architect) (VP (VP (, ,) (VBN visited) (NP ...)) (, ,) (CC and) (VP (VBN solicited) ...)))`; full and bb `NP`. Coordinated finite VPs of *the library board* attached as a participle modifying *an architect*.
+7. `blog/detroit#33` *Houses and businesses are boarded up, painted up, bombed out and falling down* — `(VP (VBP are) (UCP (VP (VBN boarded) (NP (-NONE- *-1)) (PRT up)) , (VP (VBN painted) (NP (-NONE- *-1)) (PRT up)) , (ADJP-PRD bombed out) (CC and) (VP (VBG falling) (PRT down))))`; *painted* full `NP(*) PRT`, bb `PRT`; *falling* `PRT`. Genuine unlike coordination; the passives' `*-1` is bound to NP-SBJ-1, but `verbframes.py` stops at UCP.
+8. `ficlets/1402#720` *Building a snow-man.* — `(VP (VBG Building) (NP (DT a) (NN snow-man)) (. .))`; full and bb `NP`. A list item ("things I love") as a bare VP at the root; elsewhere 311 such sentences are `S` with an empty subject.
+9. `movie-script/JurassicParkIV-Scene_3#18` *IAN MALCOLM (smirking) Well, I don't ...* — `(REF (FRAG (NP (NNP IAN) (NNP MALCOLM)) (CODE -LRB-) (VP (VBG smirking))))`; empty / empty. Stage direction; its subject is the sister NP.
+10. `solicitation-brochures/defenders5#36` *get-out-the-vote efforts* — `(NML (VP (VB get) (HYPH -) (PRT (RP out)) (HYPH -) (NP (DT the) (HYPH -) (NN vote))))`; `PRT NP` / `PRT NP`. A lexicalized VP as a prenominal compound modifier; no subject is understood.
+11. `face-to-face/Bed012#812` *you can probably count - count the ways* — `(EDITED (VP (VB count)))`; empty / empty. Reparandum; the repair *count the ways* has the subject.
+12. `face-to-face/Bed012#766` *And not meet tomorrow?* — `(FRAG (CC And) (RB not) (VP (VB meet) (NP-TMP (NN tomorrow))) (. ?))`; empty / empty. A spoken fragment; the subject (*we*) is understood from the conversation.
+13. `jokes/jokes3#36` *Good Advice: The Japanese eat very little fat and suffer fewer heart attacks ...* — `(FRAG (NP Good Advice) (: :) (NP-SBJ (DT The) (NNP Japanese)) (VP (VP (VBP eat) ...) (CC and) (VP (VBP suffer) ...)))`; *eat* full `NP`, bb `NP`. The subject is annotated but the S is missing, so the frame has no SBJ.
+14. `telephone/sw2071-UTF16-ms98-a-trans#34` *you know* — `(PRN (S (NP-SBJ (PRP you))) (VP (VBP know)))`; empty / empty. The S closes before its VP (91 other *you know* parentheticals are bracketed correctly); the backbone learns `PRN -> SxNP VP` (7 times in MASC).
+15. `jokes/jokes1#82` *"You're in incredible shape," the doctor said.* — `(S-TPC-1 (NP-SBJ (PRP You) (VP (VBP 're) (PP-PRD ...))))`; `PP-PRD` / `PP-PRD`. A finite clause bracketed as a noun phrase.
 
 ## Findings
 
-1. **Most clauseless verbs are reduced relatives.** 1,947 of 2,708 (72%)
-   are participial VPs after a noun (Table 1); 1,233 VBN and 709 VBG. The
-   random sample confirms 102 of 109 of them as genuine.
-2. **They are a written-register construction.** Reduced relatives occur
-   at 33.3 per 1000 lexical verbs in written genres and 7.7 in spoken ones;
-   technical articles reach 105, government documents 62, travel guides
-   60, while telephone, court and debate transcripts have 6–10 (Table 2).
-   This agrees with what I recall (from memory) of Biber et al. (1999) on
-   post-nominal participle clauses being frequent in academic prose and
-   news and rare in conversation.
-3. **The understood subject is not recorded.** In 1,946 of 1,947 reduced
-   relatives the modified noun has no index. For VBG nothing in the VP
-   stands for the subject; for VBN the passive object `(NP (-NONE- *))` is
-   present in 1,097 cases but unbound, as the Penn Treebank guidelines
+1. **Most clauseless verbs are reduced relatives:** 1,947 of 2,708 (72%),
+   1,233 VBN and 709 VBG; the sample confirms 102 of 109 as genuine.
+2. **They belong to written registers:** 33.3 per 1000 lexical verbs in
+   written genres, 7.7 in spoken; technical 105, govt-docs 62, travel
+   guides 60, the transcripts 8–10, face-to-face 4 (Table 2). This agrees
+   with Biber et al. (1999), from memory, on post-nominal participle
+   clauses being common in academic prose and news, rare in conversation.
+3. **The understood subject is not recorded.** In 1,946 of the 1,947 the
+   modified noun has no index (the exception, `w3c/lists-046-12122969#36`,
+   is an NP-TPC-3). A VBG has nothing standing for its subject; a VBN has an
+   unbound `(NP (-NONE- *))` object in 1,097 cases, as the guidelines
    prescribe for reduced relatives (Bies et al. 1995, from memory). The
-   relation between noun and verb is purely configurational: NP → NP VP.
-4. **Some passive participles lack their empty object.** 36 VBN reduced
-   relatives have no `*` anywhere in the VP. Some are unaccusative or
-   adjectival and need none (*gone wrong*, *fallen*, *headed to China*,
-   *perched*, *crouched*, *15 seconds left*); others are passives with the
-   trace missing (Example 4; see the error table).
-5. **Participial adjuncts are often attached to the wrong noun.** Of 50
-   VBG reduced relatives of the form *NP , V-ing ...*, 15 (30%, 19–44%)
-   are free adjuncts whose subject is the clause's subject or the whole
-   event (Examples 6, 7): *Somebody was sitting in the room, beating his
-   hands against a book* (`ficlets/1402#520`) attaches *beating* to *the
-   room*. The correct analysis, `S-ADV` with an empty `*PRO*` subject, is
-   used 1,154 times for VBG elsewhere in MASC, so these are inconsistencies,
-   not a convention. Without the comma the rate is much lower (1 clear case
-   in about 90 in the random sample: `twitter/tweets1#87` *At work
-   conducting meetings*). Coordinated gerunds (*goals of increasing energy
-   supplies, accelerating ..., and increasing ...*,
-   `govt-docs/Env_Prot_Agency-nov1#138`) and a coordinated finite VP
-   (Example 7) are misattached the same way.
-6. **A missing or misplaced S accounts for 117–122 verbs.** In 92 an
-   -SBJ phrase is a sister of the VP under FRAG (32), SBAR (26), UCP (23)
-   or another phrase: typically *Label: Subject VP* in headings and tweets
-   (Example 17), `(SBAR (IN as) (NP-SBJ (-NONE- *PRO*)) (VP ...))` for
-   *as planned*, *based on*. In 22 an S contains only its subject and the
-   VP follows it (Example 18). Five more put a finite VP inside an NP
-   (Example 19). These are sporadic slips, not a convention: of 93 *you
-   know* parentheticals, 2 have the misplaced bracket; of 16 *I mean*, 1.
-   79 of the 92 are in written genres, most in twitter, govt-docs, movie
-   scripts and jokes.
+   relation is purely configurational, NP → NP VP.
+4. **Some passive participles lack their empty object.** 24 VBN reduced
+   relatives have no empty element. Some need none (*gone wrong*, *fallen*,
+   *headed to China*, *perched*, *15 seconds left*); others are passives
+   with the trace missing (Example 4, error table).
+5. **Participial adjuncts are often attached to the wrong noun.** 15 of 50
+   *NP , V-ing* reduced relatives (30%, 19–44%) are free adjuncts whose
+   subject is the clause's subject or the event (Examples 5, 6):
+   *Somebody was sitting in the room, beating his hands against a book*
+   (`ficlets/1402#520`) attaches *beating* to *the room*. The analysis
+   `S-ADV` with `*PRO*` is used 1,154 times for VBG elsewhere, so this is
+   inconsistency, not convention. In the random sample 4 of 6 comma-VBG
+   cases were such errors, against 1 of the other 103 reduced relatives
+   (`twitter/tweets1#87` *At work conducting meetings*), 2 arguable.
+   Coordinated gerunds (`govt-docs/Env_Prot_Agency-nov1#138`) and finite
+   VPs (Example 6) are misattached the same way.
+6. **A missing or misplaced S accounts for 117–122 verbs.** In 92 an -SBJ
+   phrase is a sister of the VP under FRAG (32), SBAR (26), UCP (23) or
+   another phrase: *Label: Subject VP* in headings and tweets (Example 13),
+   `(SBAR (IN as) (NP-SBJ (-NONE- *PRO*)) (VP ...))` for *as planned*
+   (`jokes/jokes10#135`). In 22 an S holds only its subject (Example 14);
+   about 5 put a finite VP inside an NP or ADJP (Example 15). These are
+   sporadic slips: 2 of 93 *you know* and 1 of 16 *I mean* parentheticals
+   have the misplaced bracket. 79 of the 92 are written, most in twitter,
+   govt-docs, movie scripts and jokes.
 7. **Bare VPs at the root mix two conventions.** 193 verbs (171 backbone
-   trees `Top -> VP`) sit in a VP with nothing above it. For stand-alone
-   gerunds, 141 trees are bare VPs and 311 are `S` with an empty subject;
-   82 of the bare-VP trees come from two ficlets list files (1402, 1403),
-   which use this bracketing almost uniformly (82 bare VP, 1 S). For
-   imperatives, 19 bare VPs stand against 663 `S-IMP` trees. The bare VP
-   looks like a per-file or per-annotator habit rather than a principled
-   distinction.
-8. **Unlike coordination is genuine, and its subject is available.** 72
-   verbs sit in a UCP that is itself a predicate under a clause (48 under a
-   copular or auxiliary VP, 23 directly under S): *fresh, made from
-   scratch, sassy and scrumptious* (`blog/Tupelo-Honey-Cafe#9`), Example 8.
-   Their subject is the clause's NP-SBJ; for 23 VBN it is even coindexed
-   through `*-n`. `verbframes.py` stops at the UCP and so misses it.
-9. **Non-sentential text is genre-specific.** Stage directions (50, all in
-   movie scripts), ficlets and jokes list items (root, 105 and 28),
-   twitter fragments (38), captions and headers (*Posted by ...*, *Sent:*,
-   in blog and enron), titles (33) and citation formulas (9: *modified
-   after X*, *qtd. in X*). These are well-formed units of their text types.
-10. **Spoken language contributes little and mostly disfluency.** The
-    spoken genres have 256 clauseless verbs, 16.9 per 1000 against 44.6 in
-    writing. Of these 116 are reduced relatives, 67 are reparanda under
-    EDITED, 32 fragments or root VPs and 20 errors. Spoken fragments are
-    rare (28 FRAG verbs in 15,151), and face-to-face conversation has most
-    of them (22). The 8 EDITED verbs in "written" genres are scripted
-    dialogue (6 movie script) or quoted speech.
-11. **The frame changes here are almost all passive reduced relatives.**
-    1,262 of the 2,708 have `frame_full` ≠ `frame_backbone`; 1,170 of these
-    are VBN reduced relatives losing `NP(*)` (e.g. `NP(*) PP-CLR` →
-    `PP-CLR`: 210). They are 4.3% of the 26,947 changed frames in MASC.
-    For VBG reduced relatives the two frames agree (708 of 709), but both
+   trees `Top -> VP`). Stand-alone gerunds are bare VPs in 141 trees and
+   `S` with an empty subject in 311; 82 of the bare ones are in two ficlets
+   list files (1402, 1403), which use it almost uniformly (82 to 1).
+   Imperatives: 19 bare VPs against 663 `S-IMP`. This looks like a
+   per-file or per-annotator habit, not a principled distinction.
+8. **Unlike coordination is genuine and its subject is available.** 72
+   verbs are in a UCP predicate under a clause (48 under a VP, mostly a
+   copula; 23 under S): *fresh, made from scratch, sassy and scrumptious*
+   (`blog/Tupelo-Honey-Cafe#9`), Example 7. The subject is the clause's
+   NP-SBJ, to which 23 VBN even bind an object `*-n`.
+9. **Non-sentential text is genre-specific:** stage directions (50, movie
+   scripts), list items at the root (ficlets 105, jokes 28), twitter
+   fragments (38), headers (*Posted by*, *Sent:* in blog, enron), titles
+   (33), citation formulas (9: *modified after X*, *qtd. in X*).
+10. **Speech contributes little, mostly disfluency.** Spoken genres have
+    256 clauseless verbs (16.9 per 1000, against 44.6 in writing): 116
+    reduced relatives, 67 EDITED reparanda, 32 fragments or root VPs, 20
+    errors. Spoken FRAG verbs are rare (28 in 15,151; 22 face-to-face).
+    The 8 written EDITED verbs are in movie scripts (6), a blog and nyt.
+11. **The frame changes here are passive reduced relatives.** 1,262 of the
+    2,708 have `frame_full` ≠ `frame_backbone`; 1,170 are VBN reduced
+    relatives losing `NP(*)` (`NP(*) PP-CLR` → `PP-CLR`: 210), 4.3% of the
+    26,947 changed frames in MASC. VBG frames agree (708 of 709) but both
     lack the subject.
-12. **Overall division** (Table 4): about 73% genuine constructions, 17%
-    non-sentential units, 3% disfluencies and 8% (6–12%) annotation errors.
-    Artefacts of spoken language proper (EDITED plus spoken fragments) are
-    about 100 verbs, 4% of the clauseless verbs, but 39% of those in the
-    spoken genres.
+12. **Overall** (Table 4): about 73% genuine constructions, 17%
+    non-sentential units, 3% disfluencies, 8% (6–12%) annotation errors.
+    Spoken-language artefacts proper (75 EDITED, 32 spoken fragments and
+    root VPs) are about 105 verbs, 4%; within the spoken genres, 99 of 256.
 
 ## What it means
 
-**(a) The context-free backbone and the fast parser.** The reduced
-relatives give the backbone `NP -> NP VP` (1,427 uses) and
-`NP -> NP Comma VP` (193), plus 120 rarer NP rules containing a VP (1,916
-uses in all). Every VP after a noun phrase can then attach low or high,
-and the gold standard itself takes the wrong option for about 30% of
-*NP , V-ing* sequences, so a parser trained on these trees will learn the
-misattachment too. The bare root VP adds `Top -> VP` (171), and EDITED
-over a VP becomes a separate symbol `EDITEDxVP` (55) beside `EDITEDxS`
-(154). The error trees add rules found nowhere else, such as
-`PRN -> SxNP VP` (7) and FRAG and SBAR rules with a bare subject before a
-VP. Inserting the missing S in the 117 detected trees before reading off
-the grammar would be cheap and would remove this noise.
+**(a) Backbone and fast parser.** Reduced relatives give `NP -> NP VP`
+(1,427 uses), `NP -> NP Comma VP` (193) and 120 rarer NP rules with a VP
+(1,916 uses in all). Every VP after a noun phrase can attach low or high,
+and the gold trees themselves attach about 30% of *NP , V-ing* wrongly, so
+a parser trained on them learns the error. Root VPs add `Top -> VP` (171);
+EDITED over a VP becomes `EDITEDxVP` (55) beside `EDITEDxS` (154). Error
+trees add rules found nowhere else (`PRN -> SxNP VP`, 7; FRAG and SBAR with
+a bare subject before a VP); inserting the missing S in the 117 detected
+trees before reading off the grammar would be cheap.
 
-**(b) Verb frames and the complement/modifier distinction.** The reduced
-relative as a whole is a modifier of its noun, like a relative clause, but
-the noun fills an argument slot of the verb: the subject of a VBG, the
-logical object of a passive VBN. Neither frame records it, and the
-backbone frame of a passive participle (`PP-CLR` for *associated with X*)
-looks like an intransitive verb's. For frame extraction it would be better
-to add the modified noun as a configurational argument (SBJ for VBG, the
-object for VBN except unaccusatives) than to count 1,947 verbs as
-subjectless. The misattached free adjuncts then give wrong arguments (the
-couch pulls a pillow) at roughly the rates in finding 5. Root VPs,
-fragments, titles and stage directions are subjectless for reasons of
-text type, not valency, and should be kept apart from the frame counts, as
-imperatives are. The 128 error-class verbs do have subjects in the
-annotation; a frame extractor that reads them from the VP's -SBJ sister
-would recover most.
+**(b) Verb frames and complement/modifier.** A reduced relative is as a
+whole a modifier of its noun, like a relative clause, yet the noun fills an
+argument slot of the verb: subject of a VBG, logical object of a passive
+VBN. Neither frame records it, and the backbone frame of a passive
+participle (`PP-CLR` for *associated with X*) looks intransitive. Adding
+the modified noun as a configurational argument (SBJ for VBG, object for
+VBN except unaccusatives) is better than counting 1,947 verbs as
+subjectless; the misattached adjuncts will then contribute wrong arguments
+(the couch pulls a pillow) at the rates of finding 5. Root VPs, fragments,
+titles and stage directions lack subjects because of text type, not
+valency, and belong apart from the frame counts, as imperatives do. The
+128 error-class verbs have annotated subjects that a frame extractor could
+read from the VP's -SBJ sister.
 
-**(c) The flat neo-Davidsonian semantics.** In `go/interp/semantics.go`,
-a VP daughter of an NP with no function tag gets the relation `mod`, so
-*guns sold* yields `guns(x) ∧ sold(e) ∧ mod(x, e)`: no `sbj` or `obj`.
-Keeping the gold empty elements, as `docs/flat-semantics.md` proposes for
-traces, would not help here, since the reduced relative's `*` is unbound
-and the VBG has none. What would help is a construction rule on
-`NP -> NP VP`: relate the head noun's referent to the event as `sbj` when
-the VP is headed by VBG and as `obj` when by a passive VBN. For bare root
-VPs and fragments the reading correctly has an event with no subject; any
-agent would have to come from discourse.
+**(c) Flat neo-Davidsonian semantics.** In `go/interp/semantics.go` a VP
+daughter of an NP with no function tag gets `mod`, so *guns sold* yields
+`guns(x) ∧ sold(e) ∧ mod(x, e)`, with no `sbj` or `obj`. Keeping the gold
+empty elements, as `docs/flat-semantics.md` proposes for traces, would not
+help: the reduced relative's `*` is unbound and a VBG has none. A
+construction rule on `NP -> NP VP` would: the head noun is `sbj` of a VBG's
+event and `obj` of a passive VBN's. For root VPs and fragments an event
+without a subject is the right reading; any agent comes from discourse.
 
 ## Annotation errors found
 
@@ -328,6 +289,7 @@ gives the ones inspected by hand.
 | `jokes/jokes3#36`, `fiction/hotel-california#148`, `fiction/hotel-california#328`, `spam/ucb12#2`, `govt-docs/LSC-Protocol_Regarding_Access#43`, `govt-docs/Postal_Rate_Comm-ReportToCongress2002WEB#54`, `movie-script/pirates#1558` | NP-SBJ and VP directly under FRAG or UCP: S missing |
 | `fiction/hotel-california#127`, `essays/Ant_Robot#279`, `jokes/jokes10#135`, `jokes/jokes10#158`, `govt-docs/chapter-10#271`, `twitter/tweets1#833`, `essays/A_defense_of_Michael_Moore#122`, `essays/Black_and_white#101` | NP-SBJ (often `*PRO*`) and VP directly under SBAR: S missing |
 | `jokes/jokes1#82`, `ficlets/1403#415`, `twitter/tweets2#510`, `w3c/lists-003-2137010#6` | a finite clause bracketed as an NP or NML containing a VP |
+| `journal/VOL15_3#317` | `(ADJP-PRD (JJ likely) (VP (TO to) ...))`: infinitival S missing |
 | `essays/Ohio_Steel#36`, `ficlets/1403#545`, `ficlets/1402#520`, `ficlets/1401#495`, `fiction/Nathans_Bylichka#83`, `blog/detroit#22`, `blog/detroit#23`, `essays/anth_essay_4#89`, `essays/Ant_Robot#116`, `non-fiction/CUP1#199`, `non-fiction/CUP2#164`, `twitter/tweets1#87`, `twitter/tweets1#390`, `twitter/tweets1#653` | participial free adjunct attached as a reduced relative to the preceding NP; should be `S-ADV` with `*PRO*` in the VP or clause |
 | `govt-docs/Env_Prot_Agency-nov1#138` | coordinated gerunds attached as a reduced relative to the first conjunct |
 | `non-fiction/rybczynski-ch3#24` | VPs coordinated with *conducted* attached as a reduced relative to *an architect* |
@@ -349,19 +311,15 @@ ancestor is EDITED; 5 more are inside EDITED higher up.
 
 ## Open questions
 
-- Why do participial adjuncts get attached low so often? If MASC's trees
-  were produced by correcting an automatic parse (I have not checked), the
-  low attachment may be the parser's, left uncorrected; this is
-  speculative.
-- Of the 36 VBN reduced relatives without `*`, which are unaccusative or
-  adjectival and which are missing traces? I judged about 8 clearly
-  passive; the rest need a decision rule.
-- The spoken genres contributed only 16 items to the random sample, so no
-  separate error rate for speech can be given; a stratified sample would.
-- Should *called X*, *named X*, *known as X* reduced relatives (70 with an
-  indexed object controlling a small clause) count as complement frames of
-  their own (object plus predicative)?
-- Is the bare-VP root convention confined to particular files or
-  annotators? The ficlets list files suggest so; a file-by-file count would
-  settle it, and normalising to `S` with an empty subject would unify the
-  frames with the 311 sentences already so annotated.
+- Why are participial adjuncts attached low so often? If MASC's trees were
+  made by correcting an automatic parse (not checked), the attachment may
+  be the parser's, left uncorrected; speculative.
+- Which of the 24 VBN reduced relatives without an empty element are
+  unaccusative or adjectival, and which lack a trace? About 8 look clearly
+  passive. The spoken genres gave only 16 sample items, so no error rate
+  for speech alone is estimated.
+- Should *called X*, *named X*, *known as X* (70 with an indexed object
+  controlling a small clause) be complement frames of their own?
+- Is the bare-VP root convention confined to some files or annotators? A
+  file-by-file count would settle it; normalising to `S` with an empty
+  subject would unify these frames with the 311 sentences so annotated.

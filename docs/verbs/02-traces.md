@@ -6,7 +6,7 @@ are simply missing. 7,629 verbs whose full frame has an NP object (24.3% of
 the 31,423 such verbs) look intransitive to the backbone, and 6,000 lose
 their subject. Nearly all of this damage is systematic and can be undone:
 passives, relative clauses, questions, raising and quotation. Coindexation
-within the sentence tree links 88% of these traces to an antecedent. Adding
+within the sentence tree links 89.5% of these traces to an antecedent. Adding
 two simple structural steps (from a relative pronoun or null operator to the
 head noun, and from a reduced relative to its head) brings about 94% of them
 to an overt word or phrase. Annotation errors, mostly index clashes and
@@ -92,7 +92,7 @@ position; "relative" = SBAR under NP after a head NP)
 | other (SBAR under SBAR, fragments, roots) | 138 | 64 |
 
 Relativizers in relative clauses. Subject gaps (2,901): *that* 1,328, *who*
-772, *which* 480, 0 222 (of which 218 are infinitival, see below), *whose N*
+772, *which* 480, 0 222, *whose N*
 57, *Q of which/whom* 26, other 16. Object gaps (1,246): 0 866 (69.5%), *that*
 327, *which* 42, other 11. Over all MASC, 232 of the 236 relatives with a
 null operator and a *T* subject are infinitival (*a person to stand by my
@@ -174,7 +174,8 @@ Distance. Measured in clauses between the trace and its antecedent's parent:
 - *T* subjects: 97.5% cross 1 clause, 91 cross 2 or more.
 - *T* objects: 61 cross 0 (topicalization inside the clause), 85.0% cross
   1, 256 (11.9%) cross 2 or more (*what we have to do *T**).
-- Indexed * objects: all cross 0. Indexed * subjects: all but one cross 1.
+- Indexed * objects: all but 5 cross 0. Indexed * subjects: all but one
+  cross 1.
 
 ## Examples
 
@@ -225,9 +226,9 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
    cases.
 10. `debate-transcript/3rd_Bush-Kerry#484`, *'s*: `SBJ ADVP-PRD(*T*)` → `SBJ`
     `(SINV (ADVP-PRD-TPC-1 Here) (VP 's (ADVP-PRD (-NONE- *T*-1))) (SBAR-NOM-SBJ (WHNP-1 what) (S I (VP do (NP (-NONE- *T*-1))))))`.
-    A copula with a fronted predicate. Index 1 is on two nodes, and both
-    c-command the object trace of *do*, so the chain stays unresolved: an
-    annotation error.
+    A copula with a fronted predicate. Index 1 is on two nodes. For *'s*,
+    c-command picks the topic. For *do*, both candidates c-command the
+    object trace, so the chain stays unresolved: an annotation error.
 11. `court-transcript/Day3PMSession#697`, *talk*: `SBJ PP-CLR` → `SBJ PP-CLR`
     `(SBARQ (WHNP-1 Who) (SQ did (NP-SBJ you) (VP talk (PP-CLR (TO to) (NP (-NONE- *T*-1))))))`.
     A stranded preposition. The frames look identical, but the backbone
@@ -255,11 +256,11 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
 
 1. **Traces account for about half of all frame changes.** Of the 26,947
    verbs whose frame changes when empty elements go, 14,139 (52%) have a *T*
-   or * argument; the rest are mainly *PRO* (Table 1, Table 6). The
+   or * argument; 12,596 of the rest have a *PRO* argument (Table 1, Table 6). The
    single largest effect is passive: 5,555 transitive verbs look
    intransitive.
 2. **Passive is regular and nearly always marked.** 5,624 of 5,639 * objects
-   are on VBN (the other 15 are tagging slips, e.g. `spam/111344#4` *re-set*
+   are on VBN (the other 15 are mostly tagging slips, e.g. `spam/111344#4` *re-set*
    VB). 4,318 (76.6%) are coindexed with their own clause's subject. That
    subject is itself a trace in 1,033 cases (*PRO* 492, *T* 432, * 109), so
    the chain runs one or two steps further. Reduced relatives (1,119) carry
@@ -291,20 +292,21 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
    (166). 94.7% are coindexed with the matrix subject one clause up.
 7. **The line between * and *PRO* is not uniform across MASC.**
    - The WSJ files have 18 *PRO* against 211 * and follow PTB-II, where *
-     also covers control. 62 of their 102 * subjects are under control or
-     other non-raising contexts (*decided*, *declined*, *expects*, *wants*;
+     also covers control. 62 of their 102 * subjects are unindexed (arbitrary
+     PRO) or under non-raising verbs (*decided*, *declined*, *expects*, *wants*;
      Example 13).
    - Elsewhere the split is mostly consistent but leaky. *like* has 102
      *PRO* and 8 *; *help* 97 and 13; *get* 13 and 15; *used* 53 and 31;
      *seems* 35 * and 9 *PRO*.
-   - At least 23 imperatives have * instead of *PRO* (Example 14).
+   - 21 imperative clauses (S-IMP) have * instead of *PRO* (Example 14);
+     2,274 have *PRO*.
 
    Counts of "raising" versus "control" read off these labels therefore mix
    annotation convention with grammar.
 8. **Restoration is local and nearly always unambiguous** (Table 7).
-   - Every index resolves inside the sentence tree; no chain needs another
-     sentence. 2 indices dangle.
-   - Of the 17,784 traces, 15,686 (88.2%) reach an overt phrase or a null
+   - Apart from 2 dangling indices (both annotation errors), every index
+     resolves inside the sentence tree.
+   - Of the 17,784 traces, 15,914 (89.5%) reach an overt phrase or a null
      operator through indices alone.
    - With the structural step from relativizer to head NP (5,680 cases) and
      the reduced-relative head (1,113), about 16,800 (94%) end at overt
@@ -312,8 +314,8 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
    - The rest: 240 null operators outside relatives (tough, *too/enough*,
      clefts, purpose) need a construction-specific rule (Example 9); about
      450 end in an unindexed *PRO* (arbitrary control); 25 end at an
-     unresolved index clash; and about 150 unindexed * are not in reduced
-     relatives.
+     unresolved index clash; 3 dangle or loop; and about 270 have no index
+     and are not in reduced relatives (153 objects, 115 subjects, 4 *T*).
    - 139 chains met a clash (an index used on two nodes; 147 trees in MASC
      have one) that sort and c-command settled.
 9. **Some traces sit where `verbframes.py` does not look, or it reads them
@@ -350,18 +352,19 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
   keeping `(NP *)` as `normalise(keep_empty_np=True)` already offers, would
   distinguish them.
 - My estimate (speculative) is that keeping the NP gaps costs few rules,
-  because they are mostly adjacent to the verb (4,350 of 4,383 indexed *
-  objects cross no clause). Long-distance *T* (about 350 cases) are what a
-  slash feature would have to thread.
+  because they are mostly adjacent to the verb (4,350 of 4,355 indexed *
+  objects cross no clause). Long-distance *T* are what a slash feature
+  would have to thread: about 370 argument and 165 modifier traces cross
+  two or more clauses.
 
 **(b) Verb frames and the complement/modifier distinction.**
 - Frames read off the backbone undercount transitivity, most for verbs that
   are often passive or often relativized on the object (*said*, *done*,
   *called*, *given*). Frames for subcategorization should come from
   `frame_full`, or from the backbone with passive and extraction restored.
-- Traces are mostly argument traces. The complement slots take 8,293 of the
-  11,748 non-modifier traces, and the modifier traces are almost all
-  WHADVP traces of *when/where/how/why*.
+- Traces are mostly argument traces. 14,823 of the 17,784 are subjects or
+  complements. The 2,961 modifier traces are almost all WHADVP traces of
+  *when/where/how/why*.
 - In Dowty's terms (from memory), the passive's surface subject is the
   proto-patient. The NP-LGS by-phrase, which the function-tag scheme calls
   a modifier, carries the proto-agent argument of the verb. It is optional
@@ -399,7 +402,7 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
 | govt-docs/Postal_Rate_Comm-ReportToCongress2002WEB#48; non-fiction/rybczynski-ch3#362 | antecedent labelled `=n` (gapping) where `-n` is needed; the * trace dangles |
 | journal/ArticleIP_1059#10 | `(NP-SBJ-1 (-NONE- *T*-1))`: the *T* points to its own NP; no WH operator carries index 1 |
 | fiction/The_Black_Willow#190; court-transcript/Day3PMSession#429 | passive * in an absolute / small clause with an overt subject but no index (about 30 such unindexed * with an overt own subject) |
-| debate-transcript/2nd_Gore-Bush#972 and ~22 others | imperative with NP-SBJ `*` instead of `*PRO*` |
+| debate-transcript/2nd_Gore-Bush#972 and 20 other S-IMP clauses | imperative with NP-SBJ `*` instead of `*PRO*` |
 | wsj/* (e.g. wsj_0026#4, wsj_0106#4, wsj_0006#1) | control marked `*` (PTB-II convention), unlike the rest of MASC |
 | spam/111344#4, spam/114423#20, journal/Article247_500#20, twitter/tweets1#394 | passive participle tagged VB/VBD (*re-set, transfer, reset, cut*) |
 | enron/175448#16 | *Amount Due Employee* annotated as a passive of VBN *Due* with an NP object |
@@ -422,4 +425,4 @@ Trees are trimmed. Frames are `frame_full` → `frame_backbone` from
    I have not written or checked.
 5. How well could a parser-side restorer do on MASC? Subject relatives and
    simple passives look close to deterministic, but contact relatives and
-   long-distance *T* (about 350) do not.
+   long-distance *T* (about 370 argument traces) do not.

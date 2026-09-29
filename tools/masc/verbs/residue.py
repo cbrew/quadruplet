@@ -292,6 +292,8 @@ OTHER_ERRORS = [
     ('non-fiction/CUP1#189', 12, 'the same'),
     ('philanthropic-fundraising/116CUL032#16', 14, 'S complement has two subjects, NP-SBJ *-1 and NP-SBJ *PRO*'),
     ('journal/VOL15_3#124', 1, 'two clauses flat in one S: two NP-SBJ, two VPs, no S brackets'),
+    ('debate-transcript/2nd_Gore-Bush#734', 9, 'object of convince tagged NP-SBJ-1'),
+    ('journal/VOL15_3#7', 23, 'archaic post-verbal subject "thou" as NP-SBJ inside the VP of a *PRO* infinitive'),
     ('journal/VOL15_3#136', 23, 'left-dislocated NP tagged SBJ besides the resumptive NP-SBJ "that"'),
     ('fiction/Nathans_Bylichka#735', 14, 'adverbial "tonight" tagged NP-TMP-PRD: a second predicate'),
     ('movie-script/pirates#1153', 4, '"What \'s that over there": NP-PRD and ADVP-LOC-PRD, two predicates'),
