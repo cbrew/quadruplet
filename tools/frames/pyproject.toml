@@ -1,0 +1,35 @@
+[project]
+name = "quadruplet-frames"
+version = "0.1.0"
+description = "English verb frames and modifiers from spaCy dependency parses, checked against the MASC treebank."
+requires-python = ">=3.11"
+dependencies = [
+    "spacy>=3.8,<3.9",
+    "spacy-transformers>=1.3",
+    "en-core-web-trf",
+    "spacy-beam-docbin",
+    "torch",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/frames"]
+
+[tool.uv.sources]
+# spaCy models are not on PyPI; the release wheel matches spaCy's minor version
+en-core-web-trf = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl" }
+# the n-best parser of odd_one_out, which stores beam candidates in DocBins
+spacy-beam-docbin = { git = "https://github.com/cbrew/odd_one_out", subdirectory = "spacy_beam_docbin-0.1.0" }
+# a CPU build of torch, without the CUDA libraries
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

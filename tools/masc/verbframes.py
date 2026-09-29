@@ -51,6 +51,13 @@ For each verb:
   the backbone's categories (frame_backbone: no function tags, and a
   clause's category as tools/masc/treebank.py collapses it, SxVP for a
   clause whose subject is empty);
+* for each dependent, besides its label, realization and words: its words'
+  positions (span, [first, last + 1]); its marker (a prepositional
+  phrase's preposition, a subordinate clause's complementizer or wh-word);
+  a rough lexical head; for a clausal one, its type (S finite, I nonfinite
+  or verbless, W a question or wh/if/whether clause), verb form,
+  complementizer and subject; for an empty one with an index, its
+  antecedent, and its type if it is a clause;
 * why the verb has no overt subject, where it has none: an empty subject of
   a named kind, an imperative, a verb phrase with no clause above it (a
   reduced relative or an absolute, a fragment), a right-node raised verb
@@ -195,6 +202,20 @@ class Tree:
             if x.cat == '-NONE-' and x.word and index('X' + x.word):
                 self.traces[index('X' + x.word)].add(trace_kind(x.word))
         self.disfluent = any(x.cat == 'EDITED' for x in nodes(self.root))
+        self.antecedents = {}                          # index -> the overt node bearing it
+        for x in nodes(self.root):
+            if x.word is None and index(x.label) and not empty_kind(x.raw):
+                self.antecedents.setdefault(index(x.label), x)
+
+    def antecedent(self, n):
+        """The overt constituent an empty one stands for, *T*-1 -> the node
+        labelled -1; or None."""
+        for x in nodes(n):
+            if x.cat == '-NONE-' and x.word:
+                m = re.search(r'-(\d+)$', x.word)
+                if m:
+                    return self.antecedents.get(m.group(1))
+        return None
 
     def antecedent_of(self, n, kinds):
         i = index(n.label)
@@ -235,7 +256,158 @@ def role(d, tree):
     return 'other'
 
 
-def describe(d, where=None):
+def span(n):
+    """The overt words' positions, [first, last + 1], or None."""
+    ps = [x.pos for x in nodes(n) if x.pos is not None]
+    return [min(ps), max(ps) + 1] if ps else None
+
+
+def overt(n):
+    return n.word is not None and n.cat != '-NONE-' or n.word is None and not empty_kind(n.raw)
+
+
+NOMINAL_TAGS = ('NN', 'PRP', 'CD', 'EX', 'WP')
+
+
+def head_word(n):
+    """A rough lexical head: a noun phrase's last noun (its first NP
+    daughter's, if it has one), a clause's lexical verb, a prepositional
+    phrase's object's head, an adverb or adjective phrase's last adverb or
+    adjective; the word itself for a word; else the last overt word."""
+    if n.word is not None:
+        return n.word.lower() if n.cat != '-NONE-' else None
+    kids = [k for k in n.kids if overt(k)]
+    if not kids:
+        return None
+    if n.cat in ('S', 'SQ', 'SINV', 'SBAR', 'SBARQ', 'VP'):
+        v = lexical_verb(n)
+        if v is not None:
+            return v.word.lower()
+        prd = next((k for k in kids if 'PRD' in k.tags), None)   # a small clause's predicate
+        return head_word(prd) if prd is not None else None
+    if n.cat in ('NP', 'NML', 'NX', 'WHNP'):
+        np = next((k for k in kids if k.cat in ('NP', 'NML')), None)
+        if np is not None and np is kids[0]:
+            return head_word(np)
+        nouns = [k for k in kids if k.word is not None and k.cat.startswith(NOMINAL_TAGS)]
+        return (nouns[-1] if nouns else kids[-1]).word.lower() if (nouns or kids[-1].word) else head_word(kids[-1])
+    if n.cat in ('PP', 'WHPP'):
+        obj = next((k for k in kids if k.word is None), None)
+        return head_word(obj) if obj is not None else None
+    if n.cat in ('ADVP', 'ADJP', 'WHADVP', 'WHADJP', 'PRT'):
+        ws = [k for k in kids if k.word is not None and k.cat[:2] in ('RB', 'JJ', 'RP', 'WR')]
+        return ws[-1].word.lower() if ws else head_word(kids[-1])
+    return head_word(kids[-1])
+
+
+def lexical_verb(n):
+    """The lexical verb of a clause or verb phrase: down through the verb
+    phrases, auxiliaries' and the first conjunct's, to the first verb word
+    of the lowest."""
+    while n is not None and n.word is None:
+        if n.cat == 'SBAR':
+            n = next((k for k in n.kids if k.cat in CLAUSES), None)
+        elif n.cat in CLAUSES:
+            vp = next((k for k in n.kids if k.cat == 'VP'), None)
+            if vp is None:
+                return next((k for k in n.kids if is_verb(k)), None)
+            n = vp
+        elif n.cat == 'VP':
+            vp = next((k for k in n.kids if k.cat == 'VP'), None)
+            if vp is None:
+                return next((k for k in n.kids if is_verb(k)), None)
+            n = vp
+        else:
+            return None
+    return n
+
+
+def marker(n):
+    """The word that marks a phrase: a prepositional phrase's preposition, a
+    subordinate clause's complementizer or wh-word (the first word of its
+    WH phrase); else None."""
+    if n.cat in ('PP', 'WHPP'):
+        p = next((k for k in n.kids if k.word is not None and k.cat in ('IN', 'TO', 'RP')), None)
+        return p.word.lower() if p is not None else None
+    if n.cat in ('SBAR', 'SBARQ'):
+        for k in n.kids:
+            if k.cat.startswith('WH'):
+                ws = [w for t, w in leaves(k.raw) if t != '-NONE-']
+                return ws[0].lower() if ws else None
+            if k.word is not None and k.cat in ('IN', 'DT', 'TO'):
+                return k.word.lower()
+            if k.cat == '-NONE-':
+                continue
+            if k.cat in CLAUSES:
+                return None
+    return None
+
+
+FINITE_TAGS = {'MD', 'VBD', 'VBZ', 'VBP'}
+FORMS = {'TO': 'to', 'VB': 'bare', 'VBG': 'ing', 'VBN': 'en'}
+WH_MARKERS = {'if', 'whether'}
+
+
+def clause_of(n):
+    """What a clausal constituent is: its type, S (a finite clause), I (a
+    nonfinite or verbless one) or W (a question, or a clause opened by a
+    wh-word, *if* or *whether*); its verb's form (finite, to, bare, ing, en,
+    or verbless); its complementizer or wh-word; and its subject's kind
+    (overt, or the empty element). None if it is not clausal."""
+    if n.cat not in CLAUSES | {'SBAR', 'UCP'}:
+        return None
+    if n.cat == 'UCP':
+        first = next((k for k in n.kids if overt(k) and k.cat not in ('CC', 'CONJP', ',', ':')), None)
+        return clause_of(first) if first is not None else None
+    m = marker(n)
+    if n.cat == 'SBAR':
+        s = next((k for k in n.kids if k.cat in CLAUSES), None)
+        if s is None:                            # a coordination of subordinate clauses
+            sub = next((k for k in n.kids if k.cat == 'SBAR' and overt(k)), None)
+            if sub is not None:
+                return clause_of(sub)
+        inner = clause_of(s) if s is not None else None
+        out = dict(inner) if inner else {'type': None, 'form': None, 'subject': None}
+        out['marker'] = m
+        if any(k.cat.startswith('WH') for k in n.kids) or m in WH_MARKERS:
+            out['type'] = 'W'
+        return out
+    if n.cat in ('SBARQ', 'SQ'):
+        v = lexical_verb(n)
+        return {'type': 'W', 'form': 'finite', 'marker': m, 'subject': None,
+                'verb': v.word.lower() if v is not None else None}
+    subj = next((k for k in n.kids if 'SBJ' in k.tags), None)
+    subject = None if subj is None else (empty_kind(subj.raw) or 'overt')
+    who = {'subject': subject}
+    if subject == 'overt':
+        who.update(subject_span=span(subj), subject_head=head_word(subj))
+    vp = next((k for k in n.kids if k.cat == 'VP'), None)
+    if vp is None:
+        inner = next((k for k in n.kids if k.cat in CLAUSES), None)
+        if inner is not None and 'SBJ' not in inner.tags:
+            return clause_of(inner)             # a coordination of clauses
+        if n.cat == 'SINV':
+            v = next((k for k in n.kids if k.word is not None and k.cat in FINITE_TAGS | VERB_TAGS), None)
+            form = 'finite' if v is not None and v.cat in FINITE_TAGS else 'verbless'
+            return {'type': 'S' if form == 'finite' else 'I', 'form': form, 'marker': None, **who}
+        return {'type': 'I', 'form': 'verbless', 'marker': None, **who}
+    x = vp
+    while True:
+        first = next((k for k in x.kids if k.word is not None and
+                      k.cat in FINITE_TAGS | VERB_TAGS | ODD_VERB_TAGS | {'TO'}), None)
+        if first is not None or not any(k.cat == 'VP' for k in x.kids):
+            break
+        x = next(k for k in x.kids if k.cat == 'VP')
+    if first is None:
+        form = 'verbless'
+    elif first.cat in FINITE_TAGS or 'IMP' in n.tags:
+        form = 'finite'
+    else:
+        form = FORMS.get(first.cat, 'finite' if first.cat in ODD_VERB_TAGS else 'verbless')
+    return {'type': 'S' if form == 'finite' else 'I', 'form': form, 'marker': None, **who}
+
+
+def describe(d, where=None, tree=None):
     kind = empty_kind(d.raw)
     realization = 'empty' if kind else 'overt'
     if not kind and d.cat == 'PP':
@@ -247,7 +419,20 @@ def describe(d, where=None):
     out = {'label': d.label, 'cat': d.cat, 'tags': d.tags,
            'realization': realization, 'empty': kind,
            'backbone': bb[0] if bb else None,
-           'words': ' '.join(words(d.raw))[:80]}
+           'words': ' '.join(words(d.raw))[:80],
+           'span': span(d), 'marker': marker(d), 'head': head_word(d)}
+    if d.cat == 'PP' and realization == 'stranded':
+        out['head'] = None
+    c = None
+    if kind and tree is not None:
+        a = tree.antecedent(d)                 # an empty constituent: its antecedent's
+        if a is not None:
+            c = clause_of(a)
+            out['antecedent'] = {'label': a.label, 'span': span(a), 'head': head_word(a)}
+    elif not kind:
+        c = clause_of(d)
+    if c is not None:
+        out['clause'] = c
     if where:
         out['where'] = where
     return out
@@ -338,13 +523,13 @@ def verb_record(tree, container, head, heads):
             continue
         r = role(d, tree)
         if r == 'complement':
-            comps.append(describe(d))
+            comps.append(describe(d, tree=tree))
         elif r == 'modifier':
-            mods.append(describe(d))
+            mods.append(describe(d, tree=tree))
         elif r == 'agent':
-            agent.append(describe(d))
+            agent.append(describe(d, tree=tree))
         elif r == 'extraposed':
-            extraposed.append(describe(d))
+            extraposed.append(describe(d, tree=tree))
         elif r == 'negation':
             negated = True
     # the auxiliaries' phrases and the clause: their modifiers and negation
@@ -363,10 +548,10 @@ def verb_record(tree, container, head, heads):
                 continue
             r = role(d, tree)
             if r == 'modifier':
-                above.append(describe(d, where))
+                above.append(describe(d, where, tree))
             elif r == 'negation':
                 negated = True
-    subj = describe(subject) if subject is not None else None
+    subj = describe(subject, tree=tree) if subject is not None else None
 
     deps = comps + mods + agent + ([subj] if subj else [])
     dnodes = [d for d in container.kids if d not in heads] + ([subject] if subject is not None else [])
