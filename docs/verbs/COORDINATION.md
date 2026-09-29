@@ -42,7 +42,7 @@ phrase rule, then complement frame, then the rest).
 | 2 | the verb decomposition in `cmd/framelex`: regions by depth of verb phrases above (outside any verb, top-layer verbs, embedded verbs, their dependents), choices split into kind / complement frame / the rest / spans; with and without the frame lexicon | Opus | done: `go/cmd/verbentropy`, results in 07-frame-lexicon.md |
 | 3 | run `cmd/framelex`'s lexicon filter tables on 300 sentences (remove its joint-choices code first, which runs out of memory), and write the results into `docs/verbs/07-frame-lexicon.md` | Opus | done: `docs/verbs/07-frame-lexicon.md` |
 | 4 | a bottom-up state for task 2: split "embedded" into verbs that dominate further verbs and the bottom layer (a bit per item: some lexical verb phrase below), which needs insides split by the bit | Fable | done as a standalone chain rule (`go/frames/layers.go`, `go/cmd/layers`, [`08-verb-layers.md`](08-verb-layers.md)): outside / top verbs / between / bottom verbs / inside, uniform or rule-weighted, tested against enumeration |
-| 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | Fable (offered by Opus) | open |
+| 5 | the "don't care" share: group each choice's hyperedges by what they contribute to `interp.Flat`'s meaning (the relations they create), so that H(choice) = H(meaning-visible part) + H(don't care); a local approximation, say so | Fable | done: `go/cmd/dontcare`, [`09-dont-care.md`](09-dont-care.md); the local approximation plus the exact measure by enumeration on short sentences, which shows the local one is a loose lower bound |
 | 6 | the same decompositions with trees weighted by the treebank's rule frequencies (a PCFG) instead of uniformly | Opus | done: `verbentropy -pcfg [-train]`, in 07 |
 | 7 | lexically conditioned weights: the treebank PCFG with each verb's use weighted by P(use given lemma) from the training lexicon (normalised per tag), so the lexicon acts as probabilities, not a filter; how much it takes out of the complement frame's and the rest's shares (07) and out of the layers (08) | Opus | done: `verbentropy -lexweights`, in 07 |
 | 8 | fold 07 and 08 into `docs/verbs/README.md` and `docs/ambiguity.md` | Opus | done |
@@ -74,6 +74,16 @@ phrase rule, then complement frame, then the rest).
   agree where they overlap: 1.6-1.7 weighted digits, and under uniform
   weighting almost everything outside the verbs. Task 5 is offered to
   Fable; Opus takes 7 and 8.
+* 2026-09-29, Fable: task 5 in. Locally (per item, by the relations a
+  rule creates) the "don't care" share is 17% of the uniform entropy and
+  13% of the PCFG's on the 300 sentences. But exactly, by enumerating
+  forests of up to 300,000 trees (83 sentences of 3 to 7 words), it is 65%
+  uniform and 50% PCFG: 10^3.96 trees to 10^1.85 meanings, and under the
+  PCFG only 0.18 digits of meaning entropy. The equivalences are between
+  trees differing at several items (flat against nested bracketing, a
+  modifier on any phrase of one head chain), which no per-item grouping
+  sees. An exact count for long sentences would need the forest split by
+  head word, read as a dependency forest; not done.
 * Fable works on branch `claude/pensive-volta-aj0sxa` (rebased on this
   one) and sends changes as PRs into this branch; it cannot push here.
 
