@@ -7,7 +7,7 @@ the classifier misses (a right-node-raised VP). Unlike TIGER, MASC's odd
 subjectless frames are not a trace of complex coordination: they are
 mostly a missing or untagged empty subject in a non-finite clause, which
 the backbone would have dropped anyway. Beyond subjects, a hand check of
-300 random verbs finds a clear frame error in 4 (1.3%, 95% interval
+299 random verbs finds a clear frame error in 4 (1.3%, 95% interval
 0.4–3.4%); errors are about eight times as frequent among frames that occur
 only once.
 
@@ -20,10 +20,11 @@ and of other odd frames, is annotation error rather than grammar?
 
 ## Data and method
 
-Inputs as in the brief (`$S` = the session scratchpad):
+Inputs as in the brief, with `$S` =
+`/tmp/claude-0/-home-user/32748c59-1ad9-5140-855d-e9a1edeaf50a/scratchpad`:
 `$S/verbs/verbs.jsonl` (70,101 verbs) and the raw trees in `$S/masc/data`.
 All counts come from one helper script, which reuses `verbframes.py`'s
-`Node`, `nodes`, `is_aux_vp`, `role` and `empty_kind`:
+`Node`, `number`, `nodes`, `is_aux_vp` and `empty_kind`:
 
 ```
 cd tools/masc/verbs; R="python3 residue.py $S/masc/data $S/verbs/verbs.jsonl"
@@ -38,7 +39,7 @@ preceding sister S holding only an -SBJ; or no subject position at all. I
 then read every one of the 146 trees. `HAND` in the script records the 21
 where I overrode the mechanical class; `OTHER_ERRORS` lists the 54 errors
 found outside the residue. The error-rate sample is 2 × 150 verbs drawn
-with fixed seeds, each read with its clause. I counted as an error only
+with fixed seeds (one verb drawn twice), each read with its clause. I counted as an error only
 what contradicts the Penn Treebank bracketing guidelines (Bies et al. 1995)
 as MASC otherwise applies them: missing or wrong -SBJ/-PRD, wrong
 attachment, wrong or malformed empty elements, a verb mistagged. I did not
@@ -91,7 +92,7 @@ Searches for other odd frames (`wacky`, `singletons`):
 | VP daughter with more than one function tag | 1,408 | 5 NP-SBJ inside VP, 2 duplicated tags; the rest legitimate (LOC-PRD, CLR-LOC, PRD-PRP ...) |
 | verbs with an NP object in ≥95% of ≥20 active uses (62), used with no object, clause or trace | 47 | 7 |
 | frames occurring once (208 of 559 distinct full frames) | 208 | 23 (11%) |
-| random sample of verbs | 300 | 4 (1.3%; 95% CI 0.4–3.4%) |
+| random sample of verbs (2 × 150 draws, 1 repeat) | 299 | 4 (1.3%; 95% CI 0.4–3.4%) |
 
 Singletons are unusual chiefly by an empty complement (93: *ICH*, *RNR*,
 *?*, *T* PP), three or more complements (50), a rare category (35: quoted
@@ -204,7 +205,7 @@ SQ/SBARQ/SINV, UCP, EQUA), or a malformed tag (4).
    (unspecified objects, *provide for*, *protect against*, *gave in*,
    unfinished speech) and 7 are errors. Of the 208 singleton frames, 23
    (11%) contain a confirmed error, against 1.3% in the random sample.
-6. **Estimated error rate.** In 300 random verbs I found 4 clear frame
+6. **Estimated error rate.** In 299 random verbs I found 4 clear frame
    errors (ex. 14, 15; `blog/Anti-Terrorist#42`, NP-SBJ and VP under UCP;
    `movie-script/pirates#808`, *bodes ill* with *ill* as an NP object):
    1.3%, 95% interval 0.4–3.4% (Clopper–Pearson). The exhaustive searches
@@ -298,7 +299,7 @@ line each, with verb positions):
   frames are absent from every count in this series.
 - Would correcting the ~90 frame-changing errors measurably change the
   backbone's ambiguity or parse accuracy? I expect not; unmeasured.
-- A second reader on the same 300 verbs would show how much of the 1.3% is
+- A second reader on the same 299 verbs would show how much of the 1.3% is
   my judgment, especially for -PRD.
 - -CLR consistency, excluded here, is probably the larger source of noise
   in the complement/modifier split and deserves its own study.
