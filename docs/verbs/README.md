@@ -24,6 +24,7 @@ of the question. This page puts them together.
 | [05 residue and errors](05-residue-and-errors.md) | the frames nothing explains, and the annotation error rate |
 | [06 complements and modifiers](06-complements-and-modifiers.md) | how promiscuous complements and modifiers are, by entropy and mutual information |
 | [07 where the ambiguity is](07-frame-lexicon.md) | how much a lexicon of verb uses cuts a forest, and the exact split of a forest's entropy among the verbs' choices and the rest |
+| [08 verb layers](08-verb-layers.md) | the entropy of a forest by layers of verbs: skeleton, top verbs, between, bottom verbs, inside (by the Fable session) |
 
 Every number comes from the scripts in `tools/masc/verbs/` or
 `tools/masc/verbframes.py`, run on MASC's Penn Treebank files. Every example
@@ -59,6 +60,34 @@ they matter.
   clause have the same backbone shape (01), and an NP-TMP looks like an
   object (06). About one verb-phrase daughter in six has a doubtful role
   even with the tags.
+
+## Where the ambiguity is, seen from the verbs (07, 08)
+
+Reports 01–06 are about the annotation; 07 and 08 turn to the grammar read
+off it, and ask how much of its ambiguity lies in the verbs' choices. The
+tool is the entropy of a forest's trees, split exactly among the choices a
+tree makes. Measured on 300 held-out sentences with gold tags:
+
+* **Every tree equally likely** (log10 of the count, 18.3 digits a
+  sentence): 84–94% of the entropy lies outside the verbs. The trees that
+  make up the count mostly give the verbs no dependents: 93% of non-verb
+  words lie outside every lexical verb phrase, against 40% in the gold
+  trees. A lexicon of verb uses removes about 10^0.4 of 10^18 trees, and
+  even an oracle leaves 10^13.
+* **Trees weighted by the treebank's rule frequencies** (1.6–1.7 digits):
+  the trees look like the gold trees. The verbs' own choices are 39% of the
+  entropy, split evenly between the complement frame (16%) and the rest of
+  the verb phrase's rule (16%, modifiers and PPs). By layers: 41% the
+  skeleton around the top verbs, 24% their expansions, 17% how verbs embed
+  one another, 5% the bottom verbs, 13% inside their dependents.
+* **With the lexicon as probabilities** (P(use | lemma) from training):
+  LEXW
+
+For the complement/modifier question this is the cleanest statement so
+far. Under the treebank's own frequencies, the uncertainty about a verb's
+complement frame and about the rest of its phrase are about equal. The
+lexicon removes much of the first and little of the second: complements
+are the lexicon's business, modifiers are not.
 
 ## What the empty elements do: the ledger
 

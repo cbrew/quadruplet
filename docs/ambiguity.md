@@ -141,6 +141,44 @@ What the treebank's empty elements and function tags say about verb frames,
 and how far complements are predictable from the verb where modifiers are
 not, is in [`verbs/`](verbs/README.md).
 
+### Counting against weighing, and where the verbs are
+
+The same 300 held-out sentences, gold tags, measured exactly
+([`verbs/07-frame-lexicon.md`](verbs/07-frame-lexicon.md) and
+[`verbs/08-verb-layers.md`](verbs/08-verb-layers.md)). The entropy of a
+forest's trees is split exactly, as an expected sum over the local choices
+a tree makes (`cfg.Forest.Entropy`), or by layers of verbs
+(`frames.VerbLayers`).
+
+* **Every tree equally likely**, the entropy is log10 of the count, 18.3
+  digits for the mean sentence. It is almost all outside the verbs: 84–94%,
+  depending on the cut. The trees that make up the count mostly give the
+  verbs no dependents:
+  * 93% of the words other than verbs lie outside every lexical verb
+    phrase, against 40% in the gold trees;
+  * a third of the trees have no lexical verb phrase at all.
+  A lexicon of verb uses learned from the other documents cuts each verb's
+  uses from 59 to 11, yet removes about 10^0.4 trees of 10^18. An oracle
+  that gives every verb its own use still leaves about 10^13.
+* **Trees weighted by the treebank's rule frequencies**, the entropy is 1.6
+  to 1.7 digits: some 40 to 50 trees' worth, not 10^18. The trees now look
+  like the gold ones: where the words fall, what the verbs do, and how many
+  verb phrases there are, top and bottom, all match to a point or two. The
+  entropy splits:
+  * finely: 39% the verbs' own choices (complement frame 16%, the rest of
+    the verb phrase's rule 16%); 36% outside any verb; 25% inside their
+    dependents;
+  * by layers: 41% the skeleton around the top verbs, 24% the top verbs'
+    expansions, 17% how verbs embed one another, 5% the bottom verbs', 13%
+    inside their dependents.
+* **The lexicon as probabilities** (each verb's use weighted by P(use |
+  lemma) from training, over the rule frequencies): LEXW
+
+So the astronomical count and the reader's problem come apart. The count
+is dominated by trees the grammar's own rule frequencies make negligible.
+Under those frequencies, the uncertainty that remains is a couple of
+digits a sentence, and two-fifths of it is the verbs'.
+
 ## Candidate missing pieces
 
 With what the measurements say so far:
@@ -156,7 +194,16 @@ With what the measurements say so far:
 * **The lexicon, per event.** Supertagging (Bangalore and Joshi's "almost
   parsing"; Clark and Curran's CCG parsing, on Hockenmaier's CCGbank) shows
   that local lexical decisions remove most structural ambiguity; the
-  treebank grammar has thrown that information away. Not yet measured.
+  treebank grammar has thrown that information away. Measured for verbs:
+  against the count, a verb lexicon is almost powerless; against the
+  weighted distribution it removes a real part of the verbs' share (see
+  "Counting against weighing" above).
+* **Frequency itself.** The treebank's rule frequencies alone take the
+  entropy from 18 digits to under 2, and make the trees look like the gold
+  ones. They are not a filter but a weight, and the question the
+  introduction raised (is the missing piece probability?) now has a partial
+  answer: probability does most of the work of the count, if not of the
+  choice.
 * **Interpretation as a filter, not a weight** (Crain and Steedman;
   Altmann and Steedman): syntax proposes and the discourse model disposes,
   word by word, by referential success. It couples events, and is the
@@ -182,8 +229,8 @@ With what the measurements say so far:
   coherence), a sentence becoming a small constraint problem over its events
   rather than a product. First, exactly rather than by sampling: which
   words can depend on each verb at all, by an inside-outside pass over the
-  forest split by head word; and how much a verb frame lexicon read off the
-  treebank cuts each verb's analyses.
+  forest split by head word. (How much a verb lexicon cuts each verb's
+  analyses is now measured: see above.)
 * **Lexicalization.** The same measurements on a lexicalized grammar, CCG
   categories as in CCGbank, to see how much of the product the lexicon
   removes.
