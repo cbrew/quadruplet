@@ -71,6 +71,22 @@ The waves line up with MASC's releases.
   finished in the weeks around the third release, so they must have
   appeared in a later MASC distribution from the site.
 
+### A log line
+
+One file still holds a few lines of an annotation tool's log. Enron
+`52555.mrg` (modified July 2013) has, between two trees, an annotator's
+log-in and log-out, with times:
+
+```
+<+ * Log in: … starts tagging at Fri Jun 14 17:25:26 2013. * +>
+<+ * Logout: … stops  tagging at Fri Jun 14 17:26:13 2013. (3225) * +>
+```
+
+(The annotator's first name is left out here.) This is the one direct
+timestamp of annotation work in the files, and it falls in the 2013 wave.
+`tools/masc/ptb2pl.py` leaves the log line's `(3225)` out, since the
+bracket reader would otherwise take it for a tree.
+
 ### The annotation conventions
 
 The conventions in the trees agree with the dates. They also show that

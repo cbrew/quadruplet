@@ -2,8 +2,10 @@
 
 odd_one_out writes each sentence of the TIGER treebank as a small Prolog
 program (`dep2tiger/prolog` there: `README.md`, `ALGORITHM.md`, `tiger.pl`,
-`tiger2pl.py`, `analyzer.pl`). This note works out what would change in
-doing the same for MASC's Penn Treebank (PTB) trees.
+`tiger2pl.py`, `analyzer.pl`). This note works out what changes in doing
+the same for MASC's Penn Treebank (PTB) trees. It is now built:
+`tools/masc/ptb2pl.py` and `tools/masc/prolog/` (see its README), with the
+decision of point 4 taken as proposed.
 
 **Short answer:** the core idea carries over unchanged. Each sentence
 becomes a grammar whose only derivation is its own tree, and every analysis
@@ -99,9 +101,10 @@ Displacement can be encoded two ways:
   use. This is Evang and Kallmeyer's (2011) conversion of the PTB for LCFRS
   parsing.
 
-The proposal: store (a), and make (b) a transformation. Moving each
-displaced antecedent to its trace is a few clauses over the scan. It gives
-a TIGER-style discontinuous derivation, for comparison with the German.
+**Decided:** store (a), and make (b) a transformation, `reattached/1` in
+`tools/masc/prolog/ptb.pl`. It moves each displaced antecedent to its trace
+and rewrites every rule over the runs that result: a TIGER-style
+discontinuous derivation, for comparison with the German.
 
 ### 5. Thinner words
 
@@ -118,14 +121,18 @@ PTB has no lemmas and no morphology, so nearly every word is
 PTB keeps punctuation inside the tree, so there is one root per tree,
 punctuation as daughters, no VROOT and no roots side by side.
 
-MASC's extra nodes need rules (see `docs/masc-provenance.md`):
-* **Slash units:** `(SU /)` can be a daughter.
-* **Turns and original spellings:** `(CODE <TURN>)` and
-  `(CODE {TEXT:gonna})` are better as facts about the sentence than as
-  daughters.
-* **Repairs:** `EDITED` is a labelled daughter.
-* **Debris:** tokens like `RSQUOs` and `<disfluency>` need a repair table,
-  as `patches.py` supplies for TIGER.
+MASC's extra nodes (see `docs/masc-provenance.md`):
+* **Slash units:** `(SU /)` is a daughter.
+* **Turns and original spellings.** Trees that are only `(CODE <TURN>)`
+  are left out. A `CODE` leaf inside a tree, `(CODE {TEXT:gonna})`, is kept
+  as a word: the stored form stays faithful, and words are numbered as
+  `verbframes.py` numbers them. Reading such leaves as facts about the
+  sentence is for a transformation.
+* **Repairs:** `EDITED` is a daughter like any other.
+* **Debris** (tokens like `RSQUOs`, `<disfluency>`) is kept as it is. A
+  repair table, as `patches.py` supplies for TIGER, is still to write.
+* **Slips the converter mends:** a word split at a no-break space, empty
+  brackets `( )`, and a tag over several strings.
 
 ### 7. Two layers of conventions
 
@@ -165,7 +172,8 @@ A MASC telephone sentence, *that 's the only thing I found out tonight*:
      (SU /)))
 ```
 
-The program, encoding (a):
+The program `ptb2pl.py` writes, encoding (a). The empty element sits under
+its own NP node, as in the tree:
 
 ```prolog
 sentence([
@@ -173,55 +181,70 @@ sentence([
   w(prp,'I'), w(vbd,found,find), w(rp,out), w(nn,tonight), w(su,'/')
 ]).
 
+guidelines(revised).
 root(s1).
-s(s1)       ---> [sbj:np(np1), ^'--':vp(vp1), '--':t(su)].
-np(np1)     ---> [^'--':t(dt)].
-vp(vp1)     ---> [^'--':t(vbz), prd:np(np2)].
-np(np2)     ---> [^'--':np(np3), '--':sbar(sbar1)].
-np(np3)     ---> ['--':t(dt), '--':t(jj), ^'--':t(nn)].
+s(s1) ---> [sbj:np(np1), ^'--':vp(vp1), '--':t(su)].
+np(np1) ---> [^'--':t(dt)].
+vp(vp1) ---> [^'--':t(vbz), prd:np(np2)].
+np(np2) ---> [^'--':np(np3), '--':sbar(sbar1)].
+np(np3) ---> ['--':t(dt), '--':t(jj), ^'--':t(nn)].
 sbar(sbar1) ---> ['--':whnp(whnp1), ^'--':s(s2)].
 whnp(whnp1) ---> [^'--':e('0')].
-s(s2)       ---> [sbj:np(np4), ^'--':vp(vp2)].
-np(np4)     ---> [^'--':t(prp)].
-vp(vp2)     ---> [^'--':t(vbd), '--':e('*T*', whnp1), '--':prt(prt1), tmp:np(np5)].
-prt(prt1)   ---> [^'--':t(rp)].
-np(np5)     ---> [^'--':t(nn)].
+s(s2) ---> [sbj:np(np4), ^'--':vp(vp2)].
+np(np4) ---> [^'--':t(prp)].
+vp(vp2) ---> [^'--':t(vbd), '--':np(np5), '--':prt(prt1), tmp:np(np6)].
+np(np5) ---> [^'--':e('*T*', whnp1)].
+prt(prt1) ---> [^'--':t(rp)].
+np(np6) ---> [^'--':t(nn)].
 ```
 
-Encoding (b) matters when the displaced constituent has words. Take *What
-did you say ?*, `(SBARQ (WHNP-1 (WP What)) (SQ (VBD did) (NP-SBJ (PRP you))
-(VP (VB say) (NP (-NONE- *T*-1)))) (. ?))`:
+Here the antecedent of `*T*` is the empty `WHNP` of the relative clause,
+so there is nothing to move. Encoding (b) matters when the displaced
+constituent has words. Take `court-transcript/Day3PMSession#385`, *What
+grade is she in ?*:
 
 ```prolog
-% (a) the trace kept
+% (a) as stored
 sbarq(sbarq1) ---> ['--':whnp(whnp1), ^'--':sq(sq1), '--':t('.')].
-sq(sq1)       ---> [^'--':t(vbd), sbj:np(np1), '--':vp(vp1)].
-vp(vp1)       ---> [^'--':t(vb), '--':e('*T*', whnp1)].
+whnp(whnp1) ---> [^'--':t(wdt), '--':t(nn)].
+sq(sq1) ---> [^'--':t(vbz), sbj:np(np1), prd:pp(pp1)].
+np(np1) ---> [^'--':t(prp)].
+pp(pp1) ---> [^'--':t(in), '--':np(np2)].
+np(np2) ---> [^'--':e('*T*', whnp1)].
 
-% (b) the antecedent reattached: the VP is discontinuous, What ... say
-sbarq(sbarq1) ---> [^'--':sq(sq1), '--':t('.')].
-sq(sq1)       ---> ['--':vp(vp1)@1, ^'--':t(vbd), sbj:np(np1), '--':vp(vp1)@2].
-vp(vp1)       ---> [['--':whnp(whnp1)], [^'--':t(vb)]].
+% (b) reattached/1: the PP is discontinuous, What grade ... in
+sbarq(sbarq1)--->[^ -- : sq(sq1),-- : t('.')].
+sq(sq1)--->[prd:pp(pp1)@1,^ -- : t(vbz),sbj:np(np1),prd:pp(pp1)@2].
+np(np1)--->[^ -- : t(prp)].
+pp(pp1)--->[[-- : np(np2)],[^ -- : t(in)]].
+np(np2)--->[^ -- : whnp(whnp1)].
+whnp(whnp1)--->[^ -- : t(wdt),-- : t(nn)].
+moved(whnp1,'*T*').
 ```
 
-The (b) rules have the shape of TIGER's s47200: a two-run VP whose runs
-the clause places around the finite verb and the subject.
+The (b) rules have the shape of TIGER's s47200: a two-run constituent whose
+runs the clause places around the finite verb and the subject.
 
-## The work
+## As built
 
-* **`tools/masc/ptb2pl.py`,** about the size of `tiger2pl.py`. It reads
-  `.mrg` files through `masctrees`, splits function tags into edge labels
-  and category tags, runs the head table, resolves indices to node names,
-  and applies the repairs of point 6.
-* **`ptb.pl`:** `tiger.pl` without the code for several runs, with the
-  empty daughter `e/1`, `e/2` and the trace facts. The reattachment of
-  point 4(b) is a transformation in it.
-* **Tests:** on a handful of MASC trees chosen for `*T*`, `*PRO*-n`,
-  `*RNR*`, gapping and `*ICH*`, with one old WSJ tree for the `*-n`
-  convention.
+* **`tools/masc/ptb2pl.py`** writes the programs, 34,555 of them, in 12
+  seconds.
+* **`tools/masc/prolog/ptb.pl`** holds the notation, the scan, and three
+  transformations:
+  * `analysis/1`, the tree as ground facts;
+  * `tree/1`, the tree as a term;
+  * `reattached/1`, point 4(b).
+* **`check.pl`** counts analyses over the corpus in one process.
+* **Tests:** `test_ptb2pl.py`, with eight example trees in `examples/`.
+* **Corpus check:**
+  * Every program has exactly one analysis, and so does every reattached
+    program.
+  * Reattachment moves 9,941 constituents in 7,824 trees.
+  * 9,328 constituents in 5,180 trees become discontinuous, of fan-out 2,
+    or 3 in 24 trees.
 
-To decide before building: whether the reattachment is a transformation, as
-proposed, or the stored form.
+Not yet written: the dependency and CoNLL-U transformations, and the frame
+analyzer in Prolog (point 8).
 
 ## Reproducing the counts
 
