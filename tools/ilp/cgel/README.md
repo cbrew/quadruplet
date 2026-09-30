@@ -367,6 +367,84 @@ the §6.1.2 sample covers: *focus on* 32, *click on* 12, *work on* 10.
 The version 2 theories are
 `../theories/cgel2_{classes,lexical,verbnet,lexical_verbnet}.pl`.
 
+## Semantic roles: PropBank against CGELBank
+
+CGEL ch. 4 §1.2(h) makes role a criterion: a complement's role depends on
+the verb, while an adjunct's is its own, the same with any verb. PropBank
+draws the same line, by other means:
+* **Numbered arguments (ARG0–5)** are defined per roleset, that is, per
+  verb sense.
+* **Modifiers (ARGM-TMP, -LOC, -MNR, -PRP …)** carry their own meaning.
+
+The PropBank release (github.com/propbank/propbank-release) annotates the
+English Web Treebank, which is where CGELBank's EWT sentences come from.
+`propbank_ewt.py` reads its `.gold_skel` files and aligns them with UD EWT
+by sentence id and token position:
+* 92% of UD EWT sentences match PropBank token for token, tags included;
+* 7.7% match in length, with some tags revised since;
+* 30 sentences differ in length.
+
+`evaluate_cgel.py --propbank=DIR` gives each gold PP the label of the
+argument of its verb that covers it. A numbered argument counts as Comp and
+ARGM as Mod. Twitter and CGELBank's other non-EWT sentences have no PropBank.
+
+| | gold | trial |
+|---|---|---|
+| PPs PropBank covers | 111 of 138 | 25 of 46 |
+| on those: PropBank, ARGn = Comp | 82.0 | 80.0 |
+| on those: PropBank, with ARGM-DIR/GOL as Comp | **87.4** | 84.0 |
+| on those: cgel_tests2 + relabelled table | 79.3 | **88.0** |
+| all: cgel_tests2 + relabelled table | 81.9 | **82.6** |
+| all: cgel_tests2, then PropBank (DIR/GOL as Comp), then the table | **88.4** | 80.4 |
+
+Accuracy is agreement with CGELBank. For scale, CGELBank's two annotators
+agreed on 19 of 28 verb PPs (68%) before adjudication.
+
+**How the labels line up.** On gold, PropBank's label against CGELBank's
+function:
+* ARG2 is Comp 25 times and Mod once.
+* ARGM-TMP is Mod 18 times and Comp once.
+* ARGM-ADV, -CAU and -PRP are always Mod.
+* ARGM-LOC is Mod 10 times and Comp 3 times. The Comps are *kept in a run*
+  and *land in a terminal*: locations the verb licenses.
+* ARGM-DIR and ARGM-GOL are Comp all 6 times. These are goals, sources and
+  directions of motion: *drive to Tacoma*, *come back out*, *come in*,
+  *launch from*, *transition away*.
+
+That last group is a known difference between the two traditions. PropBank
+treats direction as a modifier for many motion verbs; CGEL §5.2 counts
+goals and sources of motion as complements. Reading ARGM-DIR/GOL as Comp
+follows the chapter, and it was expected before this comparison was run. It
+was scored after the gold's disagreements had been seen, however, so its
+figure on gold is not a clean test.
+
+**The rest of the disagreements are divided:**
+* **PropBank says argument, CGELBank says Mod:** *live in harmony*, *work
+  with my insurance*, *cut from the budget*, *make art out of them*, *differ
+  in the fact that*. Several of these are arguable.
+* **PropBank says ARGM, CGELBank says Comp:** *check with* (ARGM-COM),
+  *talk down to*, *start as a joke*.
+
+**What this shows:**
+* **On gold, a role-based source is the best single source yet.** On the
+  PPs no CGEL test decides, it is right 80.3% of the time, against 72.4% for
+  the relabelled table.
+* **Used after the CGEL tests,** PropBank (with DIR/GOL as Comp) lifts gold
+  accuracy to 88.4.
+* **On trial it does not help.** It covers only 25 PPs, the tests and table
+  are already right on 88% of them, and PropBank gets 1 fewer right. With
+  25 PPs that is no evidence either way.
+* **PropBank is gold annotation here.** On new text its labels would come
+  from a semantic role labeller, which would be less accurate.
+
+PropBank is another group's judgment, not CGEL's. Like MASC's function
+tags, it is best treated as one more annotator of known biases. The biases
+here are goals of motion and licensed locations.
+
+The PropBank release also annotates part of MASC (`data/oanc/masc`, 97
+documents), which is the corpus the relabelling and learning use. That
+would put roles into the training data itself.
+
 ## Running
 
 ```bash
@@ -388,6 +466,8 @@ uv run python cgel/evaluate_cgel.py CGELBANK/datasets $S/pp_examples.tsv $S/nltk
     --relabelled=$S/cgel_examples.tsv --theories=$S/ilp_cgel
 ```
 
-`CGELBANK` is a clone of nert-nlp/cgel. `pp_examples.tsv` and `nltk_data`
+`CGELBANK` is a clone of nert-nlp/cgel. For the PropBank comparison, add
+`--propbank=PROPBANK/data/google/ewt`, where `PROPBANK` is a clone of
+propbank/propbank-release. `pp_examples.tsv` and `nltk_data`
 are as for `../build.py`. The output TSV has one row per aligned PP: the
 gold label, each source's decision, the deciding test, and the sentence.

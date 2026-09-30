@@ -1,7 +1,7 @@
 """Which of a verb's PPs are complements: the sources against CGELBank's gold.
 
     uv run python cgel/evaluate_cgel.py CGELBANK_DATASETS EXAMPLES_TSV NLTK_DATA_DIR [OUT_TSV] [--trial]
-        [--relabelled=CGEL_EXAMPLES_TSV --theories=DIR]
+        [--relabelled=CGEL_EXAMPLES_TSV --theories=DIR] [--propbank=PROPBANK_EWT_DIR]
 
 CGELBANK_DATASETS is nert-nlp/cgel's datasets/ directory; EXAMPLES_TSV the
 MASC PP examples pp_examples.pl writes (for the rate table); NLTK_DATA_DIR
@@ -38,6 +38,12 @@ by CGEL's tests (relabel.py) are scored too:
   relabel_table      the rate table of the relabelled data
   learned_B          each theory Aleph learned on it, DIR/B/theory.pl
   cgel_tests2+X      cgel_tests2 with X as the fallback in place of masc_table or verbnet
+
+With --propbank (propbank-release's data/google/ewt), each PP is given the
+PropBank label of the argument of its verb that covers it (propbank_ewt.py):
+a numbered argument, whose role the verb's roleset gives, is Comp; a
+modifier (ARGM-) is Mod. PPs of sentences PropBank lacks (Twitter), or
+that no argument covers, have none; they are scored apart.
 
 With --trial, the gold is CGELBank's trial trees (datasets/trial/: ewt-trial,
 twitter-etc-trial), annotated but not adjudicated by both annotators.
@@ -124,7 +130,8 @@ def cgel_tests(p, f, fallback, by_agent=False, lexicon=False):
     return fallback, 'evidence'
 
 
-def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, theories=None):
+def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, theories=None,
+         propbank=None):
     senses = Senses(nltk_dir)
     vn = VerbNet(nltk_dir)
     table = prior(list(examples(masc_tsv, senses, vn)))
@@ -205,6 +212,8 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
         if rs:
             print('  %-10s %3d  Comp %3d  %s' % (rel, len(rs), sum(r['gold'] for r in rs),
                                                 scores([(r['gold'], r['cgel_tests2']) for r in rs])))
+    if propbank:
+        report_propbank(rows, propbank, [name for name, _ in extra])
     if out:
         with open(out, 'w') as o:
             o.write('gold\tlemma\tprep\trel\tmasc_table\tverbnet\tmasc_rules\tcgel_tests2\ttest\tpp\ttext\n')
@@ -216,8 +225,69 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
                     p['pp_words'], p['text'])) + '\n')
 
 
+def propbank_label(pb, p):
+    """(label, roleset) of the argument of p's verb covering most of the PP, or None"""
+    s = pb.get(p['sid'])
+    if s is None:
+        return None
+    span = {i - 1 for i in p['span']}
+    best = None
+    for i, _lemma, roleset, args in s[1]:
+        if i != p['verb_id'] - 1:
+            continue
+        for label, first, last in args:
+            n = len(span & set(range(first, last + 1)))
+            if n and (best is None or n > best[0]):
+                best = (n, label, roleset)
+    return best and best[1:]
+
+
+def cgel_kind(label):
+    """PropBank's label read as CGEL would: as kind(), except that goals and
+    directions of motion (ARGM-DIR, ARGM-GOL) are complements (CGEL ch. 4 §5.2)"""
+    from propbank_ewt import kind
+    return 'Comp' if re.sub(r'^[RC]-', '', label) in ('ARGM-DIR', 'ARGM-GOL') else kind(label)
+
+
+def report_propbank(rows, propbank_dir, extra):
+    from propbank_ewt import kind, read
+    pb = read(propbank_dir)
+    for r in rows:
+        r['pb'] = propbank_label(pb, r['p'])
+    have = [r for r in rows if r['pb']]
+    print('\nPropBank: %d of %d PPs covered by an argument of their verb (%d in sentences PropBank lacks)'
+          % (len(have), len(rows), sum(r['p']['sid'] not in pb for r in rows)))
+    if not have:
+        return
+    print('%-34s %s' % ('on those, PropBank (ARGn Comp)', scores([(r['gold'], kind(r['pb'][0]) == 'Comp') for r in have])))
+    print('%-34s %s' % ('on those, PropBank, DIR/GOL Comp', scores([(r['gold'], cgel_kind(r['pb'][0]) == 'Comp') for r in have])))
+    for name in ['cgel_tests2', 'cgel_tests3'] + ['cgel_tests2+' + e for e in extra]:
+        print('%-34s %s' % ('on those, ' + name, scores([(r['gold'], r[name]) for r in have])))
+    table = collections.Counter((re.sub(r'^[RC]-', '', r['pb'][0]), 'Comp' if r['gold'] else 'Mod') for r in have)
+    print('  PropBank label by CGELBank function:')
+    for label in sorted({l for l, _ in table}):
+        print('    %-10s Comp %3d  Mod %3d' % (label, table[label, 'Comp'], table[label, 'Mod']))
+    print('  disagreements:')
+    for r in have:
+        if (kind(r['pb'][0]) == 'Comp') != r['gold']:
+            print('    CGEL %-4s PropBank %-9s %-16s %s | %s' % (
+                'Comp' if r['gold'] else 'Mod', r['pb'][0], r['pb'][1], r['p']['pp_words'], r['p']['text'][:90]))
+    ev = [r for r in have if r['test2'] == 'evidence']
+    if ev:
+        print('  on the %d the CGEL tests leave to evidence and PropBank covers:' % len(ev))
+        print('    %-30s %s' % ('PropBank', scores([(r['gold'], kind(r['pb'][0]) == 'Comp') for r in ev])))
+        print('    %-30s %s' % ('masc_table or verbnet', scores([(r['gold'], r['cgel_tests2']) for r in ev])))
+        for e in extra:
+            print('    %-30s %s' % (e, scores([(r['gold'], r[e]) for r in ev])))
+    print('%-34s %s' % ('all: cgel_tests2, PropBank fallback', scores([(r['gold'], r['cgel_tests2'] if r['test2'] != 'evidence' or not r['pb'] else kind(r['pb'][0]) == 'Comp') for r in rows])))
+    print('%-34s %s' % ('all: cgel_tests2, PropBank DIR/GOL', scores([(r['gold'], r['cgel_tests2'] if r['test2'] != 'evidence' or not r['pb'] else cgel_kind(r['pb'][0]) == 'Comp') for r in rows])))
+    if extra:
+        e = extra[0]
+        print('%-34s %s' % ('all: cgel_tests2, PropBank DIR/GOL, else ' + e, scores([(r['gold'], r['cgel_tests2'] if r['test2'] != 'evidence' else (cgel_kind(r['pb'][0]) == 'Comp' if r['pb'] else r[e])) for r in rows])))
+
+
 if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     opts = dict(a[2:].split('=', 1) for a in sys.argv[1:] if a.startswith('--') and '=' in a)
     main(*args[:4], trial='--trial' in sys.argv, relabelled=opts.get('relabelled'),
-         theories=opts.get('theories'))
+         theories=opts.get('theories'), propbank=opts.get('propbank'))

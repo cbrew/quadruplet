@@ -129,6 +129,7 @@ def pps(sid, text, toks):
             other_pp=False,
             passive=any(k['rel'] in ('aux:pass', 'nsubj:pass', 'csubj:pass') for k in vkids),
             pp_words=' '.join(by[i]['form'] for i in span),
+            span=span,
         ))
     counts = collections.Counter((p['sid'], p['verb_id']) for p in out)
     for p in out:
