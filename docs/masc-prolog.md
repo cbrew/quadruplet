@@ -246,6 +246,62 @@ runs the clause places around the finite verb and the subject.
 Not yet written: the dependency and CoNLL-U transformations, and the frame
 analyzer in Prolog (point 8).
 
+## What the Prolog form offers, and what it does not
+
+**Compared with FSTs and tree transformations, the stored form adds
+nothing.** `ALGORITHM.md` §7–8 in odd_one_out says as much:
+* Each program is a derivation term, with no sharing inside a sentence, and
+  a corpus of them is a finite regular tree language.
+* To hold a large corpus, its §8 architecture is the right one: a
+  finite-state lexicon and an LCFRS over tags.
+* Automata bring minimisation, determinisation and composition, and make
+  some questions decidable, such as whether a conversion loses information
+  (whether its transducer is injective). Prolog gives none of this: a
+  transformation can fail to terminate, or be many-to-one, without anyone
+  knowing.
+
+**Most of the transformations are standard too.** `analysis/1`, dependencies
+and CoNLL output are homomorphisms or attribute-grammar computations.
+Reattachment moves subtrees along co-indexation and recomputes runs from
+positions. That is beyond a plain top-down tree transducer, but within
+reach of a macro tree transducer with attributes, since a tree has boundedly
+many indices. In Prolog it is about 100 lines over the shared scan, easy to
+change and to check.
+
+**The difference is a general query and transformation language that sits
+alongside the data.** That opens up six things:
+
+1. **Partial annotations and constrained parsing.** Leave a label, a daughter
+   or a word as a variable, and the program asks which completions fit.
+   This is §7's intersection with a partial annotation, run directly
+   rather than built as an automaton.
+2. **Generation.** The same DCG parses and generates. A tree's program can
+   check a candidate sentence against that tree, for instance the sentence
+   with its verb replaced. That gives controlled minimal pairs for triads,
+   with the structure held fixed.
+3. **Queries beyond a fixed query language.** TGrep2, Tregex and
+   TIGERSearch fix their query languages. Here a query can use recursion,
+   negation, aggregation and relations defined as needed. The search for
+   raising and object control in `tools/frames/README.md` was a Python
+   script; here it is a short query over `empty/3` and `antecedent/2`.
+4. **One store for evidence and judgments.** Treebank facts, frame rules,
+   verb-class lexicons and LLM triad answers can all be facts, with rules
+   that combine them. A class assignment consistent with a verb's corpus
+   frames and with the triads it passed becomes an inference rather than
+   glue code between pipelines. FSTs have no place for this.
+5. **Explanations.** A proof records which rule and which trace produced a
+   frame. That is a checkable reason to set beside an LLM's stated reason
+   on a triad.
+6. **One notation for German and English.** TIGER and reattached MASC now
+   share one notation and one scan. A frame analyzer written once in Prolog
+   could run over both.
+
+**The division of labour this suggests:** Prolog as the specification and
+reference layer, automata as the compiled and scalable one. Transformations
+and inferences are developed in Prolog. Where one falls in a decidable
+class, it is compiled to a transducer and tested against the Prolog
+original.
+
 ## Reproducing the counts
 
 ```bash
