@@ -34,7 +34,7 @@ With --relabelled and --theories, the sources learned from MASC relabelled
 by CGEL's tests (relabel.py) are scored too:
 
   relabel_table      the rate table of the relabelled data
-  learned_B          the theory Aleph learned on it with background B (DIR/B/theory.pl)
+  learned_B          each theory Aleph learned on it, DIR/B/theory.pl
   cgel_tests2+X      cgel_tests2 with X as the fallback in place of masc_table or verbnet
 
 With --trial, the gold is CGELBank's trial trees (datasets/trial/: ewt-trial,
@@ -129,8 +129,8 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
                 for doc, path, pp, kind, ls, f in read(relabelled, senses, vn)]
         rtable = prior(rows)
         extra.append(('relabel_table', lambda f: rtable(f['lemma'], f['prep']) >= 0.5))
-    for b in ('classes', 'lexical', 'verbnet', 'lexical_verbnet'):
-        if theories and os.path.exists(os.path.join(theories, b, 'theory.pl')):
+    for b in sorted(os.listdir(theories)) if theories else []:
+        if os.path.exists(os.path.join(theories, b, 'theory.pl')):
             extra.append(('learned_' + b, lambda f, t=theory(os.path.join(theories, b, 'theory.pl')):
                           covers(t, f)))
     pairs, missed = [], 0
