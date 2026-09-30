@@ -28,29 +28,56 @@ VerbNet, and the learned rules can each be trusted. Every score in
 
 ## Criteria
 
-These are CGEL's, chapter 4, as summarised here from memory; check them
-against the book. A PP is a complement when it is licensed by the verb, and
-an adjunct when it would combine with any verb of the kind. The tests,
-roughly in order of weight:
+These are CGEL's, from ch. 4 §1.2 ("Complements vs adjuncts"), §5.2
+(location, goal and source) and §6.1 (prepositional verbs). A PP is a
+complement when the verb licenses it: an adjunct, such as *for this reason*
+or *at that time*, is not restricted to a particular kind of verb (§1.2(a)).
+The tests, roughly in order of weight:
 
-1. **Specified preposition.** The verb selects the preposition: *rely on*,
-   *consist of*, *look at*, *listen to*. Another preposition changes the
-   verb's sense or is impossible.
-2. **Obligatoriness.** Leaving the PP out is ungrammatical, or changes the
-   verb's sense: *put it \*(on the table)*, *live \*(in Paris)*. Optional
-   complements exist too (*talk to her*), so a PP that can be left out is
-   not thereby an adjunct.
-3. **The role comes from the verb.** A complement's semantic role is fixed
-   by the verb: the recipient of *give … to*, the goal of *put*. An adjunct's
-   comes from the preposition alone: time, place of the event, reason,
-   instrument.
-4. **Do so.** An adjunct can follow *do so*, a complement cannot. *Kim slept
-   in the bed and Lee did so on the sofa* is fine, so that PP is an
-   adjunct. *\*Kim relied on Pat and Lee did so on Sam* is not, so that PP
-   is a complement.
-5. **Locatives and goals.** A locative or goal PP licensed by the verb is a
-   complement (*live in*, *go to*, *put on*). MASC usually does not tag
-   these CLR.
+1. **Specified preposition** (§1.2(a), §6.1). The verb selects the
+   preposition: *consist of*, *look at*, *depend on*, *give … to*, *supply
+   … with*, *blame … on*. It cannot be replaced without ungrammaticality or
+   an unsystematic change of meaning (*look at* against *look for*).
+   * `../cgel/prepositional_verbs.tsv` has §6.1.2's lists, which the book
+     calls a small sample.
+   * *as* with a predicative is included: *regard it as*, *count as*,
+     *use it as*.
+2. **Obligatoriness** (§1.2(b)). A PP whose omission is ungrammatical, or
+   changes the verb's sense, is a complement: *put the money \*(in her
+   account)*, *Lunch was followed \*(by the speech)*.
+   * The analysis generalises to the same verb class where the PP is
+     optional: *deposit* the money in her account.
+   * The passive's *by*-phrase is a complement, though a "somewhat
+     peripheral" one.
+   * *Be* is the exception. *Jill is in her study* and *The meeting was on
+     Monday* have complements, but the same PPs with other verbs are
+     "prototypical adjuncts" (*signed it in her study*).
+3. **Role** (§1.2(h)). A complement's role depends on the verb. An adjunct's
+   comes from its own content, the same with any verb: time, place of the
+   event, reason, manner.
+   * With a contrastive preposition the preposition fixes the role: *pushed
+     it to/toward/past the house*.
+   * With a determined one the verb does: the recipient of *give … to*.
+4. ***Do so*** (§1.2(c)). A PP that can combine with *do so* is an adjunct:
+   *Jill washes her car in the garage but Pam does so in the road*. A
+   complement cannot: *\*Jill keeps her car in the garage but Pam does so
+   in the road*.
+   * The test works one way only. Failing *do so* does not show a
+     complement, because *do so* has semantic restrictions of its own:
+     *\*Kim died in 1995 and Pat did so last year* fails even though both
+     are adjuncts.
+5. **Locatives, goals and sources** (§5.2, §1.2(c–d)).
+   * A location licensed by the verb is a complement: *keep … in*, *live
+     in*, *remain outside*.
+   * So are goals and sources of motion: *rode her bicycle to school*,
+     *ran from the scene*, *took the bed downstairs*.
+   * The same roles extend to states (*turn into a prince*, *go to sleep*)
+     and to possession (*sell … to*, *buy … from*, *belong to*).
+   * A location of the event is an adjunct: *slept on the floor*, *slept
+     downstairs*.
+6. **Preposition + clause** (§1.2(d)). These are predominantly adjuncts
+   (*left because the baby was sick*). As complements they are largely
+   limited to copular clauses (*That was long before we were married*).
 
 Mark **unclear** where the tests disagree, and say which way each points in
 `note`. The unclear cases matter as much as the clear ones.
@@ -78,6 +105,11 @@ Mark **unclear** where the tests disagree, and say which way each points in
   that built this, by the criteria above;
 * `llm_saw_labels`: whether it had seen the item's MASC, VerbNet and rule
   labels before judging.
+
+The judgments were made under an earlier version of the criteria above,
+written from memory before the chapter was at hand. That version stated
+*do so* as a test both ways, and did not separate locatives of position
+from licensed locations.
 
 The judge worked from a shuffled list of verb, PP and sentence. It had seen
 the labels of 19 items: 9 printed earlier in the session, and 10 exposed

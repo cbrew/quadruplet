@@ -71,7 +71,7 @@ MODES_VERBNET = """\
 :- modeb(1, vn_none(+ex)).
 """
 VERBNET = ['vn_class', 'vn_group', 'vn_prep', 'vn_spatial', 'vn_none']
-UNARY = {'next', 'obj_before', 'other_pp', 'passive', 'copula', 'vn_prep', 'vn_spatial', 'vn_none'}
+UNARY = {'next', 'obj_before', 'other_pp', 'passive', 'copula', 'cgel_lex', 'vn_prep', 'vn_spatial', 'vn_none'}
 SPATIAL = {'in', 'on', 'at', 'into', 'onto', 'to', 'from', 'toward', 'towards', 'through',
            'across', 'along', 'around', 'over', 'under', 'above', 'below', 'behind', 'between',
            'among', 'near', 'inside', 'outside', 'out', 'off', 'up', 'down', 'upon', 'within',
@@ -145,6 +145,19 @@ class VerbNet:
                             spatial = True
             self.cache[lemma] = (tops, groups, preps, spatial)
         return self.cache[lemma]
+
+    def roles(self, lemma, prep):
+        """The thematic roles of the NP after this very preposition in the frames
+        of the verb's classes: Location, Destination, Attribute ..."""
+        out = set()
+        for c in self.vn.classids(lemma=lemma):
+            for fr in self.frames(c):
+                syn = fr['syntax']
+                for i, s in enumerate(syn[:-1]):
+                    if s['pos_tag'] == 'PREP' and \
+                            prep in (s['modifiers'].get('value') or '').lower().split():
+                        out.add(syn[i + 1]['modifiers'].get('value'))
+        return out
 
 
 class Senses:

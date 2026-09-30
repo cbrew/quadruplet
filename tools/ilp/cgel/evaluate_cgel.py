@@ -24,6 +24,8 @@ sources, each deciding complement or not for a UD PP:
                  an intransitive preposition with a verb of
                  motion or position                             complement
                and where none applies, masc_table or verbnet
+  cgel_tests3  cgel_tests2, with the prepositional verbs of CGEL ch. 4 §6.1.2
+               (prepositional_verbs.tsv) as a test, after now/then/so: Comp
   cgel_tests2  the same, with the passive test as EWT needs it: EWT labels a
                passive's by-phrase plain obl, so a by-PP of a past participle
                is the agent. (This was found by looking at the gold, where
@@ -49,7 +51,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.dirname(HERE))
 from build import SPATIAL, Senses, VerbNet, examples, prior, scores  # noqa: E402
+from lexicon import prepositional_verbs  # noqa: E402
 from ud_pps import align, conllu, gold, pps  # noqa: E402
+
+LEXICON = prepositional_verbs()
 
 FILES = ['ewt', 'twitter', 'ewt-test_iaa50', 'ewt-test_pilot5']
 TRIAL = ['trial/ewt-trial', 'trial/twitter-etc-trial']
@@ -77,7 +82,7 @@ def features(p, senses, vn):
         'obj_sense': osense, 'obj_cat': {'np': 'np', 'clause': 's', 'none': 'none'}[p['obj_cat']],
         'vtag': p['vtag'], 'next': p['next'], 'obj_before': p['obj_before'],
         'other_pp': p['other_pp'], 'passive': p['passive'], 'copula': p['lemma'] == 'be',
-        'obj_head': p['obj_lemma'],
+        'obj_head': p['obj_lemma'], 'cgel_lex': (p['lemma'], p['prep']) in LEXICON,
         'vn_class': tops, 'vn_group': groups, 'vn_prep': p['prep'] in preps,
         'vn_spatial': spatial and p['prep'] in SPATIAL, 'vn_none': not tops,
     }
@@ -100,7 +105,7 @@ def covers(clauses, f):
     return any(all(holds(p, a) for p, a in body) for body in clauses)
 
 
-def cgel_tests(p, f, fallback, by_agent=False):
+def cgel_tests(p, f, fallback, by_agent=False, lexicon=False):
     """(decision, the test that decided)"""
     if p['rel'] == 'obl:agent' or by_agent and p['prep'] == 'by' and p['vtag'] == 'vbn':
         return True, 'agent'
@@ -112,6 +117,8 @@ def cgel_tests(p, f, fallback, by_agent=False):
         return False, 'adverbial clause'
     if p['prep'] in TIME_P:
         return False, 'now/then/so'
+    if lexicon and f['cgel_lex']:
+        return True, 'CGEL prepositional verb'
     if p['rel'] == 'advmod' and (f['verb_sense'] in MOTION or f['vn_spatial']):
         return True, 'locative with motion verb'
     return fallback, 'evidence'
@@ -153,9 +160,12 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
         r['masc_rules'] = covers(rules, f)
         r['cgel_tests'], r['test'] = cgel_tests(p, f, r['masc_table'] or r['verbnet'])
         r['cgel_tests2'], r['test2'] = cgel_tests(p, f, r['masc_table'] or r['verbnet'], by_agent=True)
+        r['cgel_tests3'], r['test3'] = cgel_tests(p, f, r['masc_table'] or r['verbnet'], by_agent=True,
+                                                  lexicon=True)
         for name, source in extra:
             r[name] = source(f)
             r['cgel_tests2+' + name] = cgel_tests(p, f, r[name], by_agent=True)[0]
+            r['cgel_tests3+' + name] = cgel_tests(p, f, r[name], by_agent=True, lexicon=True)[0]
         rows.append(r)
     print('\n%-30s %s' % ('source', 'agreement with CGELBank'))
     print('%-30s %s' % ('all Mod', scores([(r['gold'], False) for r in rows])))
@@ -165,10 +175,16 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
     print('%-30s %s' % ('masc_table or masc_rules', scores([(r['gold'], r['masc_table'] or r['masc_rules']) for r in rows])))
     print('%-30s %s' % ('cgel_tests', scores([(r['gold'], r['cgel_tests']) for r in rows])))
     print('%-30s %s' % ('cgel_tests2', scores([(r['gold'], r['cgel_tests2']) for r in rows])))
+    print('%-30s %s' % ('cgel_tests3', scores([(r['gold'], r['cgel_tests3']) for r in rows])))
+    lex = [r for r in rows if r['test3'] == 'CGEL prepositional verb']
+    print('  the prepositional verb test decides %d, agrees with the gold on %d: %s' % (
+        len(lex), sum(r['gold'] for r in lex), ', '.join('%s %s' % (r['p']['lemma'], r['p']['prep']) for r in lex)))
     for name, _ in extra:
         print('%-30s %s' % (name, scores([(r['gold'], r[name]) for r in rows])))
     for name, _ in extra:
         print('%-30s %s' % ('cgel_tests2+' + name, scores([(r['gold'], r['cgel_tests2+' + name]) for r in rows])))
+    for name, _ in extra:
+        print('%-30s %s' % ('cgel_tests3+' + name, scores([(r['gold'], r['cgel_tests3+' + name]) for r in rows])))
     for name, _ in extra:
         ev = [r for r in rows if r['test2'] == 'evidence']
         print('  on the %d the tests leave to evidence, %-22s %s' % (
