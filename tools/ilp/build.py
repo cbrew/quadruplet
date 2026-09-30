@@ -8,7 +8,8 @@ writes, in OUT_DIR, for two sets of background predicates:
     lexical/complement.{b,f,n}   with the verb's lemma and the object's head word
     classes/complement.{b,f,n}   without them: WordNet supersenses and syntax only
 
-and test.pl (the held-out examples' facts and classes, for evaluate.pl), and
+and test.pl (the held-out examples' facts and classes, and the (lemma, prep)
+pairs training saw, for evaluate.pl), and
 prints the baselines on the held-out examples. The documents are split as
 tools/frames/src/frames/evaluate.py splits them: a fifth held out, by a hash
 of the document's name.
@@ -187,18 +188,26 @@ def main(tsv, wordnet_dir, out):
                 (fpos if cls == 'complement' else fneg).write('complement(%s).\n' % eid)
 
     with open(os.path.join(out, 'test.pl'), 'w') as t:
-        t.write(':- discontiguous %s.\n' % ', '.join(
+        t.write(':- discontiguous example/4, %s.\n' % ', '.join(
             '%s/%d' % (p, 1 if p in ('next', 'obj_before', 'other_pp', 'passive') else 2)
             for p in PREDICATES + LEXICAL))
+        # the (lemma, prep) pairs training saw, to single out those it did not
+        for lemma, prep in sorted({(f['lemma'], f['prep']) for *_, f in train}):
+            t.write('trained(%s, %s).\n' % (atom(lemma), atom(prep)))
         for i, (doc, path, pp, cls, facts) in enumerate(test):
             eid = 't%d' % i
             t.write('example(%s, %s, %s, %s).\n' % (eid, cls, atom(doc), pp))
             for line in fact_lines(eid, facts, PREDICATES + LEXICAL):
                 t.write(line + '\n')
 
-    # baselines on the held-out examples
+    # baselines on the held-out examples, and the table's prediction for each,
+    # with whether training saw its (lemma, prep) pair, for combine.py
     p = prior(train)
     seen = {(f['lemma'], f['prep']) for *_, f in train}
+    with open(os.path.join(out, 'table.tsv'), 'w') as t:
+        for i, (*_, cls, f) in enumerate(test):
+            t.write('t%d\t%s\t%d\t%d\n' % (i, cls, p(f['lemma'], f['prep']) >= 0.5,
+                                            (f['lemma'], f['prep']) in seen))
     gold = [cls == 'complement' for *_, cls, _ in test]
     print('baselines on the held-out examples:')
     print('  all adjuncts:           ', scores([(g, False) for g in gold]))
