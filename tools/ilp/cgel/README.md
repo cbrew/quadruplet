@@ -281,6 +281,92 @@ test decides.
 The minpos 5 theories are
 `../theories/cgel_{lexical,verbnet}_minpos5.pl`.
 
+### Version 2: the relabeller revised from CGEL ch. 4
+
+With the chapter at hand (a 2009 revision draft of ch. 4; section numbers
+are the draft's), the relabeller was checked against it.
+
+**What the chapter confirms:**
+* the passive's by-phrase is a complement (§1.2(b));
+* *be* with a PP of place or time is a complement (§1.2(b));
+* preposition + clause is predominantly an adjunct, except in copular
+  clauses (§1.2(d));
+* the motion test, *took the bed downstairs* against *slept downstairs*
+  (§1.2(d));
+* goals and sources of motion, state goals, and possessional source and
+  goal are complements (§5.2).
+
+It showed two divergences:
+
+1. **Predicative *as*.** §6.1.2 has *count as*, *regard/use/see/describe …
+   as* and *think of … as* taking a predicative complement. Version 1
+   called 338 *as*-PPs Mod by default.
+2. **Locatives of position.** A location is a complement only where the
+   verb licenses it: *keep her car in the garage*, but not *washes her car
+   in the garage* (§1.2(b–c)).
+   * Version 1's VerbNet rule labelled 1,055 *in/on/at* PPs Comp.
+   * Only 333 had a VerbNet role of place: *live in*, *include in*,
+     *spend on*.
+   * The rest came from frames for other senses. The NP's role was
+     Attribute (*die in*, from a frame for *dropped in value*; *say in*,
+     *appear in*), Theme (*work in*), Result (*go in*) or Topic (*show in*).
+
+**Version 2 (`relabel.py`; `--v1` gives the first):**
+* It adds the prepositional verbs of §6.1.2 as a test,
+  `prepositional_verbs.tsv`: 187 pairs, with the book's citation. It also
+  adds them as the background predicate `cgel_lex/1`.
+* It counts VerbNet for *in/on/at* only where the frame gives the NP a role
+  of place.
+* These changes came from the chapter, after CGELBank's gold errors had
+  been seen. The trial files had been seen only as totals, so they are the
+  fair test.
+
+**What the lexicon does.** It decides 1,431 MASC PPs, and MASC tags 996 of
+them CLR or DTV. The labels change on 832 PPs:
+* Mod to Comp, 160: *use as* 36, *refer to … as* 9, *act as* 8,
+  *establish as* 8.
+* Comp to Mod, 672: *work in* 47, *show in* 42, *say in* 32, *die in* 17.
+
+The Comp-to-Mod changes cost some real complements that neither MASC nor
+the §6.1.2 sample covers: *focus on* 32, *click on* 12, *work on* 10.
+
+**Results.** Accuracy, gold / trial:
+
+| source | version 1 | version 2 |
+|---|---|---|
+| cgel_tests2 (no lexicon) | 75.4 / 80.4 | – |
+| cgel_tests3 (with the §6.1.2 test) | – | 76.1 / 80.4 |
+| relabelled table alone | 76.1 / 82.6 | 76.1 / 78.3 |
+| learned verbnet alone | 71.7 / 65.2 | 73.9 / 69.6 |
+| learned lexical alone | 70.3 / 67.4 | 68.8 / 67.4 |
+| cgel_tests2 + relabelled table | 79.7 / 82.6 | **81.9 / 82.6** |
+| cgel_tests2 + learned verbnet | 79.7 / 73.9 | 81.2 / 78.3 |
+| cgel_tests3 + learned verbnet | – | 81.2 / 78.3 |
+
+* **The lexicon test is precise on UD.**
+  * On gold it decides 10 PPs and is right on 9: *serve as*, *describe as*,
+    *see to*, *consist of*, *help with* …
+  * The miss is *call in for a look*: the verb has a particle, and *for a
+    look* is a purpose adjunct. The lexicon ignores sense and particles.
+  * On trial it decides 5 and is right on all 5 (*boast about*, *refer to*,
+    *depend on* …). But the evidence had already got those right, so trial
+    accuracy does not move.
+* **The revised labels help on gold and hold on trial.**
+  * As the fallback, the relabelled table goes from 79.7 to 81.9 on gold
+    (3 PPs) and stays at 82.6 on trial.
+  * Alone, on trial, it drops 2 PPs.
+* **The learned verbnet theory improves most**, by 1.5 on gold and 4.4 on
+  trial (2 PPs) as the fallback. It still does not beat the table.
+* **The overall picture is unchanged.**
+  * The best combination is still the CGEL tests with the relabelled rate
+    table: 81.9 on gold, 82.6 on trial.
+  * The differences between versions are 0 to 3 PPs, within noise.
+  * The version 2 labels are the ones to prefer, because they follow the
+    chapter, not because they score better.
+
+The version 2 theories are
+`../theories/cgel2_{classes,lexical,verbnet,lexical_verbnet}.pl`.
+
 ## Running
 
 ```bash

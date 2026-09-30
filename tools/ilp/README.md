@@ -15,6 +15,7 @@ The learner is Aleph (Srinivasan), in Riguzzi's SWI-Prolog port
 | 1 | MASC's tags: CLR, PUT or DTV is a complement | 20,330 PPs (not predicatives or agents) | classes, lexical, verbnet, lexical_verbnet | `theories/{classes,lexical,verbnet,lexical_verbnet}.pl` | held-out MASC; `verbnet.pl` also on CGELBank (`cgel/`) |
 | 2 | MASC relabelled by CGEL's tests (`cgel/relabel.py`) | 26,510 PPs in CGEL's sense | the same, plus `copula/1` | `theories/cgel_*.pl` | relabelled held-out MASC; CGELBank gold and trial |
 | 3 | as run 2 | as run 2 | lexical and verbnet, with 4 body literals, minpos 5, or both | `theories/cgel_*_minpos5.pl` (the others not kept) | as run 2 |
+| 4 | MASC relabelled by version 2, revised from CGEL ch. 4 (§6.1.2 lexicon; VerbNet locatives restricted) | as run 2 | as run 2, plus `cgel_lex/1` | `theories/cgel2_*.pl` | as run 2 |
 
 What has **not** been done with Aleph:
 * **Learning from CGELBank.** It is used only for evaluation. The CGEL
