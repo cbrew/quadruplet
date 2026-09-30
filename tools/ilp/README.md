@@ -8,6 +8,26 @@ The learner is Aleph (Srinivasan), in Riguzzi's SWI-Prolog port
 (github.com/friguzzi/aleph, `prolog/aleph_orig.pl`). The target is
 `complement/1`.
 
+## What Aleph has been run on
+
+| run | labels | examples | backgrounds | theories | scored against |
+|---|---|---|---|---|---|
+| 1 | MASC's tags: CLR, PUT or DTV is a complement | 20,330 PPs (not predicatives or agents) | classes, lexical, verbnet, lexical_verbnet | `theories/{classes,lexical,verbnet,lexical_verbnet}.pl` | held-out MASC; `verbnet.pl` also on CGELBank (`cgel/`) |
+| 2 | MASC relabelled by CGEL's tests (`cgel/relabel.py`) | 26,510 PPs in CGEL's sense | the same, plus `copula/1` | `theories/cgel_*.pl` | relabelled held-out MASC; CGELBank gold and trial |
+
+What has **not** been done with Aleph:
+* **Learning from CGELBank.** It is used only for evaluation. The CGEL
+  tests in `cgel/` were written by hand.
+* **Theory revision.** No run has started from an existing theory.
+* **Parameter search or cross-validation.** Every run is one split.
+* **Other targets.** Only `complement/1` has been learned.
+* **The trees as background.** Aleph sees flat facts that Python draws
+  off the programs, not the programs themselves.
+
+The results of run 2 are in `cgel/README.md`. In short, relabelling helps,
+and the learned theories are readable, but they are not more accurate than
+the relabelled rate table.
+
 ## The data
 
 **The examples.** `pp_examples.pl` is a transformation over the sentence
