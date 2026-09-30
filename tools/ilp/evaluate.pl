@@ -9,7 +9,8 @@
 % each clause's precision and coverage on the held-out examples.
 
 :- dynamic complement/1, lemma/2, obj_head/2, prep/2, verb_sense/2, obj_sense/2, obj_cat/2,
-           vtag/2, next/1, obj_before/1, other_pp/1, passive/1, example/4, trained/2.
+           vtag/2, next/1, obj_before/1, other_pp/1, passive/1, example/4, trained/2,
+           vn_class/2, vn_group/2, vn_prep/1, vn_spatial/1, vn_none/1.
 
 evaluate(Theory, Test) :-
     load_files(Test, [silent(true)]),
