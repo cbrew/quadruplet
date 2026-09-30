@@ -229,6 +229,58 @@ accuracy:
   class: `lemma(A,ask)` for `vn_class(A,'inquire-37.1.2')`, and so on. On
   CGELBank they decide identically.
 
+### More room for Aleph
+
+Two of Aleph's settings were loosened, one at a time and then together. The
+settings are compared on the relabelled held-out MASC documents; CGELBank
+was scored once, for all of them.
+* **Clause length.** Four body literals are allowed, against three
+  (`clauselength` 5).
+* **Minimum coverage.** A clause may cover as few as 5 training positives,
+  against 15 (`minpos` 5).
+
+Each run takes 2 to 3 CPU minutes.
+
+| background | settings | clauses | held-out MASC acc / F | CGELBank alone, gold / trial acc | as fallback, gold / trial acc |
+|---|---|---|---|---|---|
+| lexical | as before | 25 | 76.0 / 78.9 | 70.3 / 67.4 | 79.0 / 78.3 |
+| lexical | 4 literals | 26 | 76.0 / 79.0 | 70.3 / 67.4 | 79.0 / 78.3 |
+| lexical | minpos 5 | 95 | 77.3 / 80.6 | 70.3 / 73.9 | 79.0 / 78.3 |
+| lexical | both | 110 | 77.4 / 80.7 | 71.0 / 69.6 | 79.0 / 76.1 |
+| verbnet | as before | 27 | 85.7 / 86.8 | 71.7 / 65.2 | 79.7 / 73.9 |
+| verbnet | 4 literals | 27 | 85.5 / 86.7 | 71.7 / 65.2 | 79.7 / 73.9 |
+| verbnet | 4 literals, 50,000 nodes | 27 | 85.5 / 86.7 | – | – |
+| verbnet | minpos 5 | 71 | 85.7 / 87.1 | 72.5 / 69.6 | 79.7 / 78.3 |
+| verbnet | both | 79 | 85.5 / 86.9 | 72.5 / 69.6 | 79.7 / 78.3 |
+| relabelled rate table | – | – | 81.4 / 82.9 | 76.1 / 82.6 | 79.7 / 82.6 |
+
+"As fallback" means `cgel_tests2` with that source deciding the PPs no
+test decides.
+
+* **A fourth literal buys nothing.**
+  * The new clauses mostly add `obj_cat(A,np)`, which narrows them by
+    almost nothing, or swap a VerbNet class for a Levin group and a
+    WordNet sense.
+  * On CGELBank the theories decide exactly as before.
+  * A search five times larger (50,000 nodes) finds the same theory, so
+    the search was not cramped.
+* **A lower minpos buys little.**
+  * The theories grow three- to fourfold.
+  * On held-out MASC, the lexical theory gains 1.3 points of accuracy;
+    the verbnet theory gains nothing.
+  * On CGELBank's trial files, the theories alone gain 3 PPs (lexical) and
+    2 PPs (verbnet) of 46. As a fallback, the verbnet theory gains 2 PPs;
+    on gold nothing changes. That is within noise.
+* **The relabelled table is still as good as any theory.**
+* **The limit is the features, not the search.**
+  * The cases that remain are single verbs with specified prepositions
+    that no class names: *decide between*, *renege on*, *check with*.
+  * On held-out MASC the theories are at the table's level, which is
+    near what the labels allow.
+
+The minpos 5 theories are
+`../theories/cgel_{lexical,verbnet}_minpos5.pl`.
+
 ## Running
 
 ```bash
