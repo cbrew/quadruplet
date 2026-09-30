@@ -108,6 +108,74 @@ it is on the list of diagnostics (`inventory.DIAGNOSTIC`: *deliberately*,
 *carefully*, *again* and so on). Scope-bearing modifiers are not told apart
 from the others.
 
+## Universal Dependencies (English), compared
+
+The policies of [UD English](https://universaldependencies.org/en/), set
+beside CGEL and these frames. The sources are UD's English relation pages
+and the universal pages they defer to. Points marked *(not in the docs)*
+are from memory of UD practice, not from a page.
+
+**Where all three agree**
+
+| construction | UD English | CGEL | frames |
+|---|---|---|---|
+| indirect object | `iobj` is a nominal; the *to* PP is not core | NP only | `d` NP only; the PP is `p.to` |
+| existential *there* | `expl` + `nsubj` on the NP after *be* | dummy + displaced subject | `nx` |
+| extraposition | *It is clear that …*: `expl` + `csubj` | extraposed subject | the clause beside `x` (`xks-that`) |
+| catenative with an object | *asked George to respond*, *consider him a fool*: `obj` + `xcomp` | raised or ordinary object | `a` + `i` / `a` + `o` |
+| copula-like verbs | only *be* is `cop`; *become*, *seem*, *get*, *look* take `xcomp` | predicative complement | `k` |
+| depictives | *entered the room sad*: `advcl` | adjunct | modifier |
+
+For raising verbs (*expect him to go*), the object analysis is inferred
+from the universal `xcomp` page's *consider her honest* *(not in the
+docs)*. The English `iobj` page still says `nmod` for the *to* PP, which
+is v1 wording; v2 has `obl`.
+
+**Where UD sides with the frames against CGEL**
+* **Auxiliaries and modals are dependents** of the lexical verb (`aux`,
+  `aux:pass`), as under the event view. UD's lexical heads are a second
+  argument for this departure from CGEL.
+* **Particles.** `compound:prt` marks an idiomatic phrasal verb (*shut
+  down*, *ended up*), and a literal directional particle is `advmod`
+  (*ran out screaming*). This is nearer the old joining of particle to
+  lemma than to CGEL's particle as complement. Neither the treebank's
+  `PRT` nor `p.up` makes the idiomatic/literal split.
+
+**Where UD differs from the frames**
+1. **The copula is not the head.** In *Bill is honest*, *honest* heads and
+   *is* is its `cop`; a PP or nominal predicate heads its clause too. The
+   frames give *be* its own frame, `nk`; CGEL agrees with the frames.
+2. **The passive stays on the surface**: `nsubj:pass`, `obl:agent`,
+   enhanced representation included. The frames take the verb's view
+   (surface subject `a`, agent `n`), a departure from CGEL argued above.
+3. **Obliques are not split into arguments and adjuncts.** "UD does not
+   make a distinction between (obligatory) arguments and (optional)
+   adjuncts." *rely on him* and *at noon* are both `obl`, and English has no
+   `obl:arg`. That is the distinction `p` makes, and CGEL makes it too.
+4. **Clauses are divided by subject, not finiteness.** `ccomp` has its own
+   subject and `xcomp` none. The subordinator (*that*, *if*, *whether*) is a
+   `mark` dependent, so nothing corresponds to the `s-` slots, and *that*
+   and zero-*that* clauses are one relation (compare the open `s-2`
+   question above).
+5. **The basic trees have no empty elements.** The enhanced representation
+   restores part of what the gold frames take from traces:
+   * controlled subjects (`nsubj:xsubj`, the frames' `controlled` source);
+   * shared dependents of conjuncts;
+   * relative-clause gaps (`ref`);
+   * null nodes for gapping;
+   * the preposition in the label (`obl:on`, like a `p`'s marker).
+
+Consequences:
+* **`analyze.py` would need changes for a UD parser.** It reads ClearNLP
+  labels, which keep the verb as the head of a copular clause (`attr`,
+  `acomp`). With a UD-trained parser (Stanza, spaCy's UD models) it would
+  have to re-root copular clauses on *be*. It would also have to decide PP
+  argumenthood, which UD does not supply.
+* **The English Web Treebank could be a second gold.** Its UD version comes
+  from the LDC English Web Treebank (2012), the guideline generation of
+  MASC's 2013 trees (`docs/masc-provenance.md`). It would serve only for
+  the distinctions UD keeps.
+
 ## Gold frames on MASC
 
 ```bash
