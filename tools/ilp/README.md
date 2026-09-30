@@ -53,7 +53,53 @@ Four backgrounds are used:
 
 Each run takes four to six minutes.
 
-## Results on the held-out documents
+## What MASC's labels are worth
+
+Every score in this file is **agreement with MASC's annotators**, not
+correctness. "Precision" is the share of the PPs a rule calls complements
+that MASC labels CLR, PUT or DTV; "accuracy" is agreement on both classes.
+The labels are a weak standard, for three reasons.
+
+**CLR is a vague tag.** It marks a PP "closely related" to the verb, and
+Bies et al. (1995) concede it is applied inconsistently. MASC splits many
+verb and preposition pairs almost evenly:
+
+| verb + preposition | CLR, PUT or DTV | neither |
+|---|---|---|
+| *live in* | 34 | 34 |
+| *come from* | 33 | 35 |
+| *work with* | 33 | 29 |
+| *bring to* | 26 | 27 |
+| *turn to* | 22 | 21 |
+| *take from* | 11 | 11 |
+| *set on* | 9 | 9 |
+
+Some of these may be real differences of sense (*take from*, *work with*).
+*live in* is not one: its locative PP is obligatory, which is what CGEL
+calls a complement.
+
+**The adjunct class is this experiment's construction.** A PP with no CLR,
+PUT or DTV is labelled an adjunct here. But the treebank leaves most PPs
+untagged, so no tag means no complement was asserted, not that an adjunct
+was. Goal and direction PPs (*went to London*) carry DIR, which counts as
+an adjunct here, and CGEL counts many of them as complements.
+
+**The labels have a ceiling, and the rate table is near it.** Give every
+verb and preposition pair its majority label, and the result agrees with
+MASC:
+* 90.9% of the time over all 20,330 PPs, a figure inflated by the many
+  pairs seen once;
+* 86.7% on the 363 pairs seen ten times or more (9,387 PPs).
+
+No rule keyed on the verb and preposition can agree with MASC more often
+on those pairs. The table's 85.3% overall is close to that ceiling, which
+partly means it fits MASC's inconsistencies. Where a clause or VerbNet
+disagrees with MASC, the clause or VerbNet may be the one closer to CGEL.
+
+`adjudication/` holds a sample of the disagreements, to be judged by
+CGEL's criteria (see its README).
+
+## Results on the held-out documents, as agreement with MASC
 
 | | accuracy | complement P | R | F |
 |---|---|---|---|---|
@@ -84,22 +130,24 @@ Read plainly:
   against 64.4, and 55.1 for WordNet alone. Adding the lemmas to VerbNet
   gains only 0.9 more. The verb's class carries most of what the verb
   itself carried.
-* **The table is still not beaten.** It holds thousands of (lemma, prep) rates;
-  the lexical theory has 44 clauses and reaches 87% of the table's F. As a
-  compression of the treebank's decisions, the theory does well. As a
-  classifier, it is not better.
+* **The table still agrees with MASC most.** It holds thousands of
+  (lemma, prep) rates. The lexical theory has 44 clauses and reaches 87% of
+  the table's F. As a compression of the treebank's decisions, the theory
+  does well. As a predictor of MASC's labels it is not better, and the table
+  is close to the ceiling that MASC's own consistency sets (see above).
 * **On unseen pairs the rules trade precision for recall.** Most PPs there
   are adjuncts, which is why the table's accuracy is high. The rules find
   more of the complements, at a cost in precision. Combining the two changes
   little overall.
-* **The labels limit everything.** The treebank's CLR is a judgment of
-  "closely related", which Bies et al. (1995) admit is applied
-  inconsistently. So the ceiling is unknown.
+* **Which is right is a separate question.** These are agreement figures.
+  Whether MASC, VerbNet or a clause is right about a given PP is what the
+  adjudication sample is for.
 
 ## The rules
 
-The value is in the clauses, which can be read and checked. Precision and
-coverage below are on the held-out examples.
+The value is in the clauses, which can be read and checked. Below, each
+clause has the share of the held-out PPs it covers that MASC labels
+complements, and how many it covers.
 
 **Specified prepositions, in CGEL's sense:**
 * `prep(A,about)`: 88% of 222;
@@ -141,8 +189,12 @@ labels already lean that way for these verbs.
 
 The last clause is where VerbNet and the treebank part. VerbNet lists many
 PPs of the change-of-possession verbs (*from*, *for*, *with*) that the
-treebank leaves as adjuncts. Over all training PPs, `vn_prep` alone has a
-precision of 40% and a recall of 58%: it is evidence, not a rule.
+treebank leaves untagged. Over all training PPs:
+* 40% of the PPs `vn_prep` holds for are ones MASC labels complements;
+* `vn_prep` holds for 58% of the PPs MASC labels complements.
+
+Measured against MASC, it is evidence rather than a rule. Where it and MASC
+disagree, either may be wrong.
 
 **Weak rules that need a second look:**
 * `lemma(A,give)`: 38% of 34;
@@ -154,6 +206,10 @@ These are where WordNet's first sense is a poor stand-in for a verb class.
 
 ## What next
 
+* **Adjudicate the disagreements.** `adjudication/` holds 56 PPs where
+  MASC, VerbNet and the rules disagree (and a control), with CGEL's
+  criteria written out. Judged, they say how far each source can be
+  trusted, and so how to read the scores above.
 * **The rules are hypotheses to put to the triads.** A clause such as
   `prep(A,to), verb_sense(A,'verb.communication')` names a class (verbs of
   communication taking *to*). Two members and a verb outside it make a
