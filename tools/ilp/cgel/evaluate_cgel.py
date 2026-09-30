@@ -2,6 +2,7 @@
 
     uv run python cgel/evaluate_cgel.py CGELBANK_DATASETS EXAMPLES_TSV NLTK_DATA_DIR [OUT_TSV] [--trial]
         [--relabelled=CGEL_EXAMPLES_TSV --theories=DIR] [--propbank=PROPBANK_EWT_DIR]
+        [--frames=PROPBANK_FRAMES_DIR]
 
 CGELBANK_DATASETS is nert-nlp/cgel's datasets/ directory; EXAMPLES_TSV the
 MASC PP examples pp_examples.pl writes (for the rate table); NLTK_DATA_DIR
@@ -43,7 +44,9 @@ With --propbank (propbank-release's data/google/ewt), each PP is given the
 PropBank label of the argument of its verb that covers it (propbank_ewt.py):
 a numbered argument, whose role the verb's roleset gives, is Comp; a
 modifier (ARGM-) is Mod. PPs of sentences PropBank lacks (Twitter), or
-that no argument covers, have none; they are scored apart.
+that no argument covers, have none; they are scored apart. With --frames too
+(propbank-frames), each covered PP gets its roles in CGEL's terms
+(propbank_roles.py), which the learned theories with role/2 can use.
 
 With --trial, the gold is CGELBank's trial trees (datasets/trial/: ewt-trial,
 twitter-etc-trial), annotated but not adjudicated by both annotators.
@@ -131,7 +134,7 @@ def cgel_tests(p, f, fallback, by_agent=False, lexicon=False):
 
 
 def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, theories=None,
-         propbank=None):
+         propbank=None, frames_dir=None):
     senses = Senses(nltk_dir)
     vn = VerbNet(nltk_dir)
     table = prior(list(examples(masc_tsv, senses, vn)))
@@ -159,8 +162,21 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
     print('gold PPs of VPs: %d aligned to UD, %d not; %d Comp, %d Mod' % (
         len(pairs), missed, sum(f == 'Comp' for f, _ in pairs), sum(f == 'Mod' for f, _ in pairs)))
     rows = []
+    pbdata = fr = None
+    if propbank:
+        from propbank_ewt import read
+        pbdata = read(propbank)
+        if frames_dir:
+            from propbank_roles import frames
+            fr = frames(frames_dir)
     for func, p in pairs:
         f = features(p, senses, vn)
+        f['role'] = []
+        if pbdata is not None:
+            hit = propbank_label(pbdata, p)
+            if hit and fr is not None:
+                from propbank_roles import roles
+                f['role'] = roles(hit[0], hit[1], fr)
         r = dict(gold=func == 'Comp', p=p, f=f)
         r['masc_table'] = table(p['lemma'], p['prep']) >= 0.5
         r['verbnet'] = f['vn_prep']
@@ -213,7 +229,7 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, t
             print('  %-10s %3d  Comp %3d  %s' % (rel, len(rs), sum(r['gold'] for r in rs),
                                                 scores([(r['gold'], r['cgel_tests2']) for r in rs])))
     if propbank:
-        report_propbank(rows, propbank, [name for name, _ in extra])
+        report_propbank(rows, pbdata, [name for name, _ in extra])
     if out:
         with open(out, 'w') as o:
             o.write('gold\tlemma\tprep\trel\tmasc_table\tverbnet\tmasc_rules\tcgel_tests2\ttest\tpp\ttext\n')
@@ -249,9 +265,8 @@ def cgel_kind(label):
     return 'Comp' if re.sub(r'^[RC]-', '', label) in ('ARGM-DIR', 'ARGM-GOL') else kind(label)
 
 
-def report_propbank(rows, propbank_dir, extra):
-    from propbank_ewt import kind, read
-    pb = read(propbank_dir)
+def report_propbank(rows, pb, extra):
+    from propbank_ewt import kind
     for r in rows:
         r['pb'] = propbank_label(pb, r['p'])
     have = [r for r in rows if r['pb']]
@@ -261,7 +276,7 @@ def report_propbank(rows, propbank_dir, extra):
         return
     print('%-34s %s' % ('on those, PropBank (ARGn Comp)', scores([(r['gold'], kind(r['pb'][0]) == 'Comp') for r in have])))
     print('%-34s %s' % ('on those, PropBank, DIR/GOL Comp', scores([(r['gold'], cgel_kind(r['pb'][0]) == 'Comp') for r in have])))
-    for name in ['cgel_tests2', 'cgel_tests3'] + ['cgel_tests2+' + e for e in extra]:
+    for name in ['cgel_tests2', 'cgel_tests3'] + extra + ['cgel_tests2+' + e for e in extra]:
         print('%-34s %s' % ('on those, ' + name, scores([(r['gold'], r[name]) for r in have])))
     table = collections.Counter((re.sub(r'^[RC]-', '', r['pb'][0]), 'Comp' if r['gold'] else 'Mod') for r in have)
     print('  PropBank label by CGELBank function:')
@@ -290,4 +305,4 @@ if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     opts = dict(a[2:].split('=', 1) for a in sys.argv[1:] if a.startswith('--') and '=' in a)
     main(*args[:4], trial='--trial' in sys.argv, relabelled=opts.get('relabelled'),
-         theories=opts.get('theories'), propbank=opts.get('propbank'))
+         theories=opts.get('theories'), propbank=opts.get('propbank'), frames_dir=opts.get('frames'))

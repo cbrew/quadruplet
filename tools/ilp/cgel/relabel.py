@@ -2,6 +2,7 @@
 for learning from the new labels.
 
     uv run python cgel/relabel.py CGEL_EXAMPLES_TSV NLTK_DATA_DIR OUT_DIR [--v1]
+        [--propbank=PROPBANK_MASC_DIR --frames=PROPBANK_FRAMES_DIR --programs=MASC_PROLOG_DIR]
 
 CGEL_EXAMPLES_TSV is what pp_examples.pl's cgel_tsv writes: every PP of a
 lexical verb in CGEL's sense (PPs, adverbial clauses led by a preposition,
@@ -46,6 +47,7 @@ test.pl and table.tsv; and it prints the counts.
 """
 import collections
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,7 +64,14 @@ PLACE_ROLES = {'Location', 'Destination', 'Goal', 'Source', 'Initial_Location'}
 
 GOAL_P = {'to', 'into', 'onto', 'toward', 'towards', 'from'}
 RULES = ['agent', 'predicative', 'time', 'adverbial clause', 'now/then/so',
-         'CGEL prepositional verb', 'locative with motion', 'MASC CLR', 'VerbNet', 'goal of motion', 'default']
+         'CGEL prepositional verb', 'locative with motion', 'PropBank', 'MASC CLR', 'VerbNet', 'goal of motion', 'default']
+
+
+def pb_comp(label):
+    """A PropBank label read as CGEL would: numbered arguments, and goals and
+    directions of motion (ARGM-DIR, ARGM-GOL; CGEL §5.2), are complements"""
+    label = re.sub(r'^[RC]-', '', label)
+    return not label.startswith('ARGM') or label in ('ARGM-DIR', 'ARGM-GOL')
 
 
 def relabel(kind, labels, f, v1=False):
@@ -83,6 +92,8 @@ def relabel(kind, labels, f, v1=False):
         return True, 'CGEL prepositional verb'
     if kind == 'advp' and motion:
         return True, 'locative with motion'
+    if f.get('pb'):
+        return pb_comp(f['pb']), 'PropBank'
     if {'clr', 'put', 'dtv'} & labels:
         return True, 'MASC CLR'
     if f['vn_prep'] and not f['copula'] and \
@@ -93,29 +104,44 @@ def relabel(kind, labels, f, v1=False):
     return False, 'default'
 
 
-def read(tsv, senses, vn):
-    """(doc, path, pp, kind, labels, facts) for each row"""
+def read(tsv, senses, vn, propbank=None, fr=None):
+    """(doc, path, pp, kind, labels, facts) for each row; with propbank (from
+    propbank_roles.masc) and fr (propbank_roles.frames), facts has pb, the
+    PropBank label of the PP, and role, its roles"""
+    from propbank_roles import covering, roles
     for line in open(tsv, encoding='utf-8'):
+        cols = line.rstrip('\n').split('\t')
         (path, kind, pp, lemma, vtag, prep, ocat, ohead, otag, nxt, obefore, nsib, voice,
-         labels) = line.rstrip('\n').split('\t')
+         labels) = cols[:14]
         labels = set(labels.strip('[]').split(',')) - {''}
         f = make_facts(senses, vn, lemma, vtag, prep, ocat, ohead, otag, nxt, obefore, nsib, voice)
         f['cgel_lex'] = (lemma, prep) in LEXICON
         f['vn_roles'] = vn.roles(lemma, prep) if f['vn_prep'] else set()
+        f['pb'], f['role'] = None, []
+        if propbank is not None and len(cols) >= 17:
+            hit = covering(propbank.get((path, int(cols[14])), []), int(cols[15]), int(cols[16]))
+            if hit:
+                f['pb'], f['role'] = hit[0], roles(hit[0], hit[1], fr)
         yield doc_of(path), path, pp, kind, labels, f
 
 
-def main(tsv, nltk_dir, out, v1=False):
+def main(tsv, nltk_dir, out, v1=False, propbank=None, frames_dir=None, programs=None):
     senses, vn = Senses(nltk_dir), VerbNet(nltk_dir)
     os.makedirs(out, exist_ok=True)
-    data, counts = [], collections.Counter()
+    pb = fr = None
+    if propbank:
+        from propbank_roles import frames, masc
+        pb, fr = masc(propbank, programs), frames(frames_dir)
+    data, counts, covered = [], collections.Counter(), []
     with open(os.path.join(out, 'relabelled.tsv'), 'w') as o:
         o.write('doc\tpath\tpp\tkind\tlemma\tprep\tmasc\tcgel\trule\n')
-        for doc, path, pp, kind, labels, f in read(tsv, senses, vn):
+        for doc, path, pp, kind, labels, f in read(tsv, senses, vn, pb, fr):
             comp, rule = relabel(kind, labels, f, v1)
             masc = bool({'clr', 'put', 'dtv'} & labels)
             counts[rule, masc] += 1
             data.append((doc, path, pp, 'complement' if comp else 'adjunct', f))
+            if f['pb']:
+                covered.append(data[-1])
             o.write('\t'.join((doc, path, pp, kind, f['lemma'], f['prep'],
                                ','.join(sorted(labels)) or '-', 'Comp' if comp else 'Mod',
                                rule)) + '\n')
@@ -125,6 +151,14 @@ def main(tsv, nltk_dir, out, v1=False):
     for r in RULES:
         print('%-22s %7d %7d' % (r, counts[r, True] + counts[r, False], counts[r, True]))
     print()
+    if pb is not None:
+        print('\nthe %d PPs PropBank covers, for the role experiment:' % len(covered))
+        common = PREDICATES + ['copula', 'cgel_lex']
+        modes = MODES_COMMON + ':- modeb(1, copula(+ex)).\n:- modeb(1, cgel_lex(+ex)).\n'
+        write(covered, os.path.join(out, 'roles', 'without'), common, modes)
+        write(covered, os.path.join(out, 'roles', 'with'), common + ['role'],
+              modes + ':- modeb(*, role(+ex, #role)).\n')
+        print()
     if v1:
         write(data, out, PREDICATES + ['copula'], MODES_COMMON + ':- modeb(1, copula(+ex)).\n')
     else:
@@ -133,4 +167,6 @@ def main(tsv, nltk_dir, out, v1=False):
 
 
 if __name__ == '__main__':
-    main(*[a for a in sys.argv[1:] if a != '--v1'][:3], v1='--v1' in sys.argv)
+    opts = dict(a[2:].split('=', 1) for a in sys.argv[1:] if a.startswith('--') and '=' in a)
+    main(*[a for a in sys.argv[1:] if not a.startswith('--')][:3], v1='--v1' in sys.argv,
+         propbank=opts.get('propbank'), frames_dir=opts.get('frames'), programs=opts.get('programs'))

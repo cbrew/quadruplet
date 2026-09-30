@@ -115,22 +115,25 @@ pp_tsv_file(File) :-
 % Particles (PRT) are left out, as they are on the UD side. A row is
 %
 %     pp(Kind, PP, Lemma, VerbTag, Prep, ObjCat, ObjHead, ObjTag, Next, ObjBefore, Siblings,
-%        Passive, Labels)
+%        Passive, Labels, Verb, From, To)
 %
 % with Kind pp, sbar or advp, Siblings counting the VP's other rows, and Labels the
-% function tags, with lgs added where the PP's NP is the passive's agent. The class is
-% left to relabel.py.
+% function tags, with lgs added where the PP's NP is the passive's agent, followed by the
+% verb's word position and the first and last word positions of the PP. The class is left
+% to relabel.py.
 
 cgel_examples(Rows) :-
     analysis(F),
     findall(Row, cgel_row(F, Row), Rows).
 
-cgel_row(F, pp(Kind, P, Lemma, VTag, Prep, ObjCat, ObjHead, ObjTag, Next, ObjBefore, NSib, Voice, Ls)) :-
+cgel_row(F, pp(Kind, P, Lemma, VTag, Prep, ObjCat, ObjHead, ObjTag, Next, ObjBefore, NSib, Voice, Ls,
+                I, From, To)) :-
     lexical_vp(F, V, I, VTag),
     member(edge(V, L, P), F),
     labels(L, Ls0),
     cgel_pp(F, P, Ls0, Kind, Prep, ObjCat, ObjHead, ObjTag),
-    member(constituent(P, _, [From-_|_]), F),
+    member(constituent(P, _, Spans), F),
+    Spans = [From-_|_], last(Spans, _-To),
     ( Kind == pp, agent(F, P) -> Ls = [lgs|Ls0] ; Ls = Ls0 ),
     member(lemma(I, Lemma0), F), downcase_atom(Lemma0, Lemma),
     ( From =:= I + 1 -> Next = next ; Next = later ),

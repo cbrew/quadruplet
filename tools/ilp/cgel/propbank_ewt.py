@@ -21,8 +21,9 @@ def spans(column):
         for label in re.findall(r'\(([^*()]+)', cell):
             open_.append((label, i))
         for _ in range(cell.count(')')):
-            label, first = open_.pop()
-            out.append((label, first, i))
+            if open_:                       # a stray bracket in the data is skipped
+                label, first = open_.pop()
+                out.append((label, first, i))
     return out
 
 
@@ -30,6 +31,8 @@ def read_file(path):
     sents, rows = [], []
     for line in list(open(path, encoding='utf-8')) + ['\n']:
         cols = line.split()
+        if len(cols) > 3 and cols[3].startswith('[WORD]') and cols[3] != '[WORD]':
+            cols[3:4] = ['[WORD]', cols[3][len('[WORD]'):]]   # a word fused with its tag
         if cols:
             rows.append(cols)
         elif rows:

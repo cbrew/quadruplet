@@ -291,6 +291,7 @@ def write(data, out, predicates, modes_common):
                     b.write(line + '\n')
                 (fpos if cls == 'complement' else fneg).write('complement(%s).\n' % eid)
 
+    os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, 'test.pl'), 'w') as t:
         t.write(':- discontiguous example/4, %s.\n' % ', '.join(
             '%s/%d' % (p, arity(p)) for p in predicates + LEXICAL + VERBNET))

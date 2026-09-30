@@ -445,6 +445,107 @@ The PropBank release also annotates part of MASC (`data/oanc/masc`, 97
 documents), which is the corpus the relabelling and learning use. That
 would put roles into the training data itself.
 
+## Semantic roles in the training data: MASC's PropBank
+
+The PropBank release also annotates MASC (`data/oanc/masc`).
+* **Alignment.** 92 of its 97 documents are among our 391.
+  * Its sentence k is our program `k.pl`.
+  * Its tokens are our words, since it has no empty elements.
+  * 4,439 sentences match ours tag for tag; 379 more match in length.
+  * `pp_examples.pl`'s `cgel_tsv` now also writes each row's verb position
+    and PP span, so a MASC PP can be looked up in PropBank.
+* **Coverage.** PropBank covers 3,720 of the 26,510 PPs (14%).
+
+**Roles in CGEL's terms** (`propbank_roles.py`).
+* **Numbered arguments** take their role from the roleset's frame file
+  (github.com/propbank/propbank-frames). The VerbNet role it links to
+  (*give.01* ARG2 → recipient) is used where there is one, else PropBank's
+  function tag (GOL → goal, PAG → causer, PPT → theme).
+* **Modifiers** take the role their label names: time, location, manner,
+  purpose, reason …
+* **The vocabulary is CGEL §2.2's.** Following §2.1, each PP gets its role
+  at every level of a small hierarchy (`agent < causer`, `recipient <
+  goal`, `goal, source, path, location < place`), and the learner picks the
+  level.
+* Two frame files (`rend.xml`, `check.xml`) are not well-formed XML and are
+  skipped.
+
+**Relabelling, version 3** (`relabel.py --propbank=… --frames=…
+--programs=…`). Where PropBank covers a PP, its label decides, read as CGEL
+would: a numbered argument, ARGM-DIR or ARGM-GOL is Comp. It comes after
+the CGEL tests and before the other evidence, and decides 2,268 PPs.
+
+**The experiment.** Aleph learns on the 3,720 covered PPs (2,362 training,
+1,358 held out, split by document), with and without `role/2` facts. The
+background and settings are otherwise as in version 2. The theories are
+`../theories/cgel3_roles.pl` and `../theories/cgel3_noroles.pl`.
+
+With roles, all four backgrounds learn the same 10 clauses:
+
+```
+ 1  72.4% of 764  next(A)
+ 2  99.2% of 240  role(A,theme)
+ 3  92.9% of  28  role(A,attribute)
+ 4 100.0% of  23  role(A,source)
+ 5  57.1% of  14  obj_cat(A,np), obj_before(A), role(A,predicative)
+ 6 100.0% of 166  role(A,goal)
+ 7 100.0% of  28  role(A,path)
+ 8  92.0% of 112  cgel_lex(A)
+ 9 100.0% of   9  role(A,patient)
+10 100.0% of  82  role(A,causer)
+```
+
+This reads as CGEL's criterion (h):
+* **Roles the verb assigns make complements:** theme, patient, causer
+  (which covers the passive's agent), goal, source, path.
+* **Roles a phrase carries by itself never appear:** time, manner,
+  purpose, reason.
+* **Aleph chose the level of generality.** It took goal, source and path
+  separately, never their parent `place`, because location, the fourth
+  member, goes both ways. That is CGEL's own split: goals and sources of
+  motion are licensed by the verb, while a location is licensed only by
+  some verbs (§1.2, §5.2).
+* **Some of this is circular.** Where PropBank decides the label, numbered
+  arguments are Comp and their roles come from the frame files, so
+  `role(A,theme)` at 99% partly restates the labelling.
+
+Without roles, the theory is 6 clauses of prepositions and position
+(`prep(A,to)`, `obj_before(A), vn_prep(A)` …).
+
+On held-out MASC (1,358 PPs):
+
+| | accuracy | Comp F |
+|---|---|---|
+| rate table | 77.9 | 81.1 |
+| learned, without roles | 75.9 | 79.9 |
+| learned, with roles | **80.6** | **84.1** |
+
+On CGELBank, a PP's roles come from PropBank's annotation of EWT, through
+the same frame files. They exist only for the PPs PropBank covers. Accuracy,
+gold / trial:
+
+| | gold, 111 covered | trial, 25 covered | gold, all 138 | trial, all 46 |
+|---|---|---|---|---|
+| learned, without roles | 64.9 | 68.0 | 69.6 | 67.4 |
+| learned, with roles | **73.9** | **84.0** | **76.8** | **73.9** |
+| PropBank read directly, DIR/GOL as Comp | 87.4 | 84.0 | – | – |
+| cgel_tests2 + relabelled table | 79.3 | 88.0 | 81.9 | 82.6 |
+| cgel_tests2 + learned with roles | 79.3 | 84.0 | 81.2 | 78.3 |
+
+**What this shows:**
+* **Roles help the learner, on both CGELBank sets.** On the covered PPs the
+  role theory gets 10 more right than the theory without roles on gold, and
+  4 more on trial. This is the first learned source whose gain holds on
+  both.
+* **The learned rules are coarser than reading PropBank directly.**
+  PropBank's ARGn/ARGM split, with DIR/GOL as Comp, is 87.4 on gold. The
+  rules generalise over roles, and for a location they cannot tell an
+  argument from a modifier.
+* **Overall, the CGEL tests with the relabelled table are still best on
+  trial.** A role theory needs roles: gold PropBank here, a semantic role
+  labeller on new text.
+* **The training set is small:** 2,362 PPs from 92 documents.
+
 ## Running
 
 ```bash
@@ -468,6 +569,9 @@ uv run python cgel/evaluate_cgel.py CGELBANK/datasets $S/pp_examples.tsv $S/nltk
 
 `CGELBANK` is a clone of nert-nlp/cgel. For the PropBank comparison, add
 `--propbank=PROPBANK/data/google/ewt`, where `PROPBANK` is a clone of
-propbank/propbank-release. `pp_examples.tsv` and `nltk_data`
+propbank/propbank-release. For roles, add `--frames=FRAMES`, a clone of
+propbank/propbank-frames; for version 3 relabelling, `relabel.py
+--propbank=PROPBANK/data/oanc/masc --frames=FRAMES --programs=$S/masc-prolog`
+(on the TSV `cgel_tsv` now writes, with verb positions and spans). `pp_examples.tsv` and `nltk_data`
 are as for `../build.py`. The output TSV has one row per aligned PP: the
 gold label, each source's decision, the deciding test, and the sentence.
