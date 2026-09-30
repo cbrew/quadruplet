@@ -208,8 +208,12 @@ These are where WordNet's first sense is a poor stand-in for a verb class.
 
 * **Adjudicate the disagreements.** `adjudication/` holds 56 PPs where
   MASC, VerbNet and the rules disagree (and a control), with CGEL's
-  criteria written out. Judged, they say how far each source can be
-  trusted, and so how to read the scores above.
+  criteria written out.
+  * A first pass by an LLM finds MASC right where it asserts CLR (12 of
+    13), but wrong where it is silent and the rules and VerbNet say
+    complement (1 of 14): *vote for*, *say to*, *bring to court*.
+  * If a human pass bears this out, much of the gap between the rules and
+    the rate table is MASC's under-labelling, not the rules' error.
 * **The rules are hypotheses to put to the triads.** A clause such as
   `prep(A,to), verb_sense(A,'verb.communication')` names a class (verbs of
   communication taking *to*). Two members and a verb outside it make a
