@@ -71,7 +71,7 @@ MODES_VERBNET = """\
 :- modeb(1, vn_none(+ex)).
 """
 VERBNET = ['vn_class', 'vn_group', 'vn_prep', 'vn_spatial', 'vn_none']
-UNARY = {'next', 'obj_before', 'other_pp', 'passive', 'vn_prep', 'vn_spatial', 'vn_none'}
+UNARY = {'next', 'obj_before', 'other_pp', 'passive', 'copula', 'vn_prep', 'vn_spatial', 'vn_none'}
 SPATIAL = {'in', 'on', 'at', 'into', 'onto', 'to', 'from', 'toward', 'towards', 'through',
            'across', 'along', 'around', 'over', 'under', 'above', 'below', 'behind', 'between',
            'among', 'near', 'inside', 'outside', 'out', 'off', 'up', 'down', 'upon', 'within',
@@ -168,27 +168,36 @@ def examples(tsv, senses, verbnet):
     for line in open(tsv, encoding='utf-8'):
         f = line.rstrip('\n').split('\t')
         path, cls, pp, lemma, vtag, prep, ocat, ohead, otag, nxt, obefore, nsib, voice, labels = f
-        doc = re.sub(r'^.*masc-prolog/', '', path).rsplit('/', 1)[0]
-        if ohead == 'trace':
-            osense = 'trace'
-        elif ocat in ('s', 'sbar', 'sq', 'sbarq', 'sinv'):
-            osense = 'clause'
-        elif otag.startswith('prp') or otag in ('wp', 'wdt', 'ex'):
-            osense = 'pronoun'
-        elif otag.startswith('nn') or otag in ('cd',):
-            osense = senses.of(ohead, 'n')
-        else:
-            osense = 'none'
-        facts = {
-            'lemma': lemma, 'obj_head': ohead, 'prep': prep,
-            'verb_sense': senses.of(lemma, 'v'), 'obj_sense': osense, 'obj_cat': ocat,
-            'vtag': vtag, 'next': nxt == 'next', 'obj_before': obefore == 'np',
-            'other_pp': int(nsib) > 0, 'passive': voice == 'passive',
-        }
-        tops, groups, preps, spatial = verbnet.of(lemma)
-        facts.update({'vn_class': tops, 'vn_group': groups, 'vn_prep': prep in preps,
-                      'vn_spatial': spatial and prep in SPATIAL, 'vn_none': not tops})
-        yield doc, path, pp, cls, facts
+        yield doc_of(path), path, pp, cls, make_facts(
+            senses, verbnet, lemma, vtag, prep, ocat, ohead, otag, nxt, obefore, nsib, voice)
+
+
+def doc_of(path):
+    return re.sub(r'^.*masc-prolog/', '', path).rsplit('/', 1)[0]
+
+
+def make_facts(senses, verbnet, lemma, vtag, prep, ocat, ohead, otag, nxt, obefore, nsib, voice):
+    """An example's background facts, from the columns pp_examples.pl writes."""
+    if ohead == 'trace':
+        osense = 'trace'
+    elif ocat in ('s', 'sbar', 'sq', 'sbarq', 'sinv'):
+        osense = 'clause'
+    elif otag.startswith('prp') or otag in ('wp', 'wdt', 'ex'):
+        osense = 'pronoun'
+    elif otag.startswith('nn') or otag in ('cd',):
+        osense = senses.of(ohead, 'n')
+    else:
+        osense = 'none'
+    facts = {
+        'lemma': lemma, 'obj_head': ohead, 'prep': prep,
+        'verb_sense': senses.of(lemma, 'v'), 'obj_sense': osense, 'obj_cat': ocat,
+        'vtag': vtag, 'next': nxt == 'next', 'obj_before': obefore == 'np',
+        'other_pp': int(nsib) > 0, 'passive': voice == 'passive', 'copula': lemma == 'be',
+    }
+    tops, groups, preps, spatial = verbnet.of(lemma)
+    facts.update({'vn_class': tops, 'vn_group': groups, 'vn_prep': prep in preps,
+                  'vn_spatial': spatial and prep in SPATIAL, 'vn_none': not tops})
+    return facts
 
 
 def fact_lines(eid, facts, preds):
@@ -236,7 +245,12 @@ def arity(p):
 
 def main(tsv, nltk_dir, out):
     senses = Senses(nltk_dir)
-    data = list(examples(tsv, senses, VerbNet(nltk_dir)))
+    write(list(examples(tsv, senses, VerbNet(nltk_dir))), out, PREDICATES, MODES_COMMON)
+
+
+def write(data, out, predicates, modes_common):
+    """Aleph's input for the four backgrounds, test.pl, table.tsv, and the
+    baselines. data is (doc, path, pp, class, facts) for each example."""
     train = [d for d in data if not held_out(d[0])]
     test = [d for d in data if held_out(d[0])]
     print('examples: %d train (%d complements), %d test (%d complements)' % (
@@ -244,11 +258,11 @@ def main(tsv, nltk_dir, out):
         len(test), sum(d[3] == 'complement' for d in test)))
 
     for name, preds, modes in (
-            ('lexical', PREDICATES + LEXICAL, MODES_COMMON + MODES_LEXICAL),
-            ('classes', PREDICATES, MODES_COMMON),
-            ('verbnet', PREDICATES + VERBNET, MODES_COMMON + MODES_VERBNET),
-            ('lexical_verbnet', PREDICATES + LEXICAL + VERBNET,
-             MODES_COMMON + MODES_LEXICAL + MODES_VERBNET)):
+            ('lexical', predicates + LEXICAL, modes_common + MODES_LEXICAL),
+            ('classes', predicates, modes_common),
+            ('verbnet', predicates + VERBNET, modes_common + MODES_VERBNET),
+            ('lexical_verbnet', predicates + LEXICAL + VERBNET,
+             modes_common + MODES_LEXICAL + MODES_VERBNET)):
         d = os.path.join(out, name)
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, 'complement.b'), 'w') as b, \
@@ -266,14 +280,14 @@ def main(tsv, nltk_dir, out):
 
     with open(os.path.join(out, 'test.pl'), 'w') as t:
         t.write(':- discontiguous example/4, %s.\n' % ', '.join(
-            '%s/%d' % (p, arity(p)) for p in PREDICATES + LEXICAL + VERBNET))
+            '%s/%d' % (p, arity(p)) for p in predicates + LEXICAL + VERBNET))
         # the (lemma, prep) pairs training saw, to single out those it did not
         for lemma, prep in sorted({(f['lemma'], f['prep']) for *_, f in train}):
             t.write('trained(%s, %s).\n' % (atom(lemma), atom(prep)))
         for i, (doc, path, pp, cls, facts) in enumerate(test):
             eid = 't%d' % i
             t.write('example(%s, %s, %s, %s).\n' % (eid, cls, atom(doc), pp))
-            for line in fact_lines(eid, facts, PREDICATES + LEXICAL + VERBNET):
+            for line in fact_lines(eid, facts, predicates + LEXICAL + VERBNET):
                 t.write(line + '\n')
 
     # baselines on the held-out examples, and the table's prediction for each,

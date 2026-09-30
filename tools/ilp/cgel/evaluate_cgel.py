@@ -1,6 +1,7 @@
 """Which of a verb's PPs are complements: the sources against CGELBank's gold.
 
     uv run python cgel/evaluate_cgel.py CGELBANK_DATASETS EXAMPLES_TSV NLTK_DATA_DIR [OUT_TSV] [--trial]
+        [--relabelled=CGEL_EXAMPLES_TSV --theories=DIR]
 
 CGELBANK_DATASETS is nert-nlp/cgel's datasets/ directory; EXAMPLES_TSV the
 MASC PP examples pp_examples.pl writes (for the rate table); NLTK_DATA_DIR
@@ -28,6 +29,13 @@ sources, each deciding complement or not for a UD PP:
                is the agent. (This was found by looking at the gold, where
                cgel_tests never fired; --trial tests it on CGELBank's trial
                trees, which nothing here was fitted to.)
+
+With --relabelled and --theories, the sources learned from MASC relabelled
+by CGEL's tests (relabel.py) are scored too:
+
+  relabel_table      the rate table of the relabelled data
+  learned_B          the theory Aleph learned on it with background B (DIR/B/theory.pl)
+  cgel_tests2+X      cgel_tests2 with X as the fallback in place of masc_table or verbnet
 
 With --trial, the gold is CGELBank's trial trees (datasets/trial/: ewt-trial,
 twitter-etc-trial), annotated but not adjudicated by both annotators.
@@ -68,7 +76,8 @@ def features(p, senses, vn):
         'lemma': p['lemma'], 'prep': p['prep'], 'verb_sense': senses.of(p['lemma'], 'v'),
         'obj_sense': osense, 'obj_cat': {'np': 'np', 'clause': 's', 'none': 'none'}[p['obj_cat']],
         'vtag': p['vtag'], 'next': p['next'], 'obj_before': p['obj_before'],
-        'other_pp': p['other_pp'], 'passive': p['passive'],
+        'other_pp': p['other_pp'], 'passive': p['passive'], 'copula': p['lemma'] == 'be',
+        'obj_head': p['obj_lemma'],
         'vn_class': tops, 'vn_group': groups, 'vn_prep': p['prep'] in preps,
         'vn_spatial': spatial and p['prep'] in SPATIAL, 'vn_none': not tops,
     }
@@ -108,11 +117,22 @@ def cgel_tests(p, f, fallback, by_agent=False):
     return fallback, 'evidence'
 
 
-def main(datasets, masc_tsv, nltk_dir, out=None, trial=False):
+def main(datasets, masc_tsv, nltk_dir, out=None, trial=False, relabelled=None, theories=None):
     senses = Senses(nltk_dir)
     vn = VerbNet(nltk_dir)
     table = prior(list(examples(masc_tsv, senses, vn)))
     rules = theory(os.path.join(HERE, '..', 'theories', 'verbnet.pl'))
+    extra = []
+    if relabelled:
+        from relabel import read, relabel
+        rows = [(doc, path, pp, 'complement' if relabel(kind, ls, f)[0] else 'adjunct', f)
+                for doc, path, pp, kind, ls, f in read(relabelled, senses, vn)]
+        rtable = prior(rows)
+        extra.append(('relabel_table', lambda f: rtable(f['lemma'], f['prep']) >= 0.5))
+    for b in ('classes', 'lexical', 'verbnet', 'lexical_verbnet'):
+        if theories and os.path.exists(os.path.join(theories, b, 'theory.pl')):
+            extra.append(('learned_' + b, lambda f, t=theory(os.path.join(theories, b, 'theory.pl')):
+                          covers(t, f)))
     pairs, missed = [], 0
     for name in (TRIAL if trial else FILES):
         by = {}
@@ -133,6 +153,9 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False):
         r['masc_rules'] = covers(rules, f)
         r['cgel_tests'], r['test'] = cgel_tests(p, f, r['masc_table'] or r['verbnet'])
         r['cgel_tests2'], r['test2'] = cgel_tests(p, f, r['masc_table'] or r['verbnet'], by_agent=True)
+        for name, source in extra:
+            r[name] = source(f)
+            r['cgel_tests2+' + name] = cgel_tests(p, f, r[name], by_agent=True)[0]
         rows.append(r)
     print('\n%-30s %s' % ('source', 'agreement with CGELBank'))
     print('%-30s %s' % ('all Mod', scores([(r['gold'], False) for r in rows])))
@@ -142,6 +165,18 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False):
     print('%-30s %s' % ('masc_table or masc_rules', scores([(r['gold'], r['masc_table'] or r['masc_rules']) for r in rows])))
     print('%-30s %s' % ('cgel_tests', scores([(r['gold'], r['cgel_tests']) for r in rows])))
     print('%-30s %s' % ('cgel_tests2', scores([(r['gold'], r['cgel_tests2']) for r in rows])))
+    for name, _ in extra:
+        print('%-30s %s' % (name, scores([(r['gold'], r[name]) for r in rows])))
+    for name, _ in extra:
+        print('%-30s %s' % ('cgel_tests2+' + name, scores([(r['gold'], r['cgel_tests2+' + name]) for r in rows])))
+    for name, _ in extra:
+        ev = [r for r in rows if r['test2'] == 'evidence']
+        print('  on the %d the tests leave to evidence, %-22s %s' % (
+            len(ev), name, scores([(r['gold'], r[name]) for r in ev])))
+    if extra:
+        ev = [r for r in rows if r['test2'] == 'evidence']
+        print('  on the %d the tests leave to evidence, %-22s %s' % (
+            len(ev), 'masc_table or verbnet', scores([(r['gold'], r['cgel_tests2']) for r in ev])))
     print('\nthe CGEL tests of cgel_tests2, one by one:')
     for t in ('agent', 'be+PP', 'time object', 'adverbial clause', 'now/then/so',
               'locative with motion verb', 'evidence'):
@@ -166,5 +201,7 @@ def main(datasets, masc_tsv, nltk_dir, out=None, trial=False):
 
 
 if __name__ == '__main__':
-    args = [a for a in sys.argv[1:] if a != '--trial']
-    main(*args[:4], trial='--trial' in sys.argv)
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    opts = dict(a[2:].split('=', 1) for a in sys.argv[1:] if a.startswith('--') and '=' in a)
+    main(*args[:4], trial='--trial' in sys.argv, relabelled=opts.get('relabelled'),
+         theories=opts.get('theories'))

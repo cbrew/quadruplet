@@ -103,3 +103,92 @@ pp_tsv_file(File) :-
     ;   format(user_error, "failed: ~w~n", [File])
     ),
     unload_file(File).
+
+% cgel_examples(Rows): the PPs of lexical verbs in CGEL's sense, for cgel/relabel.py. Besides
+% the PP daughters above (now with the predicative PPs and the passive's agent, which
+% pp_examples leaves out), CGEL's prepositions include the subordinators of adverbial
+% clauses and many adverbs, so a row is also made for
+%   an SBAR daughter headed by a preposition (before, because, if ...: not that, whether,
+%     for or to; an if-clause only with a function tag, since a plain one is interrogative)
+%   an ADVP daughter headed by an intransitive preposition (home, away, back ...; the list
+%     of cgel/ud_pps.py)
+% Particles (PRT) are left out, as they are on the UD side. A row is
+%
+%     pp(Kind, PP, Lemma, VerbTag, Prep, ObjCat, ObjHead, ObjTag, Next, ObjBefore, Siblings,
+%        Passive, Labels)
+%
+% with Kind pp, sbar or advp, Siblings counting the VP's other rows, and Labels the
+% function tags, with lgs added where the PP's NP is the passive's agent. The class is
+% left to relabel.py.
+
+cgel_examples(Rows) :-
+    analysis(F),
+    findall(Row, cgel_row(F, Row), Rows).
+
+cgel_row(F, pp(Kind, P, Lemma, VTag, Prep, ObjCat, ObjHead, ObjTag, Next, ObjBefore, NSib, Voice, Ls)) :-
+    lexical_vp(F, V, I, VTag),
+    member(edge(V, L, P), F),
+    labels(L, Ls0),
+    cgel_pp(F, P, Ls0, Kind, Prep, ObjCat, ObjHead, ObjTag),
+    member(constituent(P, _, [From-_|_]), F),
+    ( Kind == pp, agent(F, P) -> Ls = [lgs|Ls0] ; Ls = Ls0 ),
+    member(lemma(I, Lemma0), F), downcase_atom(Lemma0, Lemma),
+    ( From =:= I + 1 -> Next = next ; Next = later ),
+    ( member(edge(V, _, N), F), member(constituent(N, np, [NF-_|_]), F), NF > I, NF < From,
+      N \== P -> ObjBefore = np ; ObjBefore = none ),
+    aggregate_all(count, ( member(edge(V, L2, Q), F), Q \== P, labels(L2, Ls2),
+                           cgel_pp(F, Q, Ls2, _, _, _, _, _) ), NSib),
+    ( passive(F, V, VTag) -> Voice = passive ; Voice = active ).
+
+lexical_vp(F, V, I, VTag) :-
+    member(constituent(V, vp, _), F),
+    member(head(V, I), F), integer(I),
+    member(tag(I, VTag), F), sub_atom(VTag, 0, _, _, vb),
+    \+ ( member(edge(V, _, D), F), member(constituent(D, vp, _), F) ).
+
+cgel_pp(F, P, _, pp, Prep, ObjCat, ObjHead, ObjTag) :-
+    member(constituent(P, pp, _), F),
+    member(head(P, H), F), integer(H),
+    member(word(H, W), F), downcase_atom(W, Prep),
+    object(F, P, H, ObjCat, ObjHead, ObjTag).
+cgel_pp(F, P, Ls, sbar, Prep, s, ObjHead, ObjTag) :-
+    member(constituent(P, sbar, _), F),
+    member(head(P, H), F), integer(H), member(tag(H, in), F),
+    member(word(H, W), F), downcase_atom(W, Prep),
+    \+ memberchk(Prep, [that, whether, for, to]),
+    ( Prep == if -> Ls \== [] ; true ),
+    (   member(edge(P, _, S), F), S \== H, member(constituent(S, _, _), F)
+    ->  head_word(F, S, ObjHead, ObjTag)
+    ;   ObjHead = none, ObjTag = none
+    ).
+cgel_pp(F, P, _, advp, Prep, none, none, none) :-
+    member(constituent(P, advp, _), F),
+    member(head(P, H), F), integer(H),
+    member(word(H, W), F), downcase_atom(W, Prep),
+    intransitive_p(Prep).
+
+intransitive_p(P) :- memberchk(P, [
+    there, here, where, away, back, out, off, home, abroad, inside, outside, upstairs,
+    downstairs, down, up, over, around, forward, ahead, apart, aside, in, on, through, along,
+    across, behind, below, above, underneath, overseas, nearby, about, before, since,
+    afterwards, together, now, then, so, next]).
+
+% cgel_tsv: cgel_examples over many sentence files, as pp_tsv writes pp_examples
+%
+%     swipl -q -g cgel_tsv -t 'halt(1)' ptb.pl pp_examples.pl < files > cgel_examples.tsv
+cgel_tsv :-
+    read_string(user_input, _, S),
+    split_string(S, "\n", "\n \t\r", Files),
+    forall(( member(File, Files), File \== "" ), cgel_tsv_file(File)),
+    halt.
+
+cgel_tsv_file(File) :-
+    load_files(File, [silent(true)]),
+    (   catch(cgel_examples(Rows), _, fail)
+    ->  forall(member(Row, Rows),
+               ( Row =.. [pp|Args] ->
+                 format("~w", [File]), forall(member(A, Args), format("\t~w", [A])), nl
+               ; true ))
+    ;   format(user_error, "failed: ~w~n", [File])
+    ),
+    unload_file(File).
