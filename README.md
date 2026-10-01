@@ -28,6 +28,7 @@ go run ./cmd/quadruplet -grammar ../src/test/resources/masc/masc.fcfg -start Top
 | [`src/test/resources/masc`](src/test/resources/masc/README.md) | the MASC grammar v0 and its benchmark: 299 treebank sentences, 284 of which it parses, and a held-out sample of 299 more |
 | `tools/masc` | the scripts that chose the MASC sample and generate the grammar's lexicon and correctness suite |
 | [`tools/prolog`](tools/prolog/README.md) | CGELBank, UD and spaCy trees as Prolog programs, in the `--->` notation of `tools/masc/prolog/ptb.pl` |
+| [`docs/prolog-framework.md`](docs/prolog-framework.md) | the design for a common Prolog framework over the treebank traditions: anchoring, modules, bridge rules, shared grammars with per-sentence controls |
 | [`docs/semantics.md`](docs/semantics.md) | what kind of semantics the grammars have, and where the ideas come from |
 | [`docs/fast-parser.md`](docs/fast-parser.md) | how the fast context-free parser (`go/cfg`) works, and what a hyperedge is |
 | [`docs/flat-semantics.md`](docs/flat-semantics.md) | meanings read off parse trees by folds: heads, learned function tags, flat neo-Davidsonian forms |
