@@ -10,7 +10,7 @@ says what carries over and what differs.
 | file | what it is |
 |---|---|
 | `../ptb2pl.py` | writes the program for a tree, or for every tree of the corpus |
-| `ptb.pl` | the rules every program loads: the `--->` notation, the scan step `daughters/3`, and the transformations `analysis/1`, `tree/1` and `reattached/1` |
+| `ptb.pl` | the rules every program loads: the `--->` notation, the scan step `daughters/3`, and the transformations `analysis/1`, `tree/1` and `reattached/1`; two hooks, `displacement/1` and `extra_fact/1`, let the CGELBank, UD and spaCy programs of `tools/prolog` share it |
 | `check.pl` | every program's analyses counted, before and after reattachment, in one process |
 | `examples/` | eight MASC trees, chosen for their empty elements: a relative clause (`relative`), a wh-question (`whq`), extraposition (`ich`), an expletive's clause (`exp`), a topicalised quotation (`tpc`), control (`pro`), right-node raising (`rnr`), gapping (`gap`) |
 | `test_ptb2pl.py` | the tests: `python3 -m unittest tools/masc/prolog/test_ptb2pl.py` |

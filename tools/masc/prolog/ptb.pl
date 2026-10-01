@@ -39,6 +39,11 @@
 % a sentence file gives them; tags/2, gap/2 and moved/2 only where there are any
 :- multifile sentence/1, root/1, rule/2, guidelines/1, tags/2, gap/2, moved/2.
 :- dynamic tags/2, gap/2, moved/2.
+% hooks for other schemes' programs (tools/prolog: CGELBank, UD, spaCy): kinds of empty
+% element that mark a displaced constituent, and facts that analysis/1 and reattached/1
+% pass on beside tags/2 and gap/2. A MASC program defines neither.
+:- multifile displacement/1, extra_fact/1.
+:- dynamic extra_fact/1.
 
 
 % ---> RULES (as tiger.pl)
@@ -235,6 +240,7 @@ own_facts(C, DPairs, S, _) --> constituent_facts(C, DPairs, S).
 
 other_fact(tags(N, T)) :- tags(N, T).
 other_fact(gap(N, M)) :- gap(N, M).
+other_fact(F) :- extra_fact(F).
 
 word_fact(S, Fact) :-
     nth1(I, S, W),
@@ -293,7 +299,8 @@ add_words(d(_, _, X), W0, W) :- tree_words(X, W1), append(W0, W1, W).
 % it stood before. The other empty elements, and the facts, stay as they were.
 %
 % Program is a list of clauses: sentence/1, guidelines/1, root/1, the rules, the tags/2
-% and gap/2 facts, and moved(Antecedent, Kind) for each constituent moved.
+% and gap/2 facts, the extra_fact/1 facts of other schemes, and moved(Antecedent, Kind) for
+% each constituent moved.
 reattached(Program) :-
     sentence(S), guidelines(G),
     tree(T0),
@@ -304,8 +311,9 @@ reattached(Program) :-
     rules(T, Rules),
     findall(tags(N, Ts), tags(N, Ts), Tags),
     findall(gap(N, M), gap(N, M), Gaps),
+    findall(F, extra_fact(F), Extra),
     findall(moved(A, K), member(K-A, Moved), MovedFacts),
-    append([[sentence(S), guidelines(G), root(Root)], Rules, Tags, Gaps, MovedFacts], Program).
+    append([[sentence(S), guidelines(G), root(Root)], Rules, Tags, Gaps, Extra, MovedFacts], Program).
 
 displacement('*T*').
 displacement('*ICH*').
