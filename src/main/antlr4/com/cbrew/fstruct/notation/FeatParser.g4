@@ -4,7 +4,7 @@ options { tokenVocab=FeatLexer; }
 
 
 
-cfg: (lexentry | cfgrule | mcfgrule)*;
+cfg: Declaration? (lexentry | cfgrule | mcfgrule)*;
 mcfgrule: featureMap Arrow2 mcfgrhs;
 cfgrule: featureMap Arrow cfgrhs;
 cfgrhs: rhspart (Pipe rhspart)*;
@@ -35,6 +35,7 @@ expression:
         constantExpression          # Constant
         | FstructVariable2            # Variable
         | expression applicationTail  # Application
+        | expression SemPlus expression  # Merge
         | expression And expression   # And
         | expression Or expression    # Or
         | parenthesizedExpression     # Parenthesized
@@ -43,6 +44,7 @@ expression:
         | existsExpression            # Exists
         | forallExpression            # Forall
         | lambdaExpression            # Lambda
+        | drsExpression               # Drs
         | Box                         # Box
         | individualExpression        # Individual
         | predicateExpression         # Predicate
@@ -73,6 +75,13 @@ constantExpression:
 relationTail:
         boolOp expression
 	;
+
+// A DRS box: ([referents], [conditions]). Only lexable in DRT mode.
+drsExpression: SemLparen SemLsq (larg (SemComma larg)*)? SemRsq SemComma
+               SemLsq (expression (SemComma expression)*)? SemRsq SemRparen;
+
+// One semantic term on its own, as read by IntegratedParser.toDrs.
+semanticTerm: expression EOF;
 
 parenthesizedExpression: SemLparen expression SemRparen;
 existsExpression: Exists (argument +) Dot expression;

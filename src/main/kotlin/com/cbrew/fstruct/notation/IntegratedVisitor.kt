@@ -38,8 +38,21 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         val lexMap = lexentries.groupingBy { it.first }.fold(setOf(), { R: Set<FeatureMap>, E -> R + E.second })
 
 
-        return Grammar(cfgrules.filter {it.rhs.size > 0} .toSet(), lexMap)
+        return Grammar(cfgrules.filter {it.rhs.size > 0} .toSet(), lexMap,
+                semanticsOf(ctx?.Declaration()?.text))
     }
+
+    /**
+     * The [Semantics] named by a `%semantics` [declaration]: none or `logic`
+     * gives [Semantics.LOGIC], `drt` gives [Semantics.DRT], and any other
+     * name is an [IllegalArgumentException].
+     */
+    private fun semanticsOf(declaration: String?): Semantics =
+            when (val name = declaration?.removePrefix("%semantics")?.trim()) {
+                null, "logic" -> Semantics.LOGIC
+                "drt" -> Semantics.DRT
+                else -> throw IllegalArgumentException("unknown semantics: $name; expected logic or drt")
+            }
 
     override fun visitWord(ctx: FeatParser.WordContext?): Unifiable {
         val str = ctx?.Word()?.text ?: "\"xxx\""

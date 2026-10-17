@@ -163,7 +163,19 @@ data class FeatureMap(private val delegate: Map<String, Unifiable>) :
 }
 
 
-data class Grammar(val rules: Set<Rule>, val lexicon: Map<String, Set<FeatureMap>>) : FeatureStructure() {
+/** The semantic notation a grammar's `<...>` values are written in. */
+enum class Semantics { LOGIC, DRT }
+
+/**
+ * A grammar: its [rules], its [lexicon], and the [semantics] declared by a
+ * `%semantics` line (logic when there is none). [toString] leaves the
+ * semantics out.
+ */
+data class Grammar(
+        val rules: Set<Rule>,
+        val lexicon: Map<String, Set<FeatureMap>>,
+        val semantics: Semantics = Semantics.LOGIC
+) : FeatureStructure() {
     // not ground, so that substituting into a grammar still reports an error
     override val ground: Boolean get() = false
 

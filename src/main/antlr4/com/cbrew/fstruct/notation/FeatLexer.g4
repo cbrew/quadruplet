@@ -1,4 +1,10 @@
 lexer grammar FeatLexer;
+
+// Set by a `%semantics drt` declaration, or by IntegratedParser.toDrs.
+// In DRT mode '[', ']' and '+' inside <...> are DRS punctuation rather
+// than parts of constants.
+@members { public boolean drt = false; }
+
 LINE_COMMENT
   :  '#' ~( '\r' | '\n' )*
   -> skip;
@@ -6,6 +12,13 @@ LINE_COMMENT
 WS
     : [ \t\r\n]+
     -> skip;
+
+// `%semantics logic` or `%semantics drt`; any other name is rejected by
+// IntegratedVisitor.visitCfg.
+Declaration
+    : '%semantics' [ \t]+ [a-z]+
+      { drt = getText().matches("%semantics[ \\t]+drt"); }
+    ;
 
 Equals
  : '='
@@ -145,4 +158,14 @@ FstructVariable2
     ;
 
 // constants are any mix of ',letters numbers, %, ; / and _
-Constant: ('['|']'|'\''|[a-zA-Z/0-9_%;+:@`*#]|'\u0080'..'\ufffe')+ ;
+// Disabled in DRT mode, where DrtConstant takes over.
+Constant: {!drt}? ('['|']'|'\''|[a-zA-Z/0-9_%;+:@`*#]|'\u0080'..'\ufffe')+ ;
+
+// In DRT mode, constants are Constant without '[', ']' and '+'.
+DrtConstant: {drt}? ('\''|[a-zA-Z/0-9_%;:@`*#]|'\u0080'..'\ufffe')+ -> type(Constant);
+
+// DRS punctuation. In logic mode Constant matches these too and, coming
+// first, wins the tie, so they are only ever produced in DRT mode.
+SemLsq: '[';
+SemRsq: ']';
+SemPlus: '+';

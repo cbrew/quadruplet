@@ -73,9 +73,38 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
     private fun flattenOr(disjuncts: Set<Lambda>): Set<Lambda> = disjuncts.flatMap(::orYield).toSet()
 
 
+    /**
+     * Rewrites a `"merge"` node as the `"drs"` node it stands for: when the
+     * (normalized) left side is a box, the right side joins its conditions,
+     * so the box's referents bind into it; otherwise both sides become the
+     * conditions of a box with no referents. Any other tree is unchanged.
+     */
+    // The children of a "refs" or "conds" node.
+    private val Tree.items: List<Tree> get() = (this as Node).children
+
+    private fun mergeNormal(t: Tree): Tree {
+        if (t !is Node || t.label != "merge") return t
+        val (left, right) = t.children.let { mergeNormal(it[0]) to it[1] }
+        return if (left is Node && left.label == "drs")
+            Node("drs", listOf(left.children[0], Node("conds", left.children[1].items + right)))
+        else
+            Node("drs", listOf(Node("refs", listOf()), Node("conds", listOf(left, right))))
+    }
+
     fun binarize(e: Tree): Lambda {
         // binding stack is managed explicitly
         val bindingStack = LinkedList<Pair<String, String>>()
+
+        // Pushes a "refs" node's referents as "Q" in listed order, as
+        // "exists" does, so the last-listed is QVar(1); runs body with their
+        // number, then pops them.
+        fun boundBy(refs: Tree, body: (Int) -> Lambda): Lambda {
+            val names = refs.items.map { (it as Leaf).label }
+            names.forEach { bindingStack.push(Pair(it, "Q")) }
+            val r = body(names.size)
+            names.forEach { _ -> bindingStack.pop() }
+            return r
+        }
         fun bin(n: Tree): Lambda {
             return when (n) {
                 is Leaf ->
@@ -133,8 +162,26 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
                         }
                         "application" -> makeApp(n.children.map { bin(it) })
 
+                        // A box's referents are bound, as by "exists", over
+                        // its own conditions.
+                        "drs" -> {
+                            val (refs, conds) = n.children
+                            boundBy(refs) { k -> createDrs(k, conds.items.map(::bin)) }
+                        }
+                        "merge" -> bin(mergeNormal(n))
+
                         "iff" -> Equiv(bin(n.children.get(0)), bin(n.children.get(1)))
-                        "implies" -> Implies(bin(n.children.get(0)), bin(n.children.get(1)))
+                        // A box on the left binds its referents over the
+                        // right side too: a box implication.
+                        "implies" -> {
+                            val left = mergeNormal(n.children[0])
+                            if (left is Node && left.label == "drs") {
+                                val (refs, conds) = left.children
+                                boundBy(refs) { k ->
+                                    createDrsImp(k, conds.items.map(::bin), bin(n.children[1]))
+                                }
+                            } else Implies(bin(left), bin(n.children[1]))
+                        }
                         "negated" -> Not(bin(n.children.get(0)))
                         "equals" -> Equiv(bin(n.children.get(0)), bin(n.children.get(1)))
                         "not_equals" -> Not(Equiv(bin(n.children.get(0)), bin(n.children.get(1))))
@@ -223,6 +270,18 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
 
     override fun visitParenthesized(ctx: FeatParser.ParenthesizedContext?): Tree =
         visit(ctx?.parenthesizedExpression()?.expression())
+
+    /** A box: `Node("drs", [Node("refs", referents), Node("conds", conditions)])`. */
+    override fun visitDrs(ctx: FeatParser.DrsContext?): Tree {
+        val box = ctx?.drsExpression()
+        val refs = box?.larg()?.map { makeArgument(it.text) } ?: listOf()
+        val conds = box?.expression()?.map(::visit) ?: listOf()
+        return Node("drs", listOf(Node("refs", refs), Node("conds", conds)))
+    }
+
+    /** A merge, `left + right`; [binarize] resolves it into a box. */
+    override fun visitMerge(ctx: FeatParser.MergeContext?): Tree =
+        Node("merge", ctx?.expression()?.map(::visit) ?: listOf())
 
     override fun visitBox(ctx: FeatParser.BoxContext?): Tree {
         return Leaf("", type = "Box")
