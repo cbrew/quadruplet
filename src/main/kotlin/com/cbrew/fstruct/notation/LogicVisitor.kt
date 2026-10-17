@@ -103,10 +103,7 @@ class LogicVisitor(private val drt: Boolean = false) : FeatParserBaseVisitor<Tre
                 val (leftRefs, leftConds) = left.items
                 val (rightRefs, rightConds) = right.items
                 val refs = leftRefs.items + rightRefs.items
-                refs.map { (it as Leaf).label }.groupingBy { it }.eachCount()
-                    .filterValues { it > 1 }.keys.firstOrNull()?.let {
-                        throw IllegalArgumentException("referent $it is introduced twice in one merged box")
-                    }
+                requireDistinct(refs.map { (it as Leaf).label }, "merged box")
                 Node("drs", listOf(Node("refs", refs), Node("conds", leftConds.items + rightConds.items)))
             }
             left.isDrs() -> {
@@ -117,15 +114,24 @@ class LogicVisitor(private val drt: Boolean = false) : FeatParserBaseVisitor<Tre
         }
     }
 
+    /** An [IllegalArgumentException] if a referent name appears twice among [names], the referents of one [box]. */
+    private fun requireDistinct(names: List<String>, box: String) {
+        names.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.firstOrNull()?.let {
+            throw IllegalArgumentException("referent $it is introduced twice in one $box")
+        }
+    }
+
     fun binarize(e: Tree): Lambda {
         // binding stack is managed explicitly
         val bindingStack = LinkedList<Pair<String, String>>()
 
         // Pushes a "refs" node's referents as "Q" in listed order, as
         // "exists" does, so the last-listed is QVar(1); runs body with their
-        // number, then pops them.
+        // number, then pops them. A referent listed twice is an
+        // IllegalArgumentException.
         fun boundBy(refs: Tree, body: (Int) -> Lambda): Lambda {
             val names = refs.items.map { (it as Leaf).label }
+            requireDistinct(names, "box")
             names.forEach { bindingStack.push(Pair(it, "Q")) }
             val r = body(names.size)
             names.forEach { _ -> bindingStack.pop() }

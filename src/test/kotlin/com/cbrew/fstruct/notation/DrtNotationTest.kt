@@ -75,6 +75,13 @@ class DrtNotationTest {
     }
 
     @Test
+    fun testDuplicateReferentInOneBoxRejected() {
+        val e = assertFailsWith<IllegalArgumentException> { drs("([x, x], [a(x)])") }
+        assertTrue("referent x is introduced twice in one box" in e.message!!, e.message)
+        assertFailsWith<IllegalArgumentException> { drs("([], [(([y, y], [a(y)]) -> ([], [b(y)]))])") }
+    }
+
+    @Test
     fun testNonBoxAntecedentIsBoxImplication() {                    // every -> is a box implication
         val imp = drs("p -> q")
         assertEquals(DrsImp(0, listOf(Constant("p")), Constant("q")), imp)
