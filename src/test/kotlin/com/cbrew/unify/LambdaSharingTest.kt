@@ -105,7 +105,9 @@ class LambdaSharingTest {
 
     // ---- random terms, normalized as the grammar's terms are
 
-    private fun term(r: Random, depth: Int, boxes: Boolean): Lambda {
+    // drs adds DRS boxes and implications; without it the stream of terms
+    // is the one this test has always used
+    private fun term(r: Random, depth: Int, boxes: Boolean, drs: Boolean): Lambda {
         if (depth == 0 || r.nextInt(4) == 0) return when (r.nextInt(if (boxes) 5 else 4)) {
             0 -> Constant(listOf("a", "b", "c")[r.nextInt(3)])
             1 -> Var(1 + r.nextInt(3))
@@ -113,8 +115,8 @@ class LambdaSharingTest {
             3 -> FstructVar("?f")
             else -> Box
         }
-        fun sub() = term(r, depth - 1, boxes)
-        return when (r.nextInt(11)) {
+        fun sub() = term(r, depth - 1, boxes, drs)
+        return when (r.nextInt(if (drs) 11 else 9)) {
             0 -> Lam(sub())
             1 -> Exists(sub())
             2 -> Forall(sub())
@@ -129,8 +131,8 @@ class LambdaSharingTest {
         }
     }
 
-    private fun normalTerm(r: Random, boxes: Boolean = false): Lambda =
-            term(r, 5, boxes).normalized() as Lambda
+    private fun normalTerm(r: Random, boxes: Boolean = false, drs: Boolean = false): Lambda =
+            term(r, 5, boxes, drs).normalized() as Lambda
 
     // compare outcomes, including any exception the reference throws
     private fun same(label: String, t: Lambda, expected: () -> Any, actual: () -> Any) {
@@ -140,11 +142,16 @@ class LambdaSharingTest {
         assertEquals(e.exceptionOrNull()?.javaClass, a.exceptionOrNull()?.javaClass, "$label (exception) on $t")
     }
 
+    // the logic terms, then a separate stream that also has DRS nodes
     @Test
     fun testMatchesReferenceOnRandomTerms() {
-        val r = Random(20260927)
+        matchReference(Random(20260927), drs = false)
+        matchReference(Random(20261017), drs = true)
+    }
+
+    private fun matchReference(r: Random, drs: Boolean) {
         repeat(3000) {
-            val t = normalTerm(r)
+            val t = normalTerm(r, drs = drs)
             for (amount in listOf(-1, 0, 1, 2)) {
                 same("shift $amount", t, { refShift(t, amount, 0) }, { shift(t, amount) })
                 same("qshift $amount", t, { refQshift(t, amount, 0) }, { qshift(t, amount) })
@@ -152,8 +159,8 @@ class LambdaSharingTest {
             same("placeBoxes", t, { refPlaceBoxes(t, 1) }, { placeBoxes(t) })
             for (bvi in 1..3) same("quantifierBinds $bvi", t, { refQuantifierBinds(t, bvi) }, { quantifierBinds(t, bvi) })
 
-            val withBoxes = normalTerm(r, boxes = true)
-            val x = normalTerm(r)
+            val withBoxes = normalTerm(r, boxes = true, drs = drs)
+            val x = normalTerm(r, drs = drs)
             same("substBoxes", withBoxes, { refSubstBoxes(withBoxes, x, 0, 0) }, { substBoxes(withBoxes, x) })
 
             // a whole beta reduction, as createApp does it (in one pass now),
