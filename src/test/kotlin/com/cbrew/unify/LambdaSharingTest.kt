@@ -27,6 +27,9 @@ class LambdaSharingTest {
         is App -> App(refPlaceBoxes(e.e1, bvi), refPlaceBoxes(e.e2, bvi))
         is Equiv -> Equiv(refPlaceBoxes(e.e1, bvi), refPlaceBoxes(e.e2, bvi))
         is Implies -> Implies(refPlaceBoxes(e.e1, bvi), refPlaceBoxes(e.e2, bvi))
+        is Drs -> Drs(e.refs, e.conds.map { refPlaceBoxes(it, bvi) })
+        is DrsImp -> DrsImp(e.refs, e.antecedent.map { refPlaceBoxes(it, bvi) }, refPlaceBoxes(e.consequent, bvi))
+        is Resolved -> Resolved(refPlaceBoxes(e.pronoun, bvi), e.antecedents.map { refPlaceBoxes(it, bvi) })
     }
 
     private fun refSubstBoxes(e: Lambda, x: Lambda, bvi: Int, qvi: Int): Lambda = when (e) {
@@ -41,6 +44,10 @@ class LambdaSharingTest {
         is App -> createApp(refSubstBoxes(e.e1, x, bvi, qvi), refSubstBoxes(e.e2, x, bvi, qvi))
         is Equiv -> createEquiv(refSubstBoxes(e.e1, x, bvi, qvi), refSubstBoxes(e.e2, x, bvi, qvi))
         is Implies -> createImplication(refSubstBoxes(e.e1, x, bvi, qvi), refSubstBoxes(e.e2, x, bvi, qvi))
+        is Drs -> createDrs(e.refs, e.conds.map { refSubstBoxes(it, x, bvi, qvi + e.refs) })
+        is DrsImp -> createDrsImp(e.refs, e.antecedent.map { refSubstBoxes(it, x, bvi, qvi + e.refs) },
+                refSubstBoxes(e.consequent, x, bvi, qvi + e.refs))
+        is Resolved -> Resolved(refSubstBoxes(e.pronoun, x, bvi, qvi), e.antecedents.map { refSubstBoxes(it, x, bvi, qvi) })
     }
 
     private fun refQshift(e: Lambda, amount: Int, qvi: Int): Lambda = when (e) {
@@ -55,6 +62,10 @@ class LambdaSharingTest {
         is App -> App(refQshift(e.e1, amount, qvi), refQshift(e.e2, amount, qvi))
         is Equiv -> createEquiv(refQshift(e.e1, amount, qvi), refQshift(e.e2, amount, qvi))
         is Implies -> createImplication(refQshift(e.e1, amount, qvi), refQshift(e.e2, amount, qvi))
+        is Drs -> Drs(e.refs, e.conds.map { refQshift(it, amount, qvi + e.refs) })
+        is DrsImp -> DrsImp(e.refs, e.antecedent.map { refQshift(it, amount, qvi + e.refs) },
+                refQshift(e.consequent, amount, qvi + e.refs))
+        is Resolved -> Resolved(refQshift(e.pronoun, amount, qvi), e.antecedents.map { refQshift(it, amount, qvi) })
     }
 
     private fun refShift(e: Lambda, amount: Int, bvi: Int): Lambda = when (e) {
@@ -69,6 +80,9 @@ class LambdaSharingTest {
         is App -> App(refShift(e.e1, amount, bvi), refShift(e.e2, amount, bvi))
         is Equiv -> Equiv(refShift(e.e1, amount, bvi), refShift(e.e2, amount, bvi))
         is Implies -> Implies(refShift(e.e1, amount, bvi), refShift(e.e2, amount, bvi))
+        is Drs -> Drs(e.refs, e.conds.map { refShift(it, amount, bvi) })
+        is DrsImp -> DrsImp(e.refs, e.antecedent.map { refShift(it, amount, bvi) }, refShift(e.consequent, amount, bvi))
+        is Resolved -> Resolved(refShift(e.pronoun, amount, bvi), e.antecedents.map { refShift(it, amount, bvi) })
     }
 
     private fun refQuantifierBinds(e: Lambda, bvi: Int): Boolean = when (e) {
@@ -83,6 +97,10 @@ class LambdaSharingTest {
         is Implies -> refQuantifierBinds(e.e1, bvi) || refQuantifierBinds(e.e2, bvi)
         is Or -> e.disjuncts.any { refQuantifierBinds(it, bvi) }
         is And -> e.conjuncts.any { refQuantifierBinds(it, bvi) }
+        is Drs -> e.conds.any { refQuantifierBinds(it, bvi + e.refs) }
+        is DrsImp -> e.antecedent.any { refQuantifierBinds(it, bvi + e.refs) } ||
+                refQuantifierBinds(e.consequent, bvi + e.refs)
+        is Resolved -> refQuantifierBinds(e.pronoun, bvi) || e.antecedents.any { refQuantifierBinds(it, bvi) }
     }
 
     // ---- random terms, normalized as the grammar's terms are
@@ -96,7 +114,7 @@ class LambdaSharingTest {
             else -> Box
         }
         fun sub() = term(r, depth - 1, boxes)
-        return when (r.nextInt(9)) {
+        return when (r.nextInt(11)) {
             0 -> Lam(sub())
             1 -> Exists(sub())
             2 -> Forall(sub())
@@ -105,7 +123,9 @@ class LambdaSharingTest {
             5 -> Or(setOf(sub(), sub()))
             6 -> Implies(sub(), sub())
             7 -> Equiv(sub(), sub())
-            else -> App(sub(), sub())
+            8 -> App(sub(), sub())
+            9 -> Drs(1 + r.nextInt(2), listOf(sub(), sub()))
+            else -> DrsImp(1, listOf(sub()), sub())
         }
     }
 

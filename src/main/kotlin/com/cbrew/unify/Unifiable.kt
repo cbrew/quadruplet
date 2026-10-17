@@ -213,7 +213,10 @@ sealed class Lambda : Unifiable() {
      */
     open val freeVarDepth: Int get() = 0
 
-    /** As [freeVarDepth], for QVar and the quantifiers Exists and Forall. */
+    /**
+     * As [freeVarDepth], for QVar and its binders: the quantifiers Exists and
+     * Forall, and DRS boxes, which bind one QVar per referent.
+     */
     open val freeQVarDepth: Int get() = 0
 
     /** Whether Box occurs in this term. */
@@ -397,6 +400,56 @@ data class Equiv(val e1: Lambda, val e2: Lambda) : Lambda() {
     override val freeVarDepth: Int = maxOf(e1.freeVarDepth, e2.freeVarDepth)
     override val freeQVarDepth: Int = maxOf(e1.freeQVarDepth, e2.freeQVarDepth)
     override val hasBox: Boolean = e1.hasBox || e2.hasBox
+}
+
+/**
+ * A Discourse Representation Structure: [refs] discourse referents and the
+ * conditions on them. The box binds QVar(1)..QVar(refs) in [conds], as that
+ * many nested quantifiers would, the last referent innermost. Build boxes
+ * with [createDrs], which merges boxes nested directly among the conditions.
+ */
+data class Drs(val refs: Int, val conds: List<Lambda>) : Lambda() {
+    override val ground: Boolean = conds.all { it.ground }
+    private val hash: Int = (conds.hashCode() * 31 + refs) * 31 + 10
+    override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = conds.maxOfOrNull { it.freeVarDepth } ?: 0
+    override val freeQVarDepth: Int = maxOf(0, (conds.maxOfOrNull { it.freeQVarDepth } ?: 0) - refs)
+    override val hasBox: Boolean = conds.any { it.hasBox }
+
+    override fun toString(): String = "[$refs|${conds.joinToString()}]"
+}
+
+/**
+ * A DRS implication, the box [refs], [antecedent] ⇒ [consequent]. The
+ * antecedent's referents bind QVar(1)..QVar(refs) in both the antecedent's
+ * conditions and the consequent, so that a referent introduced on the left
+ * is accessible on the right. Build it with [createDrsImp].
+ */
+data class DrsImp(val refs: Int, val antecedent: List<Lambda>, val consequent: Lambda) : Lambda() {
+    override val ground: Boolean = antecedent.all { it.ground } && consequent.ground
+    private val hash: Int = ((antecedent.hashCode() * 31 + consequent.hashCode()) * 31 + refs) * 31 + 11
+    override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = maxOf(antecedent.maxOfOrNull { it.freeVarDepth } ?: 0, consequent.freeVarDepth)
+    override val freeQVarDepth: Int =
+            maxOf(0, maxOf(antecedent.maxOfOrNull { it.freeQVarDepth } ?: 0, consequent.freeQVarDepth) - refs)
+    override val hasBox: Boolean = antecedent.any { it.hasBox } || consequent.hasBox
+
+    override fun toString(): String = "([$refs|${antecedent.joinToString()}] ⇒ $consequent)"
+}
+
+/**
+ * A resolved pronoun: [pronoun] is one of [antecedents], the referents
+ * accessible to it. It binds nothing.
+ */
+data class Resolved(val pronoun: Lambda, val antecedents: List<Lambda>) : Lambda() {
+    override val ground: Boolean = pronoun.ground && antecedents.all { it.ground }
+    private val hash: Int = (pronoun.hashCode() * 31 + antecedents.hashCode()) * 31 + 12
+    override fun hashCode(): Int = hash
+    override val freeVarDepth: Int = maxOf(pronoun.freeVarDepth, antecedents.maxOfOrNull { it.freeVarDepth } ?: 0)
+    override val freeQVarDepth: Int = maxOf(pronoun.freeQVarDepth, antecedents.maxOfOrNull { it.freeQVarDepth } ?: 0)
+    override val hasBox: Boolean = pronoun.hasBox || antecedents.any { it.hasBox }
+
+    override fun toString(): String = "($pronoun = [${antecedents.joinToString()}])"
 }
 
 data class FstructVar(val name: String) : Lambda() {
