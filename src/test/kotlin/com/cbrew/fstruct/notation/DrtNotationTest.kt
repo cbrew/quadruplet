@@ -112,4 +112,10 @@ class DrtNotationTest {
         val g = IntegratedParser.toGrammar("N[sem=<f[1](a+b)>] -> \"w\"") as Grammar
         assertEquals(SemanticValue(App(Constant("f[1]"), Constant("a+b"))), g.lexicon["w"]!!.single()["sem"])
     }
+
+    @Test
+    fun testMalformedTermRejected() {                               // not repaired, as toGrammar does
+        val e = assertFailsWith<IllegalArgumentException> { drs("([x], [dog(x)") }
+        assertTrue("line 1:" in e.message!!, e.message)
+    }
 }

@@ -3,8 +3,11 @@ package com.cbrew.fstruct.notation
 import com.cbrew.unify.Lambda
 import com.cbrew.unify.Unifiable
 import com.cbrew.unify.normalized
+import org.antlr.v4.runtime.BaseErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.RecognitionException
+import org.antlr.v4.runtime.Recognizer
 
 object IntegratedParser {
     fun toTree(s: String): String {
@@ -46,6 +49,9 @@ object IntegratedParser {
     /**
      * Reads one DRT term, the text that would sit between `<` and `>` in a
      * `%semantics drt` grammar, and returns it normalized.
+     *
+     * @throws IllegalArgumentException if [s] is empty or is not a well-formed
+     *         term; unlike [toGrammar], a syntax error is not repaired
      */
     fun toDrs(s: String): Lambda {
         if (s.isEmpty()) {
@@ -55,8 +61,13 @@ object IntegratedParser {
         try {
             val lexer = FeatLexer(CharStreams.fromString(s)).apply {
                 pushMode(FeatLexer.DRT_ISLAND)
+                removeErrorListeners()
+                addErrorListener(ThrowingErrorListener)
             }
-            val parser = FeatParser(CommonTokenStream(lexer))
+            val parser = FeatParser(CommonTokenStream(lexer)).apply {
+                removeErrorListeners()
+                addErrorListener(ThrowingErrorListener)
+            }
             val logicVisitor = LogicVisitor(drt = true)
             val term = logicVisitor.visit(parser.semanticTerm().expression())
             return logicVisitor.binarize(term).normalized() as Lambda
@@ -65,4 +76,11 @@ object IntegratedParser {
         }
     }
 
+    /** Turns any lexer or parser syntax error into an [IllegalArgumentException]. */
+    private object ThrowingErrorListener : BaseErrorListener() {
+        override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int,
+                                 charPositionInLine: Int, msg: String?, e: RecognitionException?) {
+            throw IllegalArgumentException("line $line:$charPositionInLine $msg")
+        }
+    }
 }
