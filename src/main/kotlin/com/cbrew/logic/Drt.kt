@@ -95,20 +95,50 @@ private fun resolveAll(terms: List<Lambda>, depth: Int, scope: List<Int>): List<
 }
 
 /**
- * The unresolved merged DRSs of a complete discourse edge: for a category
- * with a semantic value in sem, that value alone.
+ * The unresolved merged DRSs of a complete discourse edge, its threads.
+ *
+ * For a category with a semantic value in sem (drt.fcfg), that value
+ * alone. For a category with sents (drt-storage.fcfg), a tuple of one
+ * (core, store) pair per sentence, each sentence's scopings are retrieved
+ * separately with [retrieveDistinct], so a quantifier takes scope only
+ * within its own sentence. Each combination of one scoping per sentence,
+ * the first sentence varying slowest, gives one thread: the merge of its
+ * scopings left to right, so that earlier referents are accessible later.
  *
  * @param category the category of a complete D edge
  * @return the merged DRSs, with the pronouns still unresolved
- * @throws IllegalArgumentException if the category has neither sem nor sents,
- *         or its sem is not a semantic value
+ * @throws IllegalArgumentException if the category has neither sem nor
+ *         sents, its sem is not a semantic value, or its sents is not a
+ *         tuple of (core, store) pairs
  */
 fun drtThreads(category: FeatureMap): List<Lambda> {
     val sem = category["sem"]
-    require(sem != null) { "a DRT discourse edge has sem or sents, not just ${category.keys}" }
-    require(sem is SemanticValue) { "sem should be a semantic value, not $sem" }
-    return listOf(sem.value)
+    val sents = category["sents"]
+    return when {
+        sem != null -> {
+            require(sem is SemanticValue) { "sem should be a semantic value, not $sem" }
+            listOf(sem.value)
+        }
+        sents != null -> {
+            require(sents is FeatureTuple) { "sents should be a tuple of (core, store) pairs, not $sents" }
+            cartesian(sents.elements.map(::scopings)).map { createDrs(0, it) }
+        }
+        else -> throw IllegalArgumentException("a DRT discourse edge has sem or sents, not just ${category.keys}")
+    }
 }
+
+/** The distinct scopings of one sentence's (core, store) [pair]. */
+private fun scopings(pair: Unifiable): List<Lambda> {
+    val core = (pair as? FeatureTuple)?.elements?.takeIf { it.size == 2 }?.get(0)
+    require(pair is FeatureTuple && core is SemanticValue) {
+        "a sentence in sents should be a (core, store) pair, not $pair"
+    }
+    return retrieveDistinct(core.value, semanticValues(pair.elements[1]))
+}
+
+/** Every choice of one element from each of [lists], the first list varying slowest. */
+private fun <T> cartesian(lists: List<List<T>>): List<List<T>> =
+        lists.fold(listOf(listOf())) { acc, xs -> acc.flatMap { prefix -> xs.map { prefix + it } } }
 
 /**
  * The readings of a complete discourse edge: its [drtThreads] with every

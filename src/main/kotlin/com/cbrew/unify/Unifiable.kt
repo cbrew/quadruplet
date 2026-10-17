@@ -67,6 +67,49 @@ data class FeatureList(val elements: List<Unifiable>) : FeatureStructure() {
 }
 
 
+/**
+ * Concatenate the [operands] of a list or tuple expression. A tuple or list
+ * operand contributes its elements, a nested expression its own operands,
+ * a variable itself, and any other operand is one element.
+ *
+ * With no variable left, the result is the [collection] of the elements.
+ * Otherwise it is again an [expression], to be simplified again once the
+ * variables are bound. Its operands are then the variables and the
+ * elements, except that an element that is itself a tuple or list is
+ * wrapped as the [collection] of it alone, so that the next simplification
+ * keeps it whole instead of spreading it too.
+ */
+private fun concatenate(
+        operands: List<Unifiable>,
+        collection: (List<Unifiable>) -> FeatureStructure,
+        expression: (List<Unifiable>) -> FeatureStructure
+): FeatureStructure {
+    val pieces = spread(operands)
+    return if (pieces.none { it.open })
+        collection(pieces.map { it.value })
+    else
+        expression(pieces.map { piece ->
+            val v = piece.value
+            if (!piece.open && (v is FeatureTuple || v is FeatureList)) collection(listOf(v)) else v
+        })
+}
+
+/** An element of a concatenation, or a variable still [open] in it. */
+private data class Piece(val value: Unifiable, val open: Boolean)
+
+/** The pieces of a concatenation of [operands]; see [concatenate]. */
+private fun spread(operands: List<Unifiable>): List<Piece> = operands.flatMap { operand ->
+    when (operand) {
+        is FeatureTuple -> operand.elements.map { Piece(it, false) }
+        is FeatureList -> operand.elements.map { Piece(it, false) }
+        is FeatureTupleExpression -> spread(operand.elements)
+        is FeatureListExpression -> spread(operand.elements)
+        is QueryVariable -> listOf(Piece(operand, true))
+        else -> listOf(Piece(operand, false))
+    }
+}
+
+
 data class FeatureListExpression(val elements: List<Unifiable>) : FeatureStructure() {
     override val ground: Boolean = false
     private val hash: Int = elements.hashCode()
@@ -74,30 +117,12 @@ data class FeatureListExpression(val elements: List<Unifiable>) : FeatureStructu
 
     override fun toString(): String = "[${elements.joinToString()}]"
 
-    fun simplify(): FeatureStructure {
-
-        // maybe we can simplify by collapsing adjacent elements
-        // result might then be an aggregate or remain an expression
-        val acc = mutableListOf<Unifiable>()
-        var copyIsExpression = false
-        for (element in elements) {
-
-            when (element) {
-                is FeatureTuple -> acc.addAll(element.elements)
-                is FeatureList -> acc.addAll(element.elements)
-                is QueryVariable -> {
-                    copyIsExpression = true; acc.add(element)
-                }
-                else -> acc.add(element)
-            }
-        }
-
-        if (copyIsExpression) {
-            return FeatureListExpression(acc)
-        } else {
-            return FeatureList(acc)
-        }
-    }
+    /**
+     * The concatenation of the operands: a [FeatureList] when no operand is
+     * a variable, otherwise again a [FeatureListExpression]; see
+     * [concatenate].
+     */
+    fun simplify(): FeatureStructure = concatenate(elements, ::FeatureList, ::FeatureListExpression)
 
 }
 
@@ -118,30 +143,12 @@ data class FeatureTupleExpression(val elements: List<Unifiable>) : FeatureStruct
     override fun hashCode(): Int = hash
 
     override fun toString(): String = "[${elements.joinToString()}]"
-    fun simplify(): FeatureStructure {
-
-        // maybe we can simplify by collapsing adjacent elements
-        // result might then be an aggregate or remain an expression
-        val acc = mutableListOf<Unifiable>()
-        var copyIsExpression = false
-        for (element in elements) {
-
-            when (element) {
-                is FeatureTuple -> acc.addAll(element.elements)
-                is FeatureList -> acc.addAll(element.elements)
-                is QueryVariable -> {
-                    copyIsExpression = true; acc.add(element)
-                }
-                else -> acc.add(element)
-            }
-        }
-
-        if (copyIsExpression) {
-            return FeatureTupleExpression(acc)
-        } else {
-            return FeatureTuple(acc)
-        }
-    }
+    /**
+     * The concatenation of the operands: a [FeatureTuple] when no operand is
+     * a variable, otherwise again a [FeatureTupleExpression]; see
+     * [concatenate].
+     */
+    fun simplify(): FeatureStructure = concatenate(elements, ::FeatureTuple, ::FeatureTupleExpression)
 }
 
 

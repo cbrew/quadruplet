@@ -51,7 +51,7 @@ PropN[-loc, num=sg, sem=<\P.(([x], [PRO(x)]) + P(x))>] -> "her" | "Her"
 Det[num=sg, sem=<\P Q.([], [(([x], []) + P(x)) -> Q(x)])>] -> "every" | "Every"
 Det[num=pl, sem=<\P Q.([], [(([x], []) + P(x)) -> Q(x)])>] -> "all" | "All"
 Det[sem=<\P Q.((([x], []) + P(x)) + Q(x))>] -> "some" | "Some"
-Det[sem=<\P Q.((([x], []) + P(x)) + Q(x))>] -> "a" | "A"
+Det[num=sg, sem=<\P Q.((([x], []) + P(x)) + Q(x))>] -> "a" | "A"
 Det[num=sg, sem=<\P Q.-((([x], []) + P(x)) + Q(x))>] -> "no" | "No"
 
 N[num=sg, sem=<\x.([], [boy(x)])>] -> "boy"

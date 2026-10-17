@@ -1,0 +1,104 @@
+## drt-storage.fcfg
+##
+## drt.fcfg, NLTK's DRT grammar (Dan Garrette) with discourse rules,
+## rewritten in the Cooper storage style of storage.fcfg (NLTK's
+## book_grammars/storage.fcfg, by Edward Loper, Ewan Klein and Robin
+## Cooper), so that a sentence with two quantified noun phrases has both
+## scopings.
+##
+## Each category has two features: core, its meaning with every noun
+## phrase replaced by a placeholder variable @x, and store, a tuple of
+## binding operators bo(Q, @x). Q is the DRT term drt.fcfg gives the noun
+## phrase: its determiner applied to its noun, or the proper name or
+## pronoun itself. Transitive verbs take an individual, as in
+## storage.fcfg, not a noun phrase meaning.
+##
+## Retrieval is per sentence: D collects one (core, store) pair per
+## sentence, in order, as a tuple of pairs in its sents feature, and
+## com.cbrew.logic.drtThreads retrieves each sentence's scopings, combines
+## one per sentence in every way and merges each combination left to
+## right. A quantifier can then take scope only within its own sentence.
+## com.cbrew.logic.drtReadings goes on to resolve the pronouns.
+##
+## The extra parentheses in (((<?c>, ?s)) + ?d) make a one-element tuple
+## holding the pair, so that concatenation with ?d keeps the pair whole.
+## Rules are renamed apart per use, so each @x stands for a distinct
+## variable in every phrase built from it.
+## Adapted for quadruplet by Chris Brew.
+
+%semantics drt
+
+D[sents=(((<?c>, ?s)) + ?d)] -> S[core=<?c>, store=?s] "." D[sents=?d]
+D[sents=((<?c>, ?s))] -> S[core=<?c>, store=?s] "."
+S[core=<?vp(?subj)>, store=(?b1 + ?b2)] -> NP[num=?n, core=<?subj>, store=?b1] VP[num=?n, core=<?vp>, store=?b2]
+VP[num=?n, core=<?v>, store=?s] -> IV[num=?n, core=<?v>, store=?s]
+VP[num=?n, core=<?v(?obj)>, store=(?b1 + ?b2)] -> TV[num=?n, core=<?v>, store=?b1] NP[core=<?obj>, store=?b2]
+NP[num=?n, core=<@x>, store=((<bo(?det(?nom), @x)>) + ?b1 + ?b2)] -> Det[num=?n, core=<?det>, store=?b1] Nom[num=?n, core=<?nom>, store=?b2]
+NP[loc=?l, num=?n, core=<?np>, store=?s] -> PropN[loc=?l, num=?n, core=<?np>, store=?s]
+Nom[num=?n, core=<?nom>, store=?s] -> N[num=?n, core=<?nom>, store=?s]
+
+# Lexical items
+
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Angus(x)]) + P(x)), @x)>)] -> "Angus"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Irene(x)]) + P(x)), @x)>)] -> "Irene"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [John(x)]) + P(x)), @x)>)] -> "John"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Mary(x)]) + P(x)), @x)>)] -> "Mary"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Suzie(x)]) + P(x)), @x)>)] -> "Suzie"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Vincent(x)]) + P(x)), @x)>)] -> "Vincent"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Mia(x)]) + P(x)), @x)>)] -> "Mia"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Marsellus(x)]) + P(x)), @x)>)] -> "Marsellus"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Fido(x)]) + P(x)), @x)>)] -> "Fido"
+PropN[+loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [Noosa(x)]) + P(x)), @x)>)] -> "Noosa"
+
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [PRO(x)]) + P(x)), @x)>)] -> "he" | "He"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [PRO(x)]) + P(x)), @x)>)] -> "she" | "She"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [PRO(x)]) + P(x)), @x)>)] -> "it" | "It"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [PRO(x)]) + P(x)), @x)>)] -> "him" | "Him"
+PropN[-loc, num=sg, core=<@x>, store=(<bo(\P.(([x], [PRO(x)]) + P(x)), @x)>)] -> "her" | "Her"
+
+Det[num=sg, core=<\P Q.([], [(([x], []) + P(x)) -> Q(x)])>, store=()] -> "every" | "Every"
+Det[num=pl, core=<\P Q.([], [(([x], []) + P(x)) -> Q(x)])>, store=()] -> "all" | "All"
+Det[core=<\P Q.((([x], []) + P(x)) + Q(x))>, store=()] -> "some" | "Some"
+Det[num=sg, core=<\P Q.((([x], []) + P(x)) + Q(x))>, store=()] -> "a" | "A"
+Det[num=sg, core=<\P Q.-((([x], []) + P(x)) + Q(x))>, store=()] -> "no" | "No"
+
+N[num=sg, core=<\x.([], [boy(x)])>, store=()] -> "boy"
+N[num=pl, core=<\x.([], [boy(x)])>, store=()] -> "boys"
+N[num=sg, core=<\x.([], [girl(x)])>, store=()] -> "girl"
+N[num=pl, core=<\x.([], [girl(x)])>, store=()] -> "girls"
+N[num=sg, core=<\x.([], [dog(x)])>, store=()] -> "dog"
+N[num=pl, core=<\x.([], [dog(x)])>, store=()] -> "dogs"
+N[num=sg, core=<\x.([], [student(x)])>, store=()] -> "student"
+N[num=pl, core=<\x.([], [student(x)])>, store=()] -> "students"
+N[num=sg, core=<\x.([], [person(x)])>, store=()] -> "person"
+N[num=pl, core=<\x.([], [person(x)])>, store=()] -> "persons"
+N[num=sg, core=<\x.([], [garden(x)])>, store=()] -> "garden"
+N[num=pl, core=<\x.([], [garden(x)])>, store=()] -> "gardens"
+N[num=sg, core=<\x.([], [kitchen(x)])>, store=()] -> "kitchen"
+N[num=pl, core=<\x.([], [kitchen(x)])>, store=()] -> "kitchens"
+N[num=sg, core=<\x.([], [boxerdog(x)])>, store=()] -> "boxer"
+N[num=pl, core=<\x.([], [boxerdog(x)])>, store=()] -> "boxers"
+N[num=sg, core=<\x.([], [boxer(x)])>, store=()] -> "boxer"
+N[num=pl, core=<\x.([], [boxer(x)])>, store=()] -> "boxers"
+
+IV[num=sg, core=<\x.([], [bark(x)])>, store=(), tns=pres] -> "barks"
+IV[num=pl, core=<\x.([], [bark(x)])>, store=(), tns=pres] -> "bark"
+IV[num=sg, core=<\x.([], [walk(x)])>, store=(), tns=pres] -> "walks"
+IV[num=pl, core=<\x.([], [walk(x)])>, store=(), tns=pres] -> "walk"
+IV[num=sg, core=<\x.([], [dance(x)])>, store=(), tns=pres] -> "dances"
+IV[num=pl, core=<\x.([], [dance(x)])>, store=(), tns=pres] -> "dance"
+IV[num=sg, core=<\x.([], [run(x)])>, store=(), tns=pres] -> "runs"
+IV[num=pl, core=<\x.([], [run(x)])>, store=(), tns=pres] -> "run"
+
+TV[num=sg, core=<\y x.([], [own(x, y)])>, store=(), tns=pres] -> "owns"
+TV[num=pl, core=<\y x.([], [own(x, y)])>, store=(), tns=pres] -> "own"
+TV[num=sg, core=<\y x.([], [bite(x, y)])>, store=(), tns=pres] -> "bites"
+TV[num=pl, core=<\y x.([], [bite(x, y)])>, store=(), tns=pres] -> "bite"
+TV[num=sg, core=<\y x.([], [chase(x, y)])>, store=(), tns=pres] -> "chases"
+TV[num=pl, core=<\y x.([], [chase(x, y)])>, store=(), tns=pres] -> "chase"
+TV[num=sg, core=<\y x.([], [marry(x, y)])>, store=(), tns=pres] -> "marries"
+TV[num=pl, core=<\y x.([], [marry(x, y)])>, store=(), tns=pres] -> "marry"
+TV[num=sg, core=<\y x.([], [know(x, y)])>, store=(), tns=pres] -> "knows"
+TV[num=pl, core=<\y x.([], [know(x, y)])>, store=(), tns=pres] -> "know"
+TV[num=sg, core=<\y x.([], [see(x, y)])>, store=(), tns=pres] -> "sees"
+TV[num=pl, core=<\y x.([], [see(x, y)])>, store=(), tns=pres] -> "see"

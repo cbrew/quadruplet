@@ -268,6 +268,24 @@ class IntegratedParserTest {
 
 
     @Test
+    fun testTupleExpressionKeepsTupleElements() {
+        // ((a, b)) is a one-element tuple holding the pair (a, b). Simplifying
+        // spreads the operand into its one element; simplifying again, as
+        // substitution does once ?y is bound, must not spread the pair too.
+        val gs = """
+        Np[agr=(((a, b)) + ?y)] -> "alphabet"
+        """
+        val grammar = IntegratedParser.toGrammar(gs) as Grammar
+        val cat = grammar.lexicon["alphabet"]!!.single()["agr"] as FeatureTupleExpression
+        val once = cat.simplify() as FeatureTupleExpression
+        assertEquals(once, once.simplify())
+        val pair = FeatureTuple(listOf(AtomicValue("a"), AtomicValue("b")))
+        val c = FeatureTuple(listOf(AtomicValue("c")))
+        val bound = FeatureTupleExpression(once.elements.map { if (it == QueryVariable("?y")) c else it })
+        assertEquals(FeatureTuple(listOf(pair, AtomicValue("c"))), bound.simplify())
+    }
+
+    @Test
     fun testTupleExpressionSimplify(){
 
         val gs = """
