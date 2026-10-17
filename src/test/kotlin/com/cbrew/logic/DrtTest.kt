@@ -58,4 +58,40 @@ class DrtTest {
     @Test
     fun testReferentInsideNegationInaccessible() = assertNull(
             resolveAnaphora(drs("([y], [-([x], [dog(x)]), PRO(y), run(y)])")))
+
+    // \A B.([], [A -> B]) applied to two boxes: the implication's antecedent
+    // is a variable when read, and becomes a box only by substitution.
+    private val substituted: Lambda =
+            createApp(createApp(drs("\\A B.([], [A -> B])"), drs("([x], [farmer(x)])")),
+                    drs("([y], [PRO(y), run(y)])"))
+
+    @Test
+    fun testSubstitutedAntecedentIsBoxImplication() = assertEquals(
+            "([], [(([x1], [farmer(x1)]) → ([x2], [PRO(x2), run(x2)]))])",
+            substituted.pretty())
+
+    @Test
+    fun testSubstitutedAntecedentReferentsAccessible() = assertEquals(
+            "([], [(([x1], [farmer(x1)]) → ([x2], [(x2 = [x1]), run(x2)]))])",
+            resolveAnaphora(substituted)!!.pretty())
+
+    @Test
+    fun testSubstitutedImplicationFol() = assertEquals(
+            "∀x1.(farmer(x1) → ∃x2.((x2 = x1) ∧ run(x2)))",
+            resolveAnaphora(substituted)!!.fol().pretty())
+
+    @Test
+    fun testDonkeyResolvedInBoxImplication() = assertEquals(
+            "([], [(([x1, x2], [farmer(x1), donkey(x2), own(x1, x2)]) → " +
+                    "([x3, x4], [(x3 = [x1, x2, x4]), (x4 = [x1, x2, x3]), beat(x3, x4)]))])",
+            resolveAnaphora(drs("([], [(([x, y], [farmer(x), donkey(y), own(x, y)]) -> " +
+                    "([u, v], [PRO(u), PRO(v), beat(u, v)]))])"))!!.pretty())
+
+    @Test
+    fun testFolThroughLogicConnectives() {
+        val box = Drs(1, listOf(App(Constant("dog"), QVar(1)), App(App(Constant("own"), QVar(2)), QVar(1))))
+        val p = App(Constant("p"), QVar(1))
+        assertEquals("∃x1.(p(x1) → ∃x2.(dog(x2) ∧ own(x1, x2)))", Exists(Implies(p, box)).fol().pretty())
+        assertEquals("∀x1.(p(x1) = ∃x2.(dog(x2) ∧ own(x1, x2)))", Forall(Equiv(p, box)).fol().pretty())
+    }
 }

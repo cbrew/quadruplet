@@ -11,9 +11,12 @@ import java.util.*
 
 class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
 
-
+    // The grammar's declared semantics, set by visitCfg before any rule is
+    // visited, so that visitSemantics reads terms in the right notation.
+    private var semantics = Semantics.LOGIC
 
     override fun visitCfg(ctx: FeatParser.CfgContext?): Unifiable {
+        semantics = semanticsOf(ctx?.Declaration()?.text)
         val cfgrules = ctx?.cfgrule()
                 ?.flatMap { (visit(it) as FeatureList).elements.map { r -> r as CfgRule } }
                 ?.toSet() ?: setOf()
@@ -38,8 +41,7 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
         val lexMap = lexentries.groupingBy { it.first }.fold(setOf(), { R: Set<FeatureMap>, E -> R + E.second })
 
 
-        return Grammar(cfgrules.filter {it.rhs.size > 0} .toSet(), lexMap,
-                semanticsOf(ctx?.Declaration()?.text))
+        return Grammar(cfgrules.filter {it.rhs.size > 0} .toSet(), lexMap, semantics)
     }
 
     /**
@@ -155,7 +157,7 @@ class IntegratedVisitor : FeatParserBaseVisitor<Unifiable>() {
                 throw Exception("unexpected form of fvalue")
 
     override fun visitSemantics(ctx: FeatParser.SemanticsContext?): Unifiable {
-        val logicVisitor = LogicVisitor()
+        val logicVisitor = LogicVisitor(drt = semantics == Semantics.DRT)
         val q = ctx?.expression()
         val t = logicVisitor.visit(q)
         return logicVisitor.binarize(t)

@@ -8,7 +8,13 @@ import java.util.*
 
 
 
-class LogicVisitor : FeatParserBaseVisitor<Tree>() {
+/**
+ * Reads the semantic terms of a grammar.
+ *
+ * @param drt whether the terms are DRT notation (`%semantics drt`); there
+ *        every `A -> B` is a box implication, see [binarize]
+ */
+class LogicVisitor(private val drt: Boolean = false) : FeatParserBaseVisitor<Tree>() {
 
     private fun makeIndividual(text: String) = Leaf(text, "I")
     private fun makePredicate(text: String) = Leaf(text, "P")
@@ -192,15 +198,23 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
 
                         "iff" -> Equiv(bin(n.children.get(0)), bin(n.children.get(1)))
                         // A box on the left binds its referents over the
-                        // right side too: a box implication.
+                        // right side too: a box implication. In DRT
+                        // notation any other left side, such as a variable
+                        // a box will later be substituted for, is the one
+                        // condition of an antecedent with no referents, so
+                        // that createDrsImp merges the box in when it comes.
                         "implies" -> {
                             val left = mergeNormal(n.children[0])
-                            if (left.isDrs()) {
-                                val (refs, conds) = left.items
-                                boundBy(refs) { k ->
-                                    createDrsImp(k, conds.items.map(::bin), bin(n.children[1]))
+                            when {
+                                left.isDrs() -> {
+                                    val (refs, conds) = left.items
+                                    boundBy(refs) { k ->
+                                        createDrsImp(k, conds.items.map(::bin), bin(n.children[1]))
+                                    }
                                 }
-                            } else Implies(bin(left), bin(n.children[1]))
+                                drt -> createDrsImp(0, listOf(bin(left)), bin(n.children[1]))
+                                else -> Implies(bin(left), bin(n.children[1]))
+                            }
                         }
                         "negated" -> Not(bin(n.children.get(0)))
                         "equals" -> Equiv(bin(n.children.get(0)), bin(n.children.get(1)))

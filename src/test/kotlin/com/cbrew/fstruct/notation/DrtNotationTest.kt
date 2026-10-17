@@ -1,5 +1,6 @@
 package com.cbrew.fstruct.notation
 
+import com.cbrew.logic.fol
 import com.cbrew.unify.*
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -74,8 +75,23 @@ class DrtNotationTest {
     }
 
     @Test
-    fun testNonBoxAntecedentStaysImplies() =
-        assertEquals(Implies(Constant("p"), Constant("q")), drs("p -> q"))
+    fun testNonBoxAntecedentIsBoxImplication() {                    // every -> is a box implication
+        val imp = drs("p -> q")
+        assertEquals(DrsImp(0, listOf(Constant("p")), Constant("q")), imp)
+        assertEquals(Implies(Constant("p"), Constant("q")), imp.fol())
+    }
+
+    @Test
+    fun testLogicImplicationUnchanged() {                           // logic mode keeps Implies
+        val g = IntegratedParser.toGrammar("N[sem=<p -> q>] -> \"w\"") as Grammar
+        assertEquals(SemanticValue(Implies(Constant("p"), Constant("q"))), g.lexicon["w"]!!.single()["sem"])
+    }
+
+    @Test
+    fun testDrtGrammarImplicationIsBoxImplication() {
+        val g = IntegratedParser.toGrammar("%semantics drt\nN[sem=<p -> q>] -> \"w\"") as Grammar
+        assertEquals(SemanticValue(DrsImp(0, listOf(Constant("p")), Constant("q"))), g.lexicon["w"]!!.single()["sem"])
+    }
 
     @Test
     fun testPlusIsMergeInDrtMode() =

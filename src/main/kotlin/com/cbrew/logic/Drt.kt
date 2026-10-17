@@ -10,7 +10,9 @@ import com.cbrew.unify.*
  * quantifiers over an implication from the conjunction of the antecedent
  * conditions to the consequent. Referents are QVar binders numbered as for
  * k nested quantifiers, so the translation needs no renaming. A box with
- * no conditions is true.
+ * no conditions is true. The translation goes through negation,
+ * conjunction, disjunction, implication, equivalence and quantifiers, so
+ * no box is left inside them.
  *
  * @return the first-order translation of the receiver
  * @throws IllegalArgumentException if a [Resolved] has no antecedents
@@ -23,6 +25,10 @@ fun Lambda.fol(): Lambda = when (this) {
     is Not -> createNegation(body.fol())
     is And -> createAnd(conjuncts.map { it.fol() })
     is Or -> createOr(disjuncts.map { it.fol() })
+    is Implies -> createImplication(e1.fol(), e2.fol())
+    is Equiv -> createEquiv(e1.fol(), e2.fol())
+    is Exists -> createExistential(body.fol())
+    is Forall -> createUniversal(body.fol())
     is Resolved -> {
         require(antecedents.isNotEmpty()) { "pronoun $pronoun has no candidate antecedents" }
         createOr(antecedents.map { createEquiv(pronoun, it) })

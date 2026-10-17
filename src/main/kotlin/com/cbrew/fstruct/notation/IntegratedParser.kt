@@ -57,7 +57,7 @@ object IntegratedParser {
                 pushMode(FeatLexer.DRT_ISLAND)
             }
             val parser = FeatParser(CommonTokenStream(lexer))
-            val logicVisitor = LogicVisitor()
+            val logicVisitor = LogicVisitor(drt = true)
             val term = logicVisitor.visit(parser.semanticTerm().expression())
             return logicVisitor.binarize(term).normalized() as Lambda
         } catch (e: Exception) {
