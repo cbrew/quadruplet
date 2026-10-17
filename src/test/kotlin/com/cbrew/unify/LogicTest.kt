@@ -144,6 +144,15 @@ class LogicTest {
     }
 
     @Test
+    fun testPushedQuantifierCollapsesEqualElements() {
+        // ∃.(p(x) ∨ ∃.p(x)): pushing ∃ into the disjunction makes both
+        // disjuncts ∃.p(x), so the result is that term, not a one-element Or
+        val px = App(Constant("p"), QVar(1))
+        assertEquals(Exists(px), createExistential(createOr(px, Exists(px))))
+        assertEquals(Forall(px), createUniversal(createAnd(px, Forall(px))))
+    }
+
+    @Test
     fun testDuplicateConjunctsCollapse() {
         assertEquals(Constant("a"), createAnd(Constant("a"), Constant("a")))
     }
