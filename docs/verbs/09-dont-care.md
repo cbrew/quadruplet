@@ -20,13 +20,13 @@ Two measures, one exact and one local:
   that build it are grouped by what the phrase would contribute to the
   meaning (the head daughter's position and category, each other
   daughter's relation class, the spans the top step of binarization gives
-  the daughters), and `cfg.Forest.Entropy`'s chain rule splits the choice
+  the daughters), and `entropy.Of`'s chain rule splits the choice
   at the item into the choice of a group (visible) and the choice of a
   rule within it (don't care). The remaining span choices, at the
   auxiliary items, are reported apart and taken to be visible, since they
   move words between relations.
 
-Code: `go/cmd/dontcare`. The relation classes follow `interp.Flat`'s
+Code: `go/explore/cmd/dontcare`. The relation classes follow `interp.Flat`'s
 `relation`: a marker-headed daughter (PP, WHPP, SBAR with a complementizer)
 is named by its marker; an NP under a VP is `obj`; a clause is `comp`; a
 noun or NML under a noun phrase is `nn`; QP and CD `num`; possessives

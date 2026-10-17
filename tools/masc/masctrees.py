@@ -10,7 +10,10 @@ PUNCT = {',', '.', ':', '``', "''", '"', "'", '-LRB-', '-RRB-', '-LSB-', '-RSB-'
 
 
 def tokenize(s):
-    return re.findall(r'\(|\)|[^\s()]+', s)
+    # a no-break space inside a word is part of it (vis-\u00c3\u00a0-vis, a mangled
+    # vis-a-vis in the blog Effing-Idiot); elsewhere it is space (indentation in
+    # the letter 117CWL009)
+    return re.findall(r'\(|\)|[^\s()]+(?:\u00a0[^\s()]+)*', s)
 
 
 def read_trees(text):

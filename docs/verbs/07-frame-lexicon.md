@@ -26,7 +26,7 @@ other nine tenths. The exception is the grammar's rules and, for the
 weighted figures from `counts.tsv`, their frequencies; `-train` uses the
 training documents' frequencies instead, and gives the same picture.
 
-**A verb's use** (package `go/frames`) is read off the rule the verb is a
+**A verb's use** (package `go/explore/frames`) is read off the rule the verb is a
 daughter of:
 * in a lexical verb phrase rule (VP, or a chain ending in VP, with a verb and
   no VP daughter), its frame, at three grains:
@@ -48,7 +48,7 @@ the renamed grammar counts as many trees as the grammar. The **oracle**
 allows each verb token only the use its own tree gives it: an upper bound on
 what any lexicon of uses could do.
 
-**The decomposition is exact too** (`cfg.Forest.Entropy`). Take a
+**The decomposition is exact too** (`entropy.Of`). Take a
 distribution over a forest's trees: uniform, or proportional to the product
 of the rules' relative frequencies P(rule | parent). Its entropy is the
 expected sum of the entropies of the local choices a tree makes:
@@ -257,8 +257,8 @@ against 33.8%.
 ```bash
 S=SCRATCH       # treebank.py's output in ann/, verbframes.py's lemmas.tsv in v2/
 cd go
-go run ./cmd/framelex -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300
-go run ./cmd/verbentropy -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300 [-lexicon core|rule] [-pcfg [-train] [-lexweights [-grain core|pp|rule] [-alpha 5]]]
+go run ./explore/cmd/framelex -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300
+go run ./explore/cmd/verbentropy -counts $S/ann/counts.tsv -annotated $S/ann/annotated.jsonl -lemmas $S/v2/lemmas.tsv -n 300 [-lexicon core|rule] [-pcfg [-train] [-lexweights [-grain core|pp|rule] [-alpha 5]]]
 ```
 
 The outputs of these runs are in [`runs/`](runs/). One caveat: `runs/verbentropy.txt`

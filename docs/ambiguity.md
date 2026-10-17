@@ -38,7 +38,7 @@ Christianson and others) suggests many are never drawn.
 
 ## Measurements
 
-All on MASC, with the tools in `go/cmd/ambiguity` (see the end), on 300
+All on MASC, with the tools in `go/explore/cmd/ambiguity` (see the end), on 300
 sentences of 5 to 25 words drawn at random unless said otherwise.
 
 ### Where the ambiguity comes from
@@ -147,7 +147,7 @@ The same 300 held-out sentences, gold tags, measured exactly
 ([`verbs/07-frame-lexicon.md`](verbs/07-frame-lexicon.md) and
 [`verbs/08-verb-layers.md`](verbs/08-verb-layers.md)). The entropy of a
 forest's trees is split exactly, as an expected sum over the local choices
-a tree makes (`cfg.Forest.Entropy`), or by layers of verbs
+a tree makes (`entropy.Of`), or by layers of verbs
 (`frames.VerbLayers`).
 
 * **Every tree equally likely**, the entropy is log10 of the count, 18.3
@@ -262,10 +262,10 @@ From tools/masc/treebank.py's output (`counts.tsv`, `annotated.jsonl`):
 
 ```bash
 cd go
-go run ./cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300             # where it comes from
-go run ./cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300 -samples 200 # against random trees
-go run ./cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300 -exact       # against all trees
-go run ./cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300 -verbs 1000  # through the verbs
+go run ./explore/cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300             # where it comes from
+go run ./explore/cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300 -samples 200 # against random trees
+go run ./explore/cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300 -exact       # against all trees
+go run ./explore/cmd/ambiguity -counts OUT/counts.tsv -annotated OUT/annotated.jsonl -n 300 -verbs 1000  # through the verbs
 ```
 
 ## References

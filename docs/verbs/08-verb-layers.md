@@ -9,10 +9,10 @@ packed forest), gives the code, and reports it on MASC, first with every
 tree of a forest as likely as any other and then with the trees weighted by
 the treebank's rule probabilities. It is task 4 of
 [`COORDINATION.md`](COORDINATION.md), and the finer decomposition of
-`cmd/verbentropy` is its companion.
+`go/explore/cmd/verbentropy` is its companion.
 
-Code: `go/frames/layers.go` (`VerbLayers`, `VerbNodes`), tested against
-enumeration of every tree in `layers_test.go`; `go/cmd/layers` runs it.
+Code: `go/explore/frames/layers.go` (`VerbLayers`, `VerbNodes`), tested against
+enumeration of every tree in `layers_test.go`; `go/explore/cmd/layers` runs it.
 
 ## The object
 
@@ -65,7 +65,7 @@ independent of the tree around it. Then
   by whether a verb node lies below: the "bit per item" of task 4.
 * stage 3 is the remainder.
 
-The fine decomposition of `cfg.Forest.Entropy` (Li and Eisner's sum over
+The fine decomposition of `entropy.Of` (Li and Eisner's sum over
 items of occupancy × local entropy) attributes every local choice to a
 top-down state. The layer cut coarsens it, but not by grouping those
 states: "bottom" and "inside" are not properties of the path from the root,
@@ -99,12 +99,12 @@ inverted copula) should be a verb node is left as it is: it is not.
 ## Results
 
 300 held-out MASC sentences of 5 to 25 words, gold tags, the same sample as
-`cmd/verbentropy`. Every sentence parses. The forests have a mean of
+`go/explore/cmd/verbentropy`. Every sentence parses. The forests have a mean of
 10^18.26 trees.
 
 ```
 S=SCRATCH   # tools/masc/treebank.py's output in $S/tb, tools/masc/verbframes.py's in $S/verbs
-cd go && go run ./cmd/layers -counts $S/tb/counts.tsv -annotated $S/tb/annotated.jsonl -lemmas $S/verbs/lemmas.tsv -n 300 [-pcfg] [-lexicon core]
+cd go && go run ./explore/cmd/layers -counts $S/tb/counts.tsv -annotated $S/tb/annotated.jsonl -lemmas $S/verbs/lemmas.tsv -n 300 [-pcfg] [-lexicon core]
 ```
 
 ### Every tree as likely as any other
@@ -129,7 +129,7 @@ of a lexical verb phrase in a typical tree but daughters of something else
 (the treebank has rules such as NP → NP VBD or S → NP VBZ NP, read off
 mis-annotated sentences, and the count of trees does not care how rare they
 are), and the ones that are have few dependents. This agrees with
-`cmd/verbentropy` on the same sample: 84% of the entropy outside any verb
+`go/explore/cmd/verbentropy` on the same sample: 84% of the entropy outside any verb
 plus 11% in top-layer verb phrases, and 93% of the non-verb words outside
 every lexical verb phrase against 40% in the gold trees. (The 94% here
 against 84% there: `verbentropy` counts the choices at every VP item at
@@ -175,7 +175,7 @@ with two, 31% with three and 21% with four or more.
 
 ### With the frame lexicon
 
-Filtering the trees by the core-grain frame lexicon of `cmd/framelex`
+Filtering the trees by the core-grain frame lexicon of `go/explore/cmd/framelex`
 (lemmas seen 5 or more times in training) removes 0.03 of the 18.26 digits
 of trees, and 0.05 of the 1.60 digits of PCFG entropy. Under the PCFG the
 top verbs' share goes from 23.9% to 21.4% and the skeleton's from 41.1% to
@@ -204,7 +204,7 @@ nothing else moves.
   embedding (top, second, ..., bottom) with more states; not needed yet.
 * The PCFG is unsmoothed and includes the test documents in its counts.
   Task 6 in `COORDINATION.md` is the place for a held-out, smoothed
-  version, and for weighting `cmd/verbentropy`'s finer decomposition.
+  version, and for weighting `go/explore/cmd/verbentropy`'s finer decomposition.
 * No breakdown of the top verbs' 24% into kind, frame and modifiers; that
-  is what `cmd/verbentropy` does, and it would carry over to the PCFG
+  is what `go/explore/cmd/verbentropy` does, and it would carry over to the PCFG
   weighting directly.

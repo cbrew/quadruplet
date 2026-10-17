@@ -1,0 +1,6 @@
+[project]
+name = "quadruplet-ilp"
+version = "0.1.0"
+description = "Inductive logic programming over MASC's Prolog programs: which PPs are complements."
+requires-python = ">=3.11"
+dependencies = ["nltk>=3.8"]

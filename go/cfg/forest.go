@@ -40,6 +40,9 @@ func (f *Forest) Count() *big.Int {
 	return total
 }
 
+// Ways is the number of trees under each item, by item number.
+func (f *Forest) Ways() []*big.Int { return f.ways() }
+
 // ways is the number of trees under each item.
 func (f *Forest) ways() []*big.Int {
 	ways := make([]*big.Int, len(f.Items))

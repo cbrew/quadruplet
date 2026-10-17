@@ -1,0 +1,205 @@
+# Verbs and the prepositions they select, from the lists of prepositional verbs in
+# R. Huddleston, "The clause: complements", ch. 4 of R. Huddleston and G. K. Pullum,
+# The Cambridge Grammar of the English Language (Cambridge University Press, 2002),
+# section 6.1.2, with the examples of specified prepositions in section 1.2 [12].
+# Transcribed from a 2009 revision draft of the chapter; section numbers are the draft's.
+# The book calls the lists "a small sample"; they are not a complete lexicon.
+#
+# Columns: lemma, preposition, structure, marks, section.
+#   structure  I    verb [prep + O]            refer [to her book]
+#              II   verb O [prep + O]          intend it [for Kim]
+#              III  verb [prep + O] [prep + O] look [to her] [for guidance]
+#              IV   verb [as + PC]             count [as too short]
+#              V    verb O [as + PC]           regard it [as successful]
+#              VI   verb [prep + O] [as + PC]  think [of it] [as indispensable]
+#   marks      -p   the prepositional passive is unacceptable
+#              f    fossilised: the preposition is fixed in position
+# British spellings are the book's; American ones (categorize, install ...) are added.
+# CGEL counts all of these PPs as complements.
+abide	by	I	-	6.1.2 [17]
+account	for	I	-	6.1.2 [17]
+ask	after	I	f	6.1.2 [17]
+ask	for	I	-	6.1.2 [17]
+bank	on	I	-	6.1.2 [17]
+believe	in	I	-	6.1.2 [17]
+break	into	I	-	6.1.2 [17]
+break	with	I	-p f	6.1.2 [17]
+call	for	I	-	6.1.2 [17]
+call	on	I	-	6.1.2 [17]
+come	across	I	-p f	6.1.2 [17]
+come	between	I	-p f	6.1.2 [17]
+come	by	I	f	6.1.2 [17]
+come	into	I	-p f	6.1.2 [17]
+come	under	I	-p	6.1.2 [17]
+consist	of	I	-p	6.1.2 [17]
+count	on	I	-	6.1.2 [17]
+dawn	on	I	-p	6.1.2 [17]
+decide	on	I	-	6.1.2 [17]
+dispose	of	I	-	6.1.2 [17]
+draw	on	I	-	6.1.2 [17]
+dwell	on	I	-	6.1.2 [17]
+fall	for	I	-p	6.1.2 [17]
+feel	for	I	-p	6.1.2 [17]
+fuss	over	I	f	6.1.2 [17]
+get	at	I	f	6.1.2 [17]
+get	over	I	-p f	6.1.2 [17]
+get	round	I	f	6.1.2 [17]
+go	off	I	-p f	6.1.2 [17]
+grow	on	I	-p f	6.1.2 [17]
+hit	on	I	f	6.1.2 [17]
+hold	with	I	-p	6.1.2 [17]
+hope	for	I	-	6.1.2 [17]
+keep	to	I	-	6.1.2 [17]
+lay	into	I	f	6.1.2 [17]
+look	after	I	f	6.1.2 [17]
+look	for	I	-	6.1.2 [17]
+make	for	I	-p f	6.1.2 [17]
+part	with	I	-	6.1.2 [17]
+pick	on	I	-	6.1.2 [17]
+pore	over	I	f	6.1.2 [17]
+run	into	I	f	6.1.2 [17]
+see	about	I	f	6.1.2 [17]
+see	to	I	f	6.1.2 [17]
+stand	by	I	-p f	6.1.2 [17]
+stand	for	I	-p	6.1.2 [17]
+stem	from	I	-p	6.1.2 [17]
+take	after	I	-p f	6.1.2 [17]
+tamper	with	I	-	6.1.2 [17]
+tell	on	I	f	6.1.2 [17]
+testify	to	I	-	6.1.2 [17]
+wait	on	I	-	6.1.2 [17]
+blossom	into	I	-	6.1.2 (text after [17])
+turn	into	I	-	6.1.2 (text after [17])
+accuse	of	II	-	6.1.2
+address	to	II	-	6.1.2
+assure	of	II	-	6.1.2
+charge	with	II	-	6.1.2
+confine	to	II	-	6.1.2
+convince	of	II	-	6.1.2
+deprive	of	II	-	6.1.2
+draw	into	II	-	6.1.2
+entitle	to	II	-	6.1.2
+explain	to	II	-	6.1.2
+get	through	II	f	6.1.2
+help	with	II	-	6.1.2
+hold	against	II	-	6.1.2
+incite	to	II	-	6.1.2
+interest	in	II	-	6.1.2
+introduce	to	II	-	6.1.2
+let	into	II	f	6.1.2
+let	off	II	f	6.1.2
+persuade	of	II	-	6.1.2
+protect	from	II	-	6.1.2
+read	into	II	-	6.1.2
+refer	to	II	-	6.1.2
+see	through	II	f	6.1.2
+subject	to	II	-	6.1.2
+suspect	of	II	-	6.1.2
+rob	of	II	-	6.1.2
+treat	to	II	-	6.1.2
+warn	of	II	-	6.1.2
+warn	about	II	-	6.1.2
+supply	to	II	-	6.1.2 (alternations)
+supply	with	II	-	6.1.2 (alternations)
+give	to	II	-	6.1.2 (alternations)
+agree	with	III	-	6.1.2
+agree	about	III	-	6.1.2
+appeal	to	III	-	6.1.2
+appeal	for	III	-	6.1.2
+argue	with	III	-	6.1.2
+argue	about	III	-	6.1.2
+argue	over	III	-	6.1.2
+arrange	with	III	-	6.1.2
+arrange	for	III	-	6.1.2
+boast	to	III	-	6.1.2
+boast	about	III	-	6.1.2
+complain	to	III	-	6.1.2
+complain	about	III	-	6.1.2
+look	to	III	-	6.1.2
+act	as	IV	-	6.1.2
+count	as	IV	-	6.1.2
+do	as	IV	-	6.1.2
+double	as	IV	-	6.1.2
+emerge	as	IV	-	6.1.2
+function	as	IV	-	6.1.2
+masquerade	as	IV	-	6.1.2
+pose	as	IV	-	6.1.2
+rate	as	IV	-	6.1.2
+resign	as	IV	-	6.1.2
+retire	as	IV	-	6.1.2
+serve	as	IV	-	6.1.2
+stand	as	IV	-	6.1.2
+pass	as	IV	-	6.1.2
+pass	for	IV	-	6.1.2
+accept	as	V	-	6.1.2
+acknowledge	as	V	-	6.1.2
+adopt	as	V	-	6.1.2
+bill	as	V	-	6.1.2
+brand	as	V	-	6.1.2
+cast	as	V	-	6.1.2
+categorise	as	V	-	6.1.2
+categorize	as	V	-	6.1.2
+characterise	as	V	-	6.1.2
+characterize	as	V	-	6.1.2
+choose	as	V	-	6.1.2
+class	as	V	-	6.1.2
+classify	as	V	-	6.1.2
+condemn	as	V	-	6.1.2
+confirm	as	V	-	6.1.2
+construe	as	V	-	6.1.2
+define	as	V	-	6.1.2
+denounce	as	V	-	6.1.2
+depict	as	V	-	6.1.2
+describe	as	V	-	6.1.2
+diagnose	as	V	-	6.1.2
+disguise	as	V	-	6.1.2
+dismiss	as	V	-	6.1.2
+enlist	as	V	-	6.1.2
+establish	as	V	-	6.1.2
+give	as	V	-	6.1.2
+hail	as	V	-	6.1.2
+have	as	V	-	6.1.2
+identify	as	V	-	6.1.2
+instal	as	V	-	6.1.2
+install	as	V	-	6.1.2
+intend	as	V	-	6.1.2
+interpret	as	V	-	6.1.2
+know	as	V	-	6.1.2
+mean	as	V	-	6.1.2
+perceive	as	V	-	6.1.2
+portray	as	V	-	6.1.2
+present	as	V	-	6.1.2
+recognise	as	V	-	6.1.2
+recognize	as	V	-	6.1.2
+regard	as	V	-	6.1.2
+represent	as	V	-	6.1.2
+scorn	as	V	-	6.1.2
+see	as	V	-	6.1.2
+suggest	as	V	-	6.1.2
+treat	as	V	-	6.1.2
+use	as	V	-	6.1.2
+view	as	V	-	6.1.2
+appoint	as	V	-	6.1.2
+consider	as	V	-	6.1.2
+designate	as	V	-	6.1.2
+elect	as	V	-	6.1.2
+imagine	as	V	-	6.1.2
+nominate	as	V	-	6.1.2
+ordain	as	V	-	6.1.2
+proclaim	as	V	-	6.1.2
+report	as	V	-	6.1.2
+take	as	V	-	6.1.2
+take	for	V	-	6.1.2
+agree	on	VI	-	6.1.2
+agree	as	VI	-	6.1.2
+conceive	of	VI	-	6.1.2
+conceive	as	VI	-	6.1.2
+look	on	VI	-	6.1.2
+look	upon	VI	-	6.1.2
+look	as	VI	-	6.1.2
+refer	as	VI	-	6.1.2
+think	of	VI	-	6.1.2
+think	as	VI	-	6.1.2
+look	at	I/II	-	1.2 [12]
+depend	on	I/II	-	1.2 [12]
+blame	on	I/II	-	1.2 [12]
