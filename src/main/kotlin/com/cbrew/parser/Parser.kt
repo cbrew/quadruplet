@@ -4,11 +4,25 @@ import com.cbrew.chart.Chart
 import com.cbrew.chart.TreeAsFeatureGrammar
 import com.cbrew.chart.treestring
 import com.cbrew.fstruct.notation.FeatureNotation
+import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 
+/**
+ * Parse a sentence of 'a's with TreeAsFeatureGrammar, print its
+ * first 100 trees and the chart's statistics. The one optional argument is
+ * the number of 'a's, 30 by default.
+ */
 fun main(args: Array<String>) {
-    val args2 = Array<String>(30, { _ -> "a" })
+    val length = when (args.size) {
+        0 -> 30
+        1 -> args[0].toIntOrNull()?.takeIf { it > 0 }
+        else -> null
+    } ?: run {
+        System.err.println("usage: parser [length]   (a positive number of 'a's, default 30)")
+        exitProcess(2)
+    }
+    val args2 = Array<String>(length, { _ -> "a" })
     // The number of trees grows exponentially: 717,061,938 for 16 'a's,
     // ~4.95e18 for 30 and a 121-digit number for 170. Tree counting is
     // memoised over the packed chart, so it stays cheap even so, and
