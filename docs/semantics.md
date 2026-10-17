@@ -170,7 +170,12 @@ of them distinct.
 A grammar can also build discourse representation structures (DRSs)
 instead of formulas. It starts with a `%semantics drt` declaration, and semantics in
 `<...>` is then read as boxes: a list of referents and a list of
-conditions, `+` to merge, `->` between boxes for implication. A box's
+conditions, `+` to merge, `->` for implication. In a DRT grammar `->`
+is always a box implication: a left side that is not yet a box, such as
+a variable, becomes the one condition of an antecedent box, and a box
+substituted for it later is merged in. `+` binds tighter than `&`, `|`
+and `->`, and `-` negates everything to its right, so `-K1 + K2` reads
+as ¬(K1 + K2); write `(-K1) + K2` for the other. A box's
 referents bind in whatever follows it, which is how a pronoun reaches an
 antecedent in an earlier sentence. `src/test/resources/drt-storage.fcfg`
 is NLTK's DRT grammar in the storage style. "Every dog chases a boy . He

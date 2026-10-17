@@ -9,7 +9,8 @@ package com.cbrew.unify
  * ([referents], [conditions]), its referents named like quantified
  * variables; its conditions keep their order.
  *
- * The Go port's term.Pretty prints identically.
+ * For terms without DRS nodes, the Go port's term.Pretty prints
+ * identically.
  */
 fun Lambda.pretty(): String = pretty(this, 0, 0)
 

@@ -176,7 +176,9 @@ enum class Semantics { LOGIC, DRT }
 /**
  * A grammar: its [rules], its [lexicon], and the [semantics] declared by a
  * `%semantics` line (logic when there is none). [toString] leaves the
- * semantics out.
+ * semantics out. The declaration only says how `<...>` was read: which
+ * steps to apply after parsing, such as drtReadings for a DRT grammar or
+ * retrieve for a storage grammar, is left to the caller.
  */
 data class Grammar(
         val rules: Set<Rule>,

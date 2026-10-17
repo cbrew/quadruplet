@@ -163,7 +163,7 @@ language, so the second term language this section once planned was not
 needed. A box's referents are de Bruijn binders, so accessibility is
 scope and no alpha-conversion is needed when boxes merge. `fol()`,
 `resolveAnaphora` and the discourse readings are in
-`com.cbrew.logic/Drt.kt`. The flat, PMB-style meanings sketched in
+`src/main/kotlin/com/cbrew/logic/Drt.kt`. The flat, PMB-style meanings sketched in
 [flat-semantics.md](flat-semantics.md) are a separate matter.
 
 ## 6. What to leave out
@@ -190,5 +190,5 @@ scope and no alpha-conversion is needed when boxes merge. `fol()`,
 2. **The model evaluator** (section 3): unlocks `evaluate_sents` on the
    simple grammars and the chat80 queries, and doubles as a test oracle.
 3. **Hole semantics** (section 4): self-contained, medium.
-4. **DRT** (section 5): large; decide against the PMB-style alternative
-   first. Done.
+4. **DRT** (section 5): large. Done, as classic boxes rather than the
+   PMB-style alternative.
