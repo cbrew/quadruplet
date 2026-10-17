@@ -105,8 +105,9 @@ class LambdaSharingTest {
 
     // ---- random terms, normalized as the grammar's terms are
 
-    // drs adds DRS boxes and implications; without it the stream of terms
-    // is the one this test has always used
+    // drs adds DRS boxes (with 0 to 2 referents), box implications (1 or 2)
+    // and resolved pronouns; without it the stream of terms is the one this
+    // test has always used
     private fun term(r: Random, depth: Int, boxes: Boolean, drs: Boolean): Lambda {
         if (depth == 0 || r.nextInt(4) == 0) return when (r.nextInt(if (boxes) 5 else 4)) {
             0 -> Constant(listOf("a", "b", "c")[r.nextInt(3)])
@@ -116,7 +117,7 @@ class LambdaSharingTest {
             else -> Box
         }
         fun sub() = term(r, depth - 1, boxes, drs)
-        return when (r.nextInt(if (drs) 11 else 9)) {
+        return when (r.nextInt(if (drs) 12 else 9)) {
             0 -> Lam(sub())
             1 -> Exists(sub())
             2 -> Forall(sub())
@@ -126,8 +127,9 @@ class LambdaSharingTest {
             6 -> Implies(sub(), sub())
             7 -> Equiv(sub(), sub())
             8 -> App(sub(), sub())
-            9 -> Drs(1 + r.nextInt(2), listOf(sub(), sub()))
-            else -> DrsImp(1, listOf(sub()), sub())
+            9 -> Drs(r.nextInt(3), listOf(sub(), sub()))
+            10 -> DrsImp(1 + r.nextInt(2), listOf(sub()), sub())
+            else -> Resolved(sub(), List(1 + r.nextInt(2)) { sub() })
         }
     }
 
