@@ -168,13 +168,13 @@ readings, some equal: "Angus gives a bone to every man" gives six, two
 of them distinct.
 
 A grammar can also build discourse representation structures (DRSs)
-instead of formulas. Its first line is `%semantics drt`, and semantics in
+instead of formulas. It starts with a `%semantics drt` declaration, and semantics in
 `<...>` is then read as boxes: a list of referents and a list of
 conditions, `+` to merge, `->` between boxes for implication. A box's
 referents bind in whatever follows it, which is how a pronoun reaches an
 antecedent in an earlier sentence. `src/test/resources/drt-storage.fcfg`
 is NLTK's DRT grammar in the storage style. "Every dog chases a boy . He
-runs." has two scopings. In one, "a boy" is inside the scope of "every
+runs ." has two scopings. In one, "a boy" is inside the scope of "every
 dog", so no boy is accessible to "he", and resolution drops that reading.
 In the other, "a boy" takes wide scope and "he" resolves to it:
 
@@ -199,7 +199,7 @@ Enough that "Montague-style" alone oversells the grammar:
   says, every MASC reading has surface scope. Section 4 says why, and
   every ambiguity the parser finds is structural or lexical. Scope
   ambiguity needs a grammar in the Cooper storage style.
-* **No bound pronouns or anaphora.** Pronouns are constants: "every Japan
+* **No bound pronouns or anaphora in the MASC grammar.** Pronouns are constants: "every Japan
   veteran has his list" gives `of(x2, he)`, not the veteran's list.
 
 ## 2. What we take from event semantics
@@ -469,7 +469,7 @@ Collected from above, for anyone deciding what version 1 should be:
 * surface scope only in the MASC grammar: no quantifier raising or
   scope-taking continuations, and Cooper storage only for grammars
   written in the storage style (section 1);
-* no anaphora or discourse: pronouns are constants, and "the" is
+* no anaphora or discourse in the MASC grammar: pronouns are constants, and "the" is
   Russellian rather than presuppositional;
 * a small, frame-based set of thematic roles, and predicates that are
   lemmas, not senses;

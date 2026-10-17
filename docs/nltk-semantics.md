@@ -142,39 +142,29 @@ be harmless for a USR but wants a test.
 
 ## 5. Discourse Representation Theory
 
-Done. The design is in
-[the DRT design](superpowers/specs/2026-10-17-drt-design.md). A grammar
-whose first line is `%semantics drt` reads `<...>` as DRSs. The boxes
-`Drs`, `DrsImp` and `Resolved` are nodes of the existing term language,
-and a box's referents are de Bruijn binders, so accessibility is scope
-and no alpha-conversion is needed. `fol()`, `resolveAnaphora` and the
-discourse readings are in `com.cbrew.logic/Drt.kt`. What follows is the
-analysis made before the work, kept for the reasoning.
-
 `drt.fcfg` builds DRSs rather than formulas:
 
     PropN[-LOC,NUM=sg,SEM=<\P.(DRS([x],[Angus(x)])+P(x))>] -> 'Angus'
     Det[NUM=sg,SEM=<\P Q.DRS([],[((DRS([x],[])+P(x)) implies Q(x))])>] -> 'every'
     PropN[-LOC,NUM=sg,SEM=<\P.(DRS([x],[PRO(x)])+P(x))>] -> 'he'
 
-A DRS is a box of discourse referents and conditions; `+` merges boxes,
-with alpha-conversion so referents do not clash; boxes can be negated and
-stand in an implication; `fol()` translates a box to logic; and
-`resolve_anaphora` replaces each `PRO(x)` by an equation with an
+In NLTK a DRS is a box of discourse referents and conditions; `+` merges
+boxes, with alpha-conversion so referents do not clash; boxes can be
+negated and stand in an implication; `fol()` translates a box to logic;
+and `resolve_anaphora` replaces each `PRO(x)` by an equation with an
 accessible antecedent, offering every candidate. This is what makes
 "a dog barks. it walks." work across sentences.
 
-This is the large piece. It is a second term language beside `Lambda`:
-its own sealed family, its own reduction (beta reduction that merges
-boxes), a translation to the existing logic, a printer, and the
-resolution search. De Bruijn indices fit it, since a box's referents are
-binders, but little of the existing code is reused. NLTK's `drt.py` is
-1,500 lines including a box drawer; the core would be perhaps six to nine
-hundred lines of Kotlin. The decision to make first is whether DRSs would
-replace the logical forms or sit beside them, and whether the flat,
-PMB-style meanings sketched in [flat-semantics.md](flat-semantics.md)
-are the version actually wanted, since the Parallel Meaning Bank is DRT
-underneath.
+Done in quadruplet; the design is in
+[the DRT design](superpowers/specs/2026-10-17-drt-design.md). A grammar
+that starts with a `%semantics drt` declaration reads `<...>` as DRSs.
+The boxes `Drs`, `DrsImp` and `Resolved` are nodes of the existing term
+language, so the second term language this section once planned was not
+needed. A box's referents are de Bruijn binders, so accessibility is
+scope and no alpha-conversion is needed when boxes merge. `fol()`,
+`resolveAnaphora` and the discourse readings are in
+`com.cbrew.logic/Drt.kt`. The flat, PMB-style meanings sketched in
+[flat-semantics.md](flat-semantics.md) are a separate matter.
 
 ## 6. What to leave out
 
