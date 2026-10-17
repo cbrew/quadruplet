@@ -27,7 +27,7 @@ semantic-term variables.
 | `simple-sem` with `model0`, `sem2` in the book, `chat80` against the Chat-80 world | truth of a reading in a finite model, and the satisfiers of a wh-question | nothing | a model evaluator (section 3) |
 | `storage`, `bindop` | scope ambiguity by Cooper storage: a core term and a store of binding operators, retrieved in every order | the term language, tuples with `+`, `@x` variables, and retrieval; `storage.fcfg` is a passing test | nothing for `storage`; `bindop` untried (section 2) |
 | `hole` | underspecified scope: one formula of holes, labels and dominance constraints, then every legal plugging | the formula itself builds today | a plugging module (section 4) |
-| `drt` | Discourse Representation Structures with merge, translation to logic, and pronoun resolution | nothing; [flat-semantics.md](flat-semantics.md) looks at the related Parallel Meaning Bank | a second term language (section 5) |
+| `drt` | Discourse Representation Structures with merge, translation to logic, and pronoun resolution | boxes, merge, `fol()`, anaphora resolution and discourse readings; `drt.fcfg` and `drt-storage.fcfg` are passing tests (section 5) | provers and Glue, out of scope (section 6) |
 | `discourse` | consistency and informativeness of a discourse, checked by a theorem prover | the readings | an external prover (section 6) |
 | `gluesemantics` | syntax only; the meanings live in NLTK's glue lexicon and a linear-logic prover | nothing | out of scope (section 6) |
 | `sql0`, `sql1`, `sql` | an SQL string built by tuple concatenation, run on a city database | tuple `+` expressions | string values and a join (section 6) |
@@ -142,6 +142,15 @@ be harmless for a USR but wants a test.
 
 ## 5. Discourse Representation Theory
 
+Done. The design is in
+[the DRT design](superpowers/specs/2026-10-17-drt-design.md). A grammar
+whose first line is `%semantics drt` reads `<...>` as DRSs. The boxes
+`Drs`, `DrsImp` and `Resolved` are nodes of the existing term language,
+and a box's referents are de Bruijn binders, so accessibility is scope
+and no alpha-conversion is needed. `fol()`, `resolveAnaphora` and the
+discourse readings are in `com.cbrew.logic/Drt.kt`. What follows is the
+analysis made before the work, kept for the reasoning.
+
 `drt.fcfg` builds DRSs rather than formulas:
 
     PropN[-LOC,NUM=sg,SEM=<\P.(DRS([x],[Angus(x)])+P(x))>] -> 'Angus'
@@ -192,4 +201,4 @@ underneath.
    simple grammars and the chat80 queries, and doubles as a test oracle.
 3. **Hole semantics** (section 4): self-contained, medium.
 4. **DRT** (section 5): large; decide against the PMB-style alternative
-   first.
+   first. Done.

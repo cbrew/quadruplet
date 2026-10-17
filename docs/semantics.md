@@ -167,6 +167,23 @@ counts one reading per tree. With *n* stored quantifiers it gives *n*!
 readings, some equal: "Angus gives a bone to every man" gives six, two
 of them distinct.
 
+A grammar can also build discourse representation structures (DRSs)
+instead of formulas. Its first line is `%semantics drt`, and semantics in
+`<...>` is then read as boxes: a list of referents and a list of
+conditions, `+` to merge, `->` between boxes for implication. A box's
+referents bind in whatever follows it, which is how a pronoun reaches an
+antecedent in an earlier sentence. `src/test/resources/drt-storage.fcfg`
+is NLTK's DRT grammar in the storage style. "Every dog chases a boy . He
+runs." has two scopings. In one, "a boy" is inside the scope of "every
+dog", so no boy is accessible to "he", and resolution drops that reading.
+In the other, "a boy" takes wide scope and "he" resolves to it:
+
+    ([x1, x2], [boy(x1), (([x3], [dog(x3)]) → ([], [chase(x3, x1)])), (x2 = [x1]), run(x2)])
+
+`x2 = [x1]` records the candidates for the pronoun, here only `x1`. The
+MASC grammar remains a logic grammar with surface scope. The design is in
+`docs/superpowers/specs/2026-10-17-drt-design.md`.
+
 ### What we leave out of PTQ
 
 Enough that "Montague-style" alone oversells the grammar:
