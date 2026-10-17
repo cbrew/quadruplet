@@ -539,10 +539,8 @@ private fun createQuantified(isUniversal: Boolean, body: Lambda): Lambda =
 // possibly the quantifier would not bind anything.
 // if so we omit it
         if (!quantifierBinds(body, 1)) shiftQuantifiers(body, 1)
-        // createAnd and createOr, since pushing the quantifier in can make two
-        // elements equal, leaving one: ∃.(p(x) ∨ ∃.p(x)) is ∃.p(x)
-        else if (body is And && isUniversal) createAnd(body.conjuncts.map(::createUniversal))
-        else if (body is Or && !isUniversal) createOr(body.disjuncts.map(::createExistential))
+        else if (body is And && isUniversal) And(SmallSet.of(body.conjuncts.map(::createUniversal)))
+        else if (body is Or && !isUniversal) Or(SmallSet.of(body.disjuncts.map(::createExistential)))
         else if (isUniversal) Forall(body)
         else Exists(body)
 
