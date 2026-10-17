@@ -58,6 +58,40 @@ class DrtNotationTest {
     }
 
     @Test
+    fun testLaterMergedBoxesBindOnward() = assertEquals(            // K1 may itself be a merge
+        "([x1, x2, x3], [a(x1), b(x2), c(x2, x3)])",
+        drs("([x], [a(x)]) + ([y], [b(y)]) + ([z], [c(y, z)])").pretty())
+
+    @Test
+    fun testMergedAntecedentBindsConsequent() = assertEquals(
+        "([], [(([x1, x2], [a(x1), b(x2)]) → ([], [c(x1, x2)]))])",
+        drs("([], [(([x], [a(x)]) + ([y], [b(y)])) -> ([], [c(x, y)])])").pretty())
+
+    @Test
+    fun testDuplicateMergedReferentRejected() {
+        val e = assertFailsWith<IllegalArgumentException> { drs("([x], [a(x)]) + ([x], [b(x)])") }
+        assertTrue("referent x " in e.message!!, e.message)
+    }
+
+    @Test
+    fun testNonBoxAntecedentStaysImplies() =
+        assertEquals(Implies(Constant("p"), Constant("q")), drs("p -> q"))
+
+    @Test
+    fun testPlusIsMergeInDrtMode() =
+        assertEquals(Drs(0, listOf(Constant("a"), Constant("b"))), drs("a + b"))
+
+    @Test
+    fun testExplicitLogicDeclaration() = assertEquals(Semantics.LOGIC,
+        (IntegratedParser.toGrammar("%semantics logic\nN[sem=<dog>] -> \"dog\"\n") as Grammar).semantics)
+
+    @Test
+    fun testUpperCaseSemanticsNameRejected() {
+        val e = assertFailsWith<IllegalArgumentException> { IntegratedParser.toGrammar("%semantics DRT\nN[] -> \"x\"") }
+        assertTrue("unknown semantics: DRT" in e.message!!, e.message)
+    }
+
+    @Test
     fun testLogicConstantsKeepBrackets() {                          // review focus
         val g = IntegratedParser.toGrammar("N[sem=<f[1](a+b)>] -> \"w\"") as Grammar
         assertEquals(SemanticValue(App(Constant("f[1]"), Constant("a+b"))), g.lexicon["w"]!!.single()["sem"])

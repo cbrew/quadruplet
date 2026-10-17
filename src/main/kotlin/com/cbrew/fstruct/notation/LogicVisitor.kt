@@ -73,22 +73,42 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
     private fun flattenOr(disjuncts: Set<Lambda>): Set<Lambda> = disjuncts.flatMap(::orYield).toSet()
 
 
-    /**
-     * Rewrites a `"merge"` node as the `"drs"` node it stands for: when the
-     * (normalized) left side is a box, the right side joins its conditions,
-     * so the box's referents bind into it; otherwise both sides become the
-     * conditions of a box with no referents. Any other tree is unchanged.
-     */
     // The children of a "refs" or "conds" node.
     private val Tree.items: List<Tree> get() = (this as Node).children
 
+    private fun Tree.isDrs(): Boolean = this is Node && label == "drs"
+
+    /**
+     * Rewrites a `"merge"` node, K1 + K2, as the `"drs"` node it stands for,
+     * after merge-normalizing both sides. When both are boxes, the result has
+     * K1's referents then K2's, and K1's conditions then K2's, so K1's
+     * referents bind in K2 and both sets bind in anything merged later. When
+     * only K1 is a box, K2 becomes its last condition. Otherwise both sides
+     * become the conditions of a box with no referents. A referent introduced
+     * twice in one merged box is an [IllegalArgumentException]. Any tree that
+     * is not a merge is unchanged.
+     */
     private fun mergeNormal(t: Tree): Tree {
         if (t !is Node || t.label != "merge") return t
-        val (left, right) = t.children.let { mergeNormal(it[0]) to it[1] }
-        return if (left is Node && left.label == "drs")
-            Node("drs", listOf(left.children[0], Node("conds", left.children[1].items + right)))
-        else
-            Node("drs", listOf(Node("refs", listOf()), Node("conds", listOf(left, right))))
+        val left = mergeNormal(t.children[0])
+        val right = mergeNormal(t.children[1])
+        return when {
+            left.isDrs() && right.isDrs() -> {
+                val (leftRefs, leftConds) = left.items
+                val (rightRefs, rightConds) = right.items
+                val refs = leftRefs.items + rightRefs.items
+                refs.map { (it as Leaf).label }.groupingBy { it }.eachCount()
+                    .filterValues { it > 1 }.keys.firstOrNull()?.let {
+                        throw IllegalArgumentException("referent $it is introduced twice in one merged box")
+                    }
+                Node("drs", listOf(Node("refs", refs), Node("conds", leftConds.items + rightConds.items)))
+            }
+            left.isDrs() -> {
+                val (refs, conds) = left.items
+                Node("drs", listOf(refs, Node("conds", conds.items + right)))
+            }
+            else -> Node("drs", listOf(Node("refs", listOf()), Node("conds", listOf(left, right))))
+        }
     }
 
     fun binarize(e: Tree): Lambda {
@@ -175,8 +195,8 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
                         // right side too: a box implication.
                         "implies" -> {
                             val left = mergeNormal(n.children[0])
-                            if (left is Node && left.label == "drs") {
-                                val (refs, conds) = left.children
+                            if (left.isDrs()) {
+                                val (refs, conds) = left.items
                                 boundBy(refs) { k ->
                                     createDrsImp(k, conds.items.map(::bin), bin(n.children[1]))
                                 }

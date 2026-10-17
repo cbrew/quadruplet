@@ -16,7 +16,7 @@ WS
 // `%semantics logic` or `%semantics drt`; any other name is rejected by
 // IntegratedVisitor.visitCfg.
 Declaration
-    : '%semantics' [ \t]+ [a-z]+
+    : '%semantics' [ \t]+ ~[ \t\r\n]+
       { drt = getText().matches("%semantics[ \\t]+drt"); }
     ;
 
