@@ -1,0 +1,49 @@
+## storage.fcfg
+##
+## NLTK's book_grammars/storage.fcfg (Edward Loper, Ewan Klein, Robin
+## Cooper), translated into quadruplet's notation.
+##
+## Cooper storage divides the semantics of each phrase into a core and a
+## store of binding operators. A binding operator bo(Q, @x) pairs a
+## quantifier Q with the placeholder @x that stands for its noun phrase in
+## the core. Retrieval (com.cbrew.logic.retrieve) applies the operators to
+## the core in every order, each order giving one scoping.
+##
+## NLTK writes SEM=[CORE=<...>, STORE=(...)]; quadruplet does not support
+## nested feature maps, so here the two parts are separate features, core
+## and store. NLTK's empty tuple (/) is written (). Rules are renamed apart
+## per use, so each @x in a lexical entry or rule stands for a distinct
+## variable in every phrase built from it; unification leaves it free.
+## Adapted for quadruplet by Chris Brew.
+
+S[core=<?vp(?subj)>, store=(?b1 + ?b2)] -> NP[core=<?subj>, store=?b1] VP[core=<?vp>, store=?b2]
+
+VP[core=<?v>, store=?s] -> IV[core=<?v>, store=?s]
+VP[core=<?v(?obj)>, store=(?b1 + ?b2)] -> TV[core=<?v>, store=?b1] NP[core=<?obj>, store=?b2]
+VP[core=<?v(?pp)(?obj)>, store=(?b1 + ?b2 + ?b3)] -> DTV[core=<?v>, store=?b1] NP[core=<?obj>, store=?b2] PP[+to, core=<?pp>, store=?b3]
+
+NP[core=<@x>, store=((<bo(?det(?n), @x)>) + ?b1 + ?b2)] -> Det[core=<?det>, store=?b1] N[core=<?n>, store=?b2]
+
+PP[+to, core=<?np>, store=?b1] -> P[] NP[core=<?np>, store=?b1]
+
+# Lexical items
+Det[core=<\Q P.exists x.(Q(x) & P(x))>, store=()] -> "a"
+Det[core=<\Q P.all x.(Q(x) -> P(x))>, store=()] -> "every"
+
+N[core=<dog>, store=()] -> "dog"
+N[core=<bone>, store=()] -> "bone"
+N[core=<girl>, store=()] -> "girl"
+N[core=<man>, store=()] -> "man"
+
+IV[core=<\x.smile(x)>, store=()] -> "smiles"
+IV[core=<\x.walk(x)>, store=()] -> "walks"
+
+TV[core=<\y x.feed(x,y)>, store=()] -> "feeds"
+TV[core=<\y x.chase(x,y)>, store=()] -> "chases"
+
+DTV[core=<\z y x.give(x,y,z)>, store=()] -> "gives"
+
+NP[core=<@x>, store=(<bo(\P.P(angus), @x)>)] -> "Angus"
+NP[core=<@x>, store=(<bo(\P.P(cyril), @x)>)] -> "Cyril"
+
+P[+to] -> "to"

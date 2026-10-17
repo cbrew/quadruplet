@@ -128,8 +128,8 @@ logically equivalent, so producing every scoping multiplies the readings
 quickly. A benchmark that enumerated them would be a very different
 benchmark.
 
-quadruplet's grammars have none of these devices. Each tree gets exactly
-one meaning, and that meaning has surface scope:
+The MASC grammar has none of these devices. Each tree gets exactly one
+meaning, and that meaning has surface scope:
 
     every architect found a house
     ∀x1.(architect(x1) → ∃x2.(house(x2) ∧ ∃x3.(Agent(x3, x1) ∧ Theme(x3, x2) ∧ find(x3))))
@@ -138,6 +138,34 @@ one meaning, and that meaning has surface scope:
     ¬∃x1.(book(x1) ∧ ∃x2.(Agent(x2, dave) ∧ Theme(x2, x1) ∧ find(x2)))
 
 (The `∃x3` and `∃x2` over events are explained in sections 2 and 3.)
+
+Cooper storage now exists for grammars written in the storage style.
+Such a grammar gives each category two features: `core`, its meaning
+with each quantified noun phrase replaced by a placeholder `@x`, and
+`store`, a tuple of binding operators `bo(Q, @x)` pairing each
+quantifier with its placeholder. `src/test/resources/storage.fcfg` is
+NLTK's storage grammar written this way:
+
+    S[core=<?vp(?subj)>, store=(?b1 + ?b2)] -> NP[core=<?subj>, store=?b1] VP[core=<?vp>, store=?b2]
+    NP[core=<@x>, store=((<bo(?det(?n), @x)>) + ?b1 + ?b2)] -> Det[core=<?det>, store=?b1] N[core=<?n>, store=?b2]
+    Det[core=<\Q P.exists x.(Q(x) & P(x))>, store=()] -> "a"
+
+Rules are renamed apart per use, so each noun phrase gets its own
+placeholder, and unification leaves it free. `retrieve` in
+`com.cbrew.logic` takes a complete edge's category and, for each order
+of the store, applies the operators to the core one after another:
+abstract the term over the operator's placeholder (`abstractOver` in
+`Unify.kt`), apply the quantifier, simplify. The operator taken first
+gets the narrowest scope. "every girl chases a dog" then has both
+readings:
+
+    ∃x1.(dog(x1) ∧ ∀x2.(girl(x2) → chase(x2, x1)))
+    ∀x1.(girl(x1) → ∃x2.(chase(x1, x2) ∧ dog(x2)))
+
+Retrieval is a function the caller applies to an edge; the chart still
+counts one reading per tree. With *n* stored quantifiers it gives *n*!
+readings, some equal: "Angus gives a bone to every man" gives six, two
+of them distinct.
 
 ### What we leave out of PTQ
 
@@ -151,8 +179,9 @@ Enough that "Montague-style" alone oversells the grammar:
 * **No tense.** Past and present forms mean the same. The perfect and the
   progressive are uninterpreted operators, `perf(…)` and `prog(…)`.
 * **No quantifying-in, so no scope ambiguity.** As the previous section
-  says, every reading has surface scope. Section 4 says why, and every
-  ambiguity the parser finds is structural or lexical.
+  says, every MASC reading has surface scope. Section 4 says why, and
+  every ambiguity the parser finds is structural or lexical. Scope
+  ambiguity needs a grammar in the Cooper storage style.
 * **No bound pronouns or anaphora.** Pronouns are constants: "every Japan
   veteran has his list" gives `of(x2, he)`, not the veteran's list.
 
@@ -308,9 +337,10 @@ in, which gives inverse scope, scope islands and more. Our grammar does
 not do that. Each rule fixes the order in which the pieces apply, as the
 S rule above does (subject outside, VP inside), so the subject outscopes
 the auxiliary and negation, which outscope the object, which outscopes
-the event, which outscopes any quantifier inside a modifier. Adding
-Barker and Shan's machinery, or Cooper storage, is the obvious route to
-scope ambiguity in a later version.
+the event, which outscopes any quantifier inside a modifier. For MASC,
+Barker and Shan's machinery, or a rewrite in the Cooper storage style
+of section 1, is the obvious route to scope ambiguity in a later
+version.
 
 ## 5. Gaps
 
@@ -419,8 +449,9 @@ meant.
 Collected from above, for anyone deciding what version 1 should be:
 
 * no intensionality, tense or aspect beyond uninterpreted operators;
-* surface scope only: no quantifier storage, raising or scope-taking
-  continuations;
+* surface scope only in the MASC grammar: no quantifier raising or
+  scope-taking continuations, and Cooper storage only for grammars
+  written in the storage style (section 1);
 * no anaphora or discourse: pronouns are constants, and "the" is
   Russellian rather than presuppositional;
 * a small, frame-based set of thematic roles, and predicates that are
@@ -439,7 +470,7 @@ Collected from above, for anyone deciding what version 1 should be:
 | continuation, continuized | a meaning that takes "the rest of the sentence" as an argument. Our NPs (Montague) and verbs (Champollion) are continuized individuals and events. We do not use continuations for scope-taking |
 | closure | applying a sentence to `\e.true` at the top, or in embedded clauses and relative clauses |
 | slash category (`VPgap`, `Sgap`) | a constituent missing an NP, whose meaning abstracts over it (GPSG) |
-| scope, scope ambiguity | the part of a formula a quantifier, negation or modal governs; a sentence is scope ambiguous when one structure allows several orders. We give only the surface order |
+| scope, scope ambiguity | the part of a formula a quantifier, negation or modal governs; a sentence is scope ambiguous when one structure allows several orders. MASC gives only the surface order; storage-style grammars give every order |
 | reading | a distinct meaning of a whole sentence: a complete `Top` edge |
 | tree | one derivation of a whole sentence; several trees may share a reading |
 
