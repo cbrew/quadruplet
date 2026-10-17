@@ -79,3 +79,6 @@ October 2026 were released under the Apache License 2.0.
 The grammars in `src/test/resources` adapted from NLTK's grammars
 (`sem2.fcfg`, `storage.fcfg`, `drt.fcfg`, `drt-storage.fcfg`) keep their
 original authors' credits in their headers.
+`bb2.fcfg` is translated from BB2 by Patrick Blackburn and Johan Bos,
+released under the GNU General Public License, version 2 or later; its
+header credits them.

@@ -200,6 +200,15 @@ which differ in scope, not just order. The
 MASC grammar remains a logic grammar with surface scope. The design is in
 `docs/superpowers/specs/2026-10-17-drt-design.md`.
 
+`src/test/resources/bb2.fcfg` is a larger DRT grammar: the English
+grammar and lambda-DRT lexicon of Blackburn and Bos's BB2. Verbs
+introduce event referents with agent and patient relations, and the
+grammar covers if/then, either/or, negation, coordination of noun
+phrases, nouns and verb phrases, adjectives, adverbs, prepositional
+phrases, relative clauses, the copula, auxiliaries and wh-questions. Like
+BB2's own lambda-DRT it has surface scope only, so each sentence of BB2's
+test suite gets one reading. Its header lists where it differs from BB2.
+
 ### What we leave out of PTQ
 
 Enough that "Montague-style" alone oversells the grammar:
