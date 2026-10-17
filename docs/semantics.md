@@ -180,7 +180,12 @@ In the other, "a boy" takes wide scope and "he" resolves to it:
 
     ([x1, x2], [boy(x1), (([x3], [dog(x3)]) → ([], [chase(x3, x1)])), (x2 = [x1]), run(x2)])
 
-`x2 = [x1]` records the candidates for the pronoun, here only `x1`. The
+`x2 = [x1]` records the candidates for the pronoun, here only `x1`.
+The storage grammar also repeats readings. Names and indefinites are
+stored like quantifiers, and a sentence's store is retrieved in every
+order, so "Angus owns a dog ." gives two threads and "Angus owns a dog .
+It bites him ." gives four readings. The repeats differ only in the
+order of the referents. They are not yet removed. The
 MASC grammar remains a logic grammar with surface scope. The design is in
 `docs/superpowers/specs/2026-10-17-drt-design.md`.
 

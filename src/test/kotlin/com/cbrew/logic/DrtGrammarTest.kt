@@ -94,4 +94,19 @@ class DrtGrammarTest {
         assertEquals(listOf("([x1], [boy(x1), chase(fido, x1)])"),
                      retrieve(core, listOf(App(App(BO, aBoy), FstructVar("@b")))).map { it.pretty() })
     }
+
+    // Stored names and indefinites retrieve in every order, so the storage
+    // grammar repeats readings that differ only in the order of their
+    // referents. Pinned as they are until the repeats are removed.
+    @Test fun testStorageRepeatsReorderedThreads() = assertEquals(
+        listOf("([x1, x2], [dog(x1), Angus(x2), own(x2, x1)])",
+               "([x1, x2], [Angus(x1), dog(x2), own(x1, x2)])"),
+        storageThreads("Angus owns a dog ."))
+
+    @Test fun testStorageRepeatsReorderedReadings() = assertEquals(
+        listOf("([x1, x2, x3, x4], [dog(x1), Angus(x2), own(x2, x1), (x3 = [x1, x2, x4]), (x4 = [x1, x2, x3]), bite(x4, x3)])",
+               "([x1, x2, x3, x4], [dog(x1), Angus(x2), own(x2, x1), (x3 = [x1, x2, x4]), (x4 = [x1, x2, x3]), bite(x3, x4)])",
+               "([x1, x2, x3, x4], [Angus(x1), dog(x2), own(x1, x2), (x3 = [x1, x2, x4]), (x4 = [x1, x2, x3]), bite(x4, x3)])",
+               "([x1, x2, x3, x4], [Angus(x1), dog(x2), own(x1, x2), (x3 = [x1, x2, x4]), (x4 = [x1, x2, x3]), bite(x3, x4)])"),
+        storageReadings("Angus owns a dog . It bites him ."))
 }

@@ -20,6 +20,12 @@
 ## right. A quantifier can then take scope only within its own sentence.
 ## com.cbrew.logic.drtReadings goes on to resolve the pronouns.
 ##
+## Readings repeat. Names, pronouns and indefinites are stored too, and
+## a sentence's store is retrieved in every order, so "Angus owns a dog ."
+## gives two threads and "Angus owns a dog . It bites him ." four
+## readings, each pair differing only in the order of the referents.
+## Removing the repeats is left for later.
+##
 ## The extra parentheses in (((<?c>, ?s)) + ?d) make a one-element tuple
 ## holding the pair, so that concatenation with ?d keeps the pair whole.
 ## Rules are renamed apart per use, so each @x stands for a distinct
