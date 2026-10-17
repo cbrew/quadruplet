@@ -1,3 +1,3 @@
-FROM openjdk:11
+FROM eclipse-temurin:25-jre
 COPY target/parser-1.0-SNAPSHOT-jar-with-dependencies.jar parser-server.jar
-CMD java -jar parser-server.jar
+CMD ["java", "-jar", "parser-server.jar"]
