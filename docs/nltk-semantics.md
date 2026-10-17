@@ -25,7 +25,7 @@ semantic-term variables.
 |---|---|---|---|
 | `simple-sem`, `sem0`, `sem1`, `sem2`, `event`; the syntax of `chat80` and `discourse` | compositional Montague readings in first-order logic with lambda terms | complete; `sem2.fcfg` is a passing test, and the MASC grammar goes further | nothing |
 | `simple-sem` with `model0`, `sem2` in the book, `chat80` against the Chat-80 world | truth of a reading in a finite model, and the satisfiers of a wh-question | nothing | a model evaluator (section 3) |
-| `storage`, `bindop` | scope ambiguity by Cooper storage: a core term and a store of binding operators, retrieved in every order | the term language, tuples with `+`, and `@x` variables | a retrieval step (section 2) |
+| `storage`, `bindop` | scope ambiguity by Cooper storage: a core term and a store of binding operators, retrieved in every order | the term language, tuples with `+`, `@x` variables, and retrieval; `storage.fcfg` is a passing test | nothing for `storage`; `bindop` untried (section 2) |
 | `hole` | underspecified scope: one formula of holes, labels and dominance constraints, then every legal plugging | the formula itself builds today | a plugging module (section 4) |
 | `drt` | Discourse Representation Structures with merge, translation to logic, and pronoun resolution | nothing; [flat-semantics.md](flat-semantics.md) looks at the related Parallel Meaning Bank | a second term language (section 5) |
 | `discourse` | consistency and informativeness of a discourse, checked by a theorem prover | the readings | an external prover (section 6) |
@@ -67,6 +67,11 @@ permutation of the store and, starting from the core, applies each
 operator in turn: abstract the current term over `@x`, apply `Q` to the
 abstraction, simplify. Each permutation is one scoping; "every girl
 chases a dog" gets both.
+
+Retrieval now exists (`retrieve` in `com.cbrew.logic`, with
+`abstractOver` in `Unify.kt`), applied by the caller to a complete edge;
+`src/test/resources/storage.fcfg` is the grammar below, and the rest of
+this section is the design as it was planned.
 
 quadruplet can express the grammar today. Nested feature maps are
 unsupported, so `SEM=[CORE=…, STORE=…]` becomes two features,
@@ -182,7 +187,7 @@ underneath.
 ## 7. Order of work
 
 1. **Cooper storage** (section 2): smallest, already planned for, reuses
-   everything.
+   everything. Done.
 2. **The model evaluator** (section 3): unlocks `evaluate_sents` on the
    simple grammars and the chat80 queries, and doubles as a test oracle.
 3. **Hole semantics** (section 4): self-contained, medium.

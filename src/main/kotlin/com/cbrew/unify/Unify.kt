@@ -990,6 +990,54 @@ private fun placeBoxes(e: Lambda, bvi: Int): Lambda {
     }
 }
 
+/**
+ * Abstract this term over the semantic variable [v]: the result is λ.t',
+ * where t' has the new bound variable wherever v occurred free, so that
+ * applying the result to a term gives this term with that term in v's
+ * place. Cooper storage retrieval uses it to turn a core into the property
+ * a stored quantifier applies to.
+ *
+ * An occurrence of v under d Lams becomes Var(d + 1), and the free Vars
+ * already in the term move up by one, since the new binder is outside
+ * them. Quantifiers bind QVars, which are numbered separately, so they
+ * change nothing here. As in placeBoxes, a subterm with neither v nor a
+ * free Var is returned as is, and so is one whose children all came back
+ * unchanged. Replacing a variable by a Var creates no redex, so changed
+ * nodes are rebuilt directly.
+ */
+fun Lambda.abstractOver(v: FstructVar): Lambda = createLam(abstractOver(this, v, 0))
+
+private fun abstractOver(e: Lambda, v: FstructVar, d: Int): Lambda {
+    if (e.ground && e.freeVarDepth <= d) return e
+    fun a(l: Lambda) = abstractOver(l, v, d)
+    return when (e) {
+        is And -> e.conjuncts.mapSharedSet(::a)?.let { And(it) } ?: e
+        is Or -> e.disjuncts.mapSharedSet(::a)?.let { Or(it) } ?: e
+        is FstructVar -> if (e == v) Var(d + 1) else e
+        is Var -> if (e.index > d) Var(e.index + 1) else e
+        is Constant -> e
+        is QVar -> e
+        is Box -> e
+        is Empty -> e
+        is Forall -> a(e.body).let { if (it === e.body) e else Forall(it) }
+        is Exists -> a(e.body).let { if (it === e.body) e else Exists(it) }
+        is Not -> a(e.body).let { if (it === e.body) e else Not(it) }
+        is Lam -> abstractOver(e.body, v, d + 1).let { if (it === e.body) e else Lam(it) }
+        is App -> {
+            val f = a(e.e1); val b = a(e.e2)
+            if (f === e.e1 && b === e.e2) e else App(f, b)
+        }
+        is Equiv -> {
+            val f = a(e.e1); val b = a(e.e2)
+            if (f === e.e1 && b === e.e2) e else Equiv(f, b)
+        }
+        is Implies -> {
+            val f = a(e.e1); val b = a(e.e2)
+            if (f === e.e1 && b === e.e2) e else Implies(f, b)
+        }
+    }
+}
+
 // f applied to each element, or null if every element came back unchanged
 private inline fun Set<Lambda>.mapSharedSet(f: (Lambda) -> Lambda): Set<Lambda>? {
     var changed = false
