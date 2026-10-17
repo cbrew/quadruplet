@@ -2,7 +2,9 @@ package com.cbrew.unify
 
 /**
  * In the following functions we spell out exactly how unification works.
- * For feature structures, this is term unification with named variables:
+ * For feature structures, this is not term unification in the strict sense:
+ * feature maps are open records (see unifyMaps), and tuples unify only if
+ * equal. The mechanism is Prolog's rather than a graph unifier's, though:
  * reentrancy is expressed by using the same ?x variable in several places,
  * and bindings are an immutable association list (Bindings) from variable
  * names to values that is threaded through the computation; each new binding

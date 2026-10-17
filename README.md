@@ -55,5 +55,15 @@ support them.**
 * The unifier happens to handle them structurally, but nothing relies on
   that and it may change.
 
-Unification is term unification with named variables: reentrancy is written
-by repeating a variable, e.g. `S[num=?n] -> Np[num=?n] Vp[num=?n]`.
+Unification is not term unification in the strict sense: feature maps are
+open records, so a feature that only one side has is copied into the
+result, where two terms of different arity would fail. The mechanism is
+Prolog's rather than a graph unifier's: named `?x` variables and a
+substitution threaded through the computation, with an occurs check.
+Reentrancy is written by repeating a variable, e.g.
+`S[num=?n] -> Np[num=?n] Vp[num=?n]`; two equal values are never shared.
+Lists are fixed-length and unify element by element. Tuples, and semantic
+terms in `<...>`, unify only if they are equal, though a `?x` inside
+`<...>` binds to a whole term. A variable in feature position ranges over
+feature structures and one in semantic position over terms, and a binding
+that crosses the two fails.
