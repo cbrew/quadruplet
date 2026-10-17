@@ -106,8 +106,11 @@ private fun resolveAll(terms: List<Lambda>, depth: Int, scope: List<Int>): List<
  * For a category with a semantic value in sem (drt.fcfg), that value
  * alone. For a category with sents (drt-storage.fcfg), a tuple of one
  * (core, store) pair per sentence, each sentence's scopings are retrieved
- * separately with [retrieveDistinct], so a quantifier takes scope only
- * within its own sentence. Each combination of one scoping per sentence,
+ * separately with [retrieve], so a quantifier takes scope only within its
+ * own sentence. Scopings that differ only in the order of their referents
+ * and conditions (see [drsKey]) count once: names, pronouns and
+ * indefinites are stored, and retrieving them in different orders changes
+ * nothing else. Each combination of one scoping per sentence,
  * the first sentence varying slowest, gives one thread: the merge of its
  * scopings left to right, so that earlier referents are accessible later.
  *
@@ -133,14 +136,75 @@ fun drtThreads(category: FeatureMap): List<Lambda> {
     }
 }
 
-/** The distinct scopings of one sentence's (core, store) [pair]. */
+/**
+ * The scopings of one sentence's (core, store) [pair], one per [drsKey], in
+ * order of first appearance. Each is represented by the last order of the
+ * store that gives it, so that the scoping from the last order, which
+ * retrieves the store last to first and so lists the referents in surface
+ * order, represents the scopings that differ from it only in that order.
+ */
 private fun scopings(pair: Unifiable): List<Lambda> {
     val core = (pair as? FeatureTuple)?.elements?.takeIf { it.size == 2 }?.get(0)
     require(pair is FeatureTuple && core is SemanticValue) {
         "a sentence in sents should be a (core, store) pair, not $pair"
     }
-    return retrieveDistinct(core.value, semanticValues(pair.elements[1]))
+    return retrieve(core.value, semanticValues(pair.elements[1])).groupBy(::drsKey).values.map { it.last() }
 }
+
+/**
+ * A key that two terms share exactly when they differ at most in the order
+ * of each box's referents and of its conditions, which DRT takes to be
+ * sets. For example ([x, y], [dog(x), Angus(y), own(y, x)]) and
+ * ([x, y], [Angus(x), dog(y), own(x, y)]) share a key, and
+ * ([x, y], [dog(x), dog(y), chase(x, y)]) and its converse share one too,
+ * since renaming x and y turns one into the other. The conjuncts of And,
+ * the disjuncts of Or and the candidates of a [Resolved] are sets as well.
+ *
+ * A box's key is the least, over every order of its referents, of its
+ * sorted condition keys, so a box with k referents costs k! sortings.
+ * The boxes of one sentence have few referents.
+ */
+fun drsKey(term: Lambda): String = key(term, 0, emptyMap())
+
+/**
+ * The key of [term], found under [depth] referent and quantifier binders,
+ * whose box referents, as absolute ids, are renamed by [rename].
+ */
+private fun key(term: Lambda, depth: Int, rename: Map<Int, Int>): String = when (term) {
+    is QVar -> absolute(term.index, depth).let { "q${rename[it] ?: it}" }
+    is Drs -> "drs(${boxKey(term.refs, term.conds, null, depth, rename)})"
+    is DrsImp -> "imp(${boxKey(term.refs, term.antecedent, term.consequent, depth, rename)})"
+    is Exists -> "exists(${key(term.body, depth + 1, rename)})"
+    is Forall -> "forall(${key(term.body, depth + 1, rename)})"
+    is Lam -> "lam(${key(term.body, depth, rename)})"
+    is Not -> "not(${key(term.body, depth, rename)})"
+    is App -> "app(${key(term.e1, depth, rename)},${key(term.e2, depth, rename)})"
+    is Implies -> "implies(${key(term.e1, depth, rename)},${key(term.e2, depth, rename)})"
+    is Equiv -> "equiv(${key(term.e1, depth, rename)},${key(term.e2, depth, rename)})"
+    is And -> "and(${setKey(term.conjuncts, depth, rename)})"
+    is Or -> "or(${setKey(term.disjuncts, depth, rename)})"
+    is Resolved -> "resolved(${key(term.pronoun, depth, rename)},${setKey(term.antecedents, depth, rename)})"
+    is Constant -> "c:${term.name}"
+    is Var -> "v${term.index}"
+    is FstructVar -> "f:${term.name}"
+    is Box -> "box"
+    is Empty -> "empty"
+}
+
+/** The sorted keys of [terms], joined. */
+private fun setKey(terms: Collection<Lambda>, depth: Int, rename: Map<Int, Int>): String =
+        terms.map { key(it, depth, rename) }.sorted().joinToString(",")
+
+/**
+ * The least key, over every order of a box's [refs] referents, of its
+ * [conds] (sorted) and its [consequent], if it is an implication.
+ */
+private fun boxKey(refs: Int, conds: List<Lambda>, consequent: Lambda?, depth: Int, rename: Map<Int, Int>): String =
+        permutations((depth + 1..depth + refs).toList()).minOf { order ->
+            val inner = rename + order.mapIndexed { i, id -> depth + 1 + i to id }
+            val body = setKey(conds, depth + refs, inner)
+            "$refs|$body" + (consequent?.let { "|" + key(it, depth + refs, inner) } ?: "")
+        }
 
 /** Every choice of one element from each of [lists], the first list varying slowest. */
 private fun <T> cartesian(lists: List<List<T>>): List<List<T>> =
