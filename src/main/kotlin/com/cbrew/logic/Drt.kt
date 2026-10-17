@@ -33,3 +33,63 @@ fun Lambda.fol(): Lambda = when (this) {
 /** The conjunction of the translated [conds], or [TRUE] when there are none. */
 private fun conjunction(conds: List<Lambda>): Lambda =
         if (conds.isEmpty()) TRUE else createAnd(conds.map { it.fol() })
+
+/**
+ * Resolve the pronouns of a DRS by accessibility.
+ *
+ * A pronoun condition `PRO(u)` is replaced by `Resolved(u, candidates)`.
+ * The candidates are all the referents accessible from the condition, in the
+ * order the boxes list them, other than u itself: those of the enclosing
+ * boxes, including referents introduced later in the same box. The
+ * referents of a box implication or a negated box are visible inside it
+ * and not outside it. Picking among the candidates is left to
+ * [fol], which makes them a disjunction of equalities.
+ *
+ * @param drs a DRS, or a term containing DRSs
+ * @return the term with every pronoun resolved, or null if some pronoun has
+ *         no candidate
+ */
+fun resolveAnaphora(drs: Lambda): Lambda? = resolve(drs, 0, emptyList())
+
+/** Convert between a QVar index at [depth] binders and its absolute id; the map is its own inverse. */
+private fun absolute(index: Int, depth: Int): Int = depth - index + 1
+
+/**
+ * Rewrite [term], found under [depth] referent and quantifier binders, whose
+ * accessible referents are the absolute ids [scope], outermost first.
+ */
+private fun resolve(term: Lambda, depth: Int, scope: List<Int>): Lambda? = when {
+    term is App && term.e1 == Constant("PRO") && term.e2 is QVar -> {
+        val own = absolute(term.e2.index, depth)
+        val candidates = scope.filter { it != own }.map { QVar(absolute(it, depth)) }
+        if (candidates.isEmpty()) null else Resolved(term.e2, candidates)
+    }
+    term is Drs -> {
+        val inner = depth + term.refs
+        resolveAll(term.conds, inner, scope + (depth + 1..inner))?.let { Drs(term.refs, it) }
+    }
+    term is DrsImp -> {
+        val inner = depth + term.refs
+        val innerScope = scope + (depth + 1..inner)
+        val antecedent = resolveAll(term.antecedent, inner, innerScope)
+        val consequent = resolve(term.consequent, inner, innerScope)
+        if (antecedent == null || consequent == null) null else DrsImp(term.refs, antecedent, consequent)
+    }
+    term is Exists -> resolve(term.body, depth + 1, scope)?.let { Exists(it) }
+    term is Forall -> resolve(term.body, depth + 1, scope)?.let { Forall(it) }
+    term is Not -> resolve(term.body, depth, scope)?.let { Not(it) }
+    term is And -> resolveAll(term.conjuncts.toList(), depth, scope)?.let { createAnd(it) }
+    term is Or -> resolveAll(term.disjuncts.toList(), depth, scope)?.let { createOr(it) }
+    term is Implies -> {
+        val premise = resolve(term.e1, depth, scope)
+        val conclusion = resolve(term.e2, depth, scope)
+        if (premise == null || conclusion == null) null else Implies(premise, conclusion)
+    }
+    else -> term
+}
+
+/** Resolve each of [terms] as [resolve] does, or null if any of them fails. */
+private fun resolveAll(terms: List<Lambda>, depth: Int, scope: List<Int>): List<Lambda>? {
+    val resolved = terms.map { resolve(it, depth, scope) }
+    return if (resolved.any { it == null }) null else resolved.filterNotNull()
+}
