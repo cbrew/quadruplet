@@ -1,0 +1,96 @@
+## drt.fcfg
+##
+## NLTK's book_grammars/drt.fcfg (Dan Garrette), translated into
+## quadruplet's notation, with discourse rules added.
+##
+## The first line below switches the <...> semantics to DRT notation:
+## boxes are written ([x, y], [dog(x), own(x, y)]), + merges boxes and
+## -> between boxes is a box implication. A pronoun introduces a referent
+## and a condition PRO(x); com.cbrew.logic.drtReadings resolves it by
+## accessibility once the discourse is complete.
+##
+## NLTK writes SEM=<...> and takes sentences from a separate discourse
+## parser; here the discourse is part of the grammar: D builds one from
+## sentences, each ended by the word ".", and its sem is their merge. The
+## pronouns him and her, and the verb runs/run, are additions to NLTK's
+## lexicon. Alternatives such as "he" | "He" give one lexical entry per
+## word.
+## Adapted for quadruplet by Chris Brew.
+
+%semantics drt
+
+D[sem=<?s + ?d>] -> S[sem=<?s>] "." D[sem=<?d>]
+D[sem=<?s>] -> S[sem=<?s>] "."
+S[sem=<?subj(?vp)>] -> NP[num=?n, sem=<?subj>] VP[num=?n, sem=<?vp>]
+NP[num=?n, sem=<?det(?nom)>] -> Det[num=?n, sem=<?det>] Nom[num=?n, sem=<?nom>]
+NP[loc=?l, num=?n, sem=<?np>] -> PropN[loc=?l, num=?n, sem=<?np>]
+Nom[num=?n, sem=<?nom>] -> N[num=?n, sem=<?nom>]
+Nom[num=?n, sem=<?pp(?nom)>] -> N[num=?n, sem=<?nom>] PP[sem=<?pp>]
+VP[num=?n, sem=<?v>] -> IV[num=?n, sem=<?v>]
+VP[num=?n, sem=<?v(?obj)>] -> TV[num=?n, sem=<?v>] NP[sem=<?obj>]
+
+# Lexical items
+
+PropN[-loc, num=sg, sem=<\P.(([x], [Angus(x)]) + P(x))>] -> "Angus"
+PropN[-loc, num=sg, sem=<\P.(([x], [Irene(x)]) + P(x))>] -> "Irene"
+PropN[-loc, num=sg, sem=<\P.(([x], [John(x)]) + P(x))>] -> "John"
+PropN[-loc, num=sg, sem=<\P.(([x], [Mary(x)]) + P(x))>] -> "Mary"
+PropN[-loc, num=sg, sem=<\P.(([x], [Suzie(x)]) + P(x))>] -> "Suzie"
+PropN[-loc, num=sg, sem=<\P.(([x], [Vincent(x)]) + P(x))>] -> "Vincent"
+PropN[-loc, num=sg, sem=<\P.(([x], [Mia(x)]) + P(x))>] -> "Mia"
+PropN[-loc, num=sg, sem=<\P.(([x], [Marsellus(x)]) + P(x))>] -> "Marsellus"
+PropN[-loc, num=sg, sem=<\P.(([x], [Fido(x)]) + P(x))>] -> "Fido"
+PropN[+loc, num=sg, sem=<\P.(([x], [Noosa(x)]) + P(x))>] -> "Noosa"
+
+PropN[-loc, num=sg, sem=<\P.(([x], [PRO(x)]) + P(x))>] -> "he" | "He"
+PropN[-loc, num=sg, sem=<\P.(([x], [PRO(x)]) + P(x))>] -> "she" | "She"
+PropN[-loc, num=sg, sem=<\P.(([x], [PRO(x)]) + P(x))>] -> "it" | "It"
+PropN[-loc, num=sg, sem=<\P.(([x], [PRO(x)]) + P(x))>] -> "him" | "Him"
+PropN[-loc, num=sg, sem=<\P.(([x], [PRO(x)]) + P(x))>] -> "her" | "Her"
+
+Det[num=sg, sem=<\P Q.([], [(([x], []) + P(x)) -> Q(x)])>] -> "every" | "Every"
+Det[num=pl, sem=<\P Q.([], [(([x], []) + P(x)) -> Q(x)])>] -> "all" | "All"
+Det[sem=<\P Q.((([x], []) + P(x)) + Q(x))>] -> "some" | "Some"
+Det[sem=<\P Q.((([x], []) + P(x)) + Q(x))>] -> "a" | "A"
+Det[num=sg, sem=<\P Q.-((([x], []) + P(x)) + Q(x))>] -> "no" | "No"
+
+N[num=sg, sem=<\x.([], [boy(x)])>] -> "boy"
+N[num=pl, sem=<\x.([], [boy(x)])>] -> "boys"
+N[num=sg, sem=<\x.([], [girl(x)])>] -> "girl"
+N[num=pl, sem=<\x.([], [girl(x)])>] -> "girls"
+N[num=sg, sem=<\x.([], [dog(x)])>] -> "dog"
+N[num=pl, sem=<\x.([], [dog(x)])>] -> "dogs"
+N[num=sg, sem=<\x.([], [student(x)])>] -> "student"
+N[num=pl, sem=<\x.([], [student(x)])>] -> "students"
+N[num=sg, sem=<\x.([], [person(x)])>] -> "person"
+N[num=pl, sem=<\x.([], [person(x)])>] -> "persons"
+N[num=sg, sem=<\x.([], [garden(x)])>] -> "garden"
+N[num=pl, sem=<\x.([], [garden(x)])>] -> "gardens"
+N[num=sg, sem=<\x.([], [kitchen(x)])>] -> "kitchen"
+N[num=pl, sem=<\x.([], [kitchen(x)])>] -> "kitchens"
+N[num=sg, sem=<\x.([], [boxerdog(x)])>] -> "boxer"
+N[num=pl, sem=<\x.([], [boxerdog(x)])>] -> "boxers"
+N[num=sg, sem=<\x.([], [boxer(x)])>] -> "boxer"
+N[num=pl, sem=<\x.([], [boxer(x)])>] -> "boxers"
+
+IV[num=sg, sem=<\x.([], [bark(x)])>, tns=pres] -> "barks"
+IV[num=pl, sem=<\x.([], [bark(x)])>, tns=pres] -> "bark"
+IV[num=sg, sem=<\x.([], [walk(x)])>, tns=pres] -> "walks"
+IV[num=pl, sem=<\x.([], [walk(x)])>, tns=pres] -> "walk"
+IV[num=sg, sem=<\x.([], [dance(x)])>, tns=pres] -> "dances"
+IV[num=pl, sem=<\x.([], [dance(x)])>, tns=pres] -> "dance"
+IV[num=sg, sem=<\x.([], [run(x)])>, tns=pres] -> "runs"
+IV[num=pl, sem=<\x.([], [run(x)])>, tns=pres] -> "run"
+
+TV[num=sg, sem=<\X x.X(\y.([], [own(x, y)]))>, tns=pres] -> "owns"
+TV[num=pl, sem=<\X x.X(\y.([], [own(x, y)]))>, tns=pres] -> "own"
+TV[num=sg, sem=<\X x.X(\y.([], [bite(x, y)]))>, tns=pres] -> "bites"
+TV[num=pl, sem=<\X x.X(\y.([], [bite(x, y)]))>, tns=pres] -> "bite"
+TV[num=sg, sem=<\X x.X(\y.([], [chase(x, y)]))>, tns=pres] -> "chases"
+TV[num=pl, sem=<\X x.X(\y.([], [chase(x, y)]))>, tns=pres] -> "chase"
+TV[num=sg, sem=<\X x.X(\y.([], [marry(x, y)]))>, tns=pres] -> "marries"
+TV[num=pl, sem=<\X x.X(\y.([], [marry(x, y)]))>, tns=pres] -> "marry"
+TV[num=sg, sem=<\X x.X(\y.([], [know(x, y)]))>, tns=pres] -> "knows"
+TV[num=pl, sem=<\X x.X(\y.([], [know(x, y)]))>, tns=pres] -> "know"
+TV[num=sg, sem=<\X x.X(\y.([], [see(x, y)]))>, tns=pres] -> "sees"
+TV[num=pl, sem=<\X x.X(\y.([], [see(x, y)]))>, tns=pres] -> "see"

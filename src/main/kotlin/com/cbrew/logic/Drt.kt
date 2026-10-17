@@ -93,3 +93,29 @@ private fun resolveAll(terms: List<Lambda>, depth: Int, scope: List<Int>): List<
     val resolved = terms.map { resolve(it, depth, scope) }
     return if (resolved.any { it == null }) null else resolved.filterNotNull()
 }
+
+/**
+ * The unresolved merged DRSs of a complete discourse edge: for a category
+ * with a semantic value in sem, that value alone.
+ *
+ * @param category the category of a complete D edge
+ * @return the merged DRSs, with the pronouns still unresolved
+ * @throws IllegalArgumentException if the category has neither sem nor sents,
+ *         or its sem is not a semantic value
+ */
+fun drtThreads(category: FeatureMap): List<Lambda> {
+    val sem = category["sem"]
+    require(sem != null) { "a DRT discourse edge has sem or sents, not just ${category.keys}" }
+    require(sem is SemanticValue) { "sem should be a semantic value, not $sem" }
+    return listOf(sem.value)
+}
+
+/**
+ * The readings of a complete discourse edge: its [drtThreads] with every
+ * pronoun resolved by accessibility. A thread in which some pronoun has no
+ * accessible referent gives no reading.
+ *
+ * @param category the category of a complete D edge
+ * @return the resolved DRSs, in the order of the threads
+ */
+fun drtReadings(category: FeatureMap): List<Lambda> = drtThreads(category).mapNotNull(::resolveAnaphora)
