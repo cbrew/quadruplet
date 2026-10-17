@@ -152,6 +152,32 @@ class ChartTest {
         assertEquals(4, chart.solutions().flatMap { chart.getTrees(it).toList() }.size)
     }
 
+    /**
+     * The tree counts for 1 to 20 'a's are OEIS A001002
+     * (https://oeis.org/A001002), shifted by one: n 'a's have a(n - 1)
+     * trees.
+     *
+     * TreeAsFeatureGrammar has a binary and a ternary rule for every
+     * odd/even labelling of the children, and a parent's label is the
+     * parity of the number of words it covers. So every ordered tree whose
+     * internal nodes have two or three children is a parse, in exactly one
+     * way. The number of such trees with n leaves is the coefficient of x^n
+     * in T, where T = x + T^2 + T^3, the series reversion of x - x^2 - x^3
+     * that OEIS gives as A001002's generating function (offset 1). A001002
+     * also counts dissections of a convex (n + 1)-gon into triangles and
+     * quadrilaterals; each such dissection is dual to one of these trees.
+     */
+    @Test
+    fun testCountTreesIsA001002() {
+        // a(0) to a(19), copied from the OEIS entry
+        val a001002 = listOf(
+                "1", "1", "3", "10", "38", "154", "654", "2871", "12925", "59345",
+                "276835", "1308320", "6250832", "30142360", "146510216",
+                "717061938", "3530808798", "17478955570", "86941210950",
+                "434299921440").map { java.math.BigInteger(it) }
+        assertEquals(a001002, (1..20).map(::countAs))
+    }
+
     @Test
     fun testCountTrees() {
         // 16 matches the old unmemoised Int count; 20 overflowed Int and
