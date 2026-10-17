@@ -67,3 +67,15 @@ terms in `<...>`, unify only if they are equal, though a `?x` inside
 `<...>` binds to a whole term. A variable in feature position ranges over
 feature structures and one in semantic position over terms, and a binding
 that crosses the two fails.
+
+## Licence
+
+quadruplet is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version. See [LICENSE](LICENSE). Versions before
+October 2026 were released under the Apache License 2.0.
+
+The grammars in `src/test/resources` adapted from NLTK's grammars
+(`sem2.fcfg`, `storage.fcfg`, `drt.fcfg`, `drt-storage.fcfg`) keep their
+original authors' credits in their headers.
