@@ -3,13 +3,44 @@ package com.cbrew.fstruct.notation
 import com.cbrew.unify.Lambda
 import com.cbrew.unify.Unifiable
 import com.cbrew.unify.normalized
+import org.antlr.v4.runtime.BailErrorStrategy
 import org.antlr.v4.runtime.BaseErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.RecognitionException
 import org.antlr.v4.runtime.Recognizer
+import org.antlr.v4.runtime.atn.PredictionMode
+import org.antlr.v4.runtime.misc.ParseCancellationException
 
 object IntegratedParser {
+    /**
+     * Parses [s] as a grammar file, returning the parser (for its rule
+     * names) and the tree.
+     *
+     * The expression rule is ambiguous (how far a lambda, quantifier or
+     * negation body extends), and full LL prediction re-resolves each such
+     * ambiguity with the whole parser stack, which is most of the cost of
+     * loading a grammar. So ANTLR's SLL prediction is tried first: when it
+     * succeeds it gives the tree full LL would. Only when it fails is the
+     * input parsed again with full LL and the usual error recovery, so syntax
+     * errors are reported and repaired as before.
+     */
+    private fun parseCfg(s: String): Pair<FeatParser, FeatParser.CfgContext> {
+        val tokens = CommonTokenStream(FeatLexer(CharStreams.fromString(s)))
+        val sll = FeatParser(tokens).apply {
+            interpreter.predictionMode = PredictionMode.SLL
+            removeErrorListeners()
+            errorHandler = BailErrorStrategy()
+        }
+        return try {
+            sll to sll.cfg()
+        } catch (e: ParseCancellationException) {
+            tokens.seek(0)
+            val ll = FeatParser(tokens)
+            ll to ll.cfg()
+        }
+    }
+
     fun toTree(s: String): String {
         // Validate and sanitize input
         if (s.isEmpty()) {
@@ -17,11 +48,8 @@ object IntegratedParser {
         }
         
         try {
-            val input = CharStreams.fromString(s)
-            val lexer = FeatLexer(input)
-            val tokens = CommonTokenStream(lexer)
-            val parser = FeatParser(tokens)
-            return parser.cfg().toStringTree(parser)
+            val (parser, tree) = parseCfg(s)
+            return tree.toStringTree(parser)
         } catch (e: Exception) {
             throw IllegalArgumentException("Failed to parse input: ${e.message}", e)
         }
@@ -34,12 +62,8 @@ object IntegratedParser {
         }
         
         try {
-            val input = CharStreams.fromString(s)
-            val lexer = FeatLexer(input)
-            val tokens = CommonTokenStream(lexer)
-            val parser = FeatParser(tokens)
             val visitor = IntegratedVisitor()
-            val g1 = visitor.visit(parser.cfg())
+            val g1 = visitor.visit(parseCfg(s).second)
             return g1
         } catch (e: Exception) {
             throw IllegalArgumentException("Failed to parse grammar: ${e.message}", e)
