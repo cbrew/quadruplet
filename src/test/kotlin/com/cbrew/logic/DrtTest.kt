@@ -5,6 +5,7 @@ import com.cbrew.unify.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 /** Discourse representation theory: translation of DRSs to first-order logic. */
@@ -94,4 +95,29 @@ class DrtTest {
         assertEquals("∃x1.(p(x1) → ∃x2.(dog(x2) ∧ own(x1, x2)))", Exists(Implies(p, box)).fol().pretty())
         assertEquals("∀x1.(p(x1) = ∃x2.(dog(x2) ∧ own(x1, x2)))", Forall(Equiv(p, box)).fol().pretty())
     }
+
+    @Test
+    fun testDrsKeyIgnoresReferentAndConditionOrder() = assertEquals(
+            drsKey(drs("([x, y], [dog(x), angus(y), own(y, x)])")),
+            drsKey(drs("([x, y], [angus(x), dog(y), own(x, y)])")))
+
+    @Test
+    fun testDrsKeyRenamesLikeReferents() = assertEquals(      // swapping x and y gives the converse
+            drsKey(drs("([x, y], [dog(x), dog(y), chase(x, y)])")),
+            drsKey(drs("([x, y], [dog(x), dog(y), chase(y, x)])")))
+
+    @Test
+    fun testDrsKeyKeepsArgumentOrder() = assertNotEquals(
+            drsKey(drs("([x, y], [dog(x), boy(y), chase(x, y)])")),
+            drsKey(drs("([x, y], [dog(x), boy(y), chase(y, x)])")))
+
+    @Test
+    fun testDrsKeyInsideImplication() = assertEquals(        // inner referents reorder, outer ones stay put
+            drsKey(drs("([z], [boy(z), (([x, y], [dog(x), bone(y), own(x, y)]) -> ([], [like(x, z)]))])")),
+            drsKey(drs("([z], [boy(z), (([y, x], [dog(x), bone(y), own(x, y)]) -> ([], [like(x, z)]))])")))
+
+    @Test
+    fun testDrsKeyKeepsScope() = assertNotEquals(            // a boy outside or inside the implication
+            drsKey(drs("([y], [boy(y), (([x], [dog(x)]) -> ([], [chase(x, y)]))])")),
+            drsKey(drs("([], [(([x], [dog(x)]) -> ([y], [boy(y), chase(x, y)]))])")))
 }

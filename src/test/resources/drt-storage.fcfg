@@ -20,11 +20,13 @@
 ## right. A quantifier can then take scope only within its own sentence.
 ## com.cbrew.logic.drtReadings goes on to resolve the pronouns.
 ##
-## Readings repeat. Names, pronouns and indefinites are stored too, and
-## a sentence's store is retrieved in every order, so "Angus owns a dog ."
-## gives two threads and "Angus owns a dog . It bites him ." four
-## readings, each pair differing only in the order of the referents.
-## Removing the repeats is left for later.
+## Names, pronouns and indefinites are stored too, and a sentence's store
+## is retrieved in every order, so orders that differ only in where a
+## name, pronoun or indefinite is retrieved give boxes that differ only in
+## the order of their referents and conditions. drtThreads counts these
+## once per sentence (com.cbrew.logic.drsKey), keeping the one with its
+## referents in surface order if any, so "Angus owns a dog ." gives one thread
+## and "Angus owns a dog . It bites him ." one reading, as with drt.fcfg.
 ##
 ## The extra parentheses in (((<?c>, ?s)) + ?d) make a one-element tuple
 ## holding the pair, so that concatenation with ?d keeps the pair whole.
