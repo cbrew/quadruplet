@@ -160,4 +160,12 @@ class LogicTest {
                 normalOrderReduce(And(setOf(redex, App(Lam(App(Constant("f"), Var(1))), Constant("d"))))),
                 "every redex is reduced, one step at a time")
     }
+
+    @Test
+    fun testQuantifierPushedInCollapsesEqualElements() {
+        // ∃.(p(x) ∨ ∃.p(x)): both disjuncts become ∃.p(x), leaving no Or
+        val p = App(Constant("p"), QVar(1))
+        assertEquals(Exists(p), createExistential(createOr(p, Exists(p))))
+        assertEquals(Forall(p), createUniversal(createAnd(p, Forall(p))))
+    }
 }
