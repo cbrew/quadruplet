@@ -54,8 +54,7 @@ object IntegratedParser {
 
         try {
             val lexer = FeatLexer(CharStreams.fromString(s)).apply {
-                drt = true
-                pushMode(FeatLexer.ISLAND)
+                pushMode(FeatLexer.DRT_ISLAND)
             }
             val parser = FeatParser(CommonTokenStream(lexer))
             val logicVisitor = LogicVisitor()
