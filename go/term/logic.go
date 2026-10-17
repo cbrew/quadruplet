@@ -163,10 +163,10 @@ func createQuantified(universal bool, body Lambda) Lambda {
 		return shiftQuantifiers(body, 1)
 	}
 	if a, ok := body.(*And); ok && universal {
-		return NewAnd(mapLambdas(a.elems, CreateUniversal)...)
+		return CreateAnd(mapLambdas(a.elems, CreateUniversal)...)
 	}
 	if o, ok := body.(*Or); ok && !universal {
-		return NewOr(mapLambdas(o.elems, CreateExistential)...)
+		return CreateOr(mapLambdas(o.elems, CreateExistential)...)
 	}
 	if universal {
 		return NewForall(body)
