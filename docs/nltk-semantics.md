@@ -27,7 +27,7 @@ semantic-term variables.
 | `simple-sem` with `model0`, `sem2` in the book, `chat80` against the Chat-80 world | truth of a reading in a finite model, and the satisfiers of a wh-question | nothing | a model evaluator (section 3) |
 | `storage`, `bindop` | scope ambiguity by Cooper storage: a core term and a store of binding operators, retrieved in every order | the term language, tuples with `+`, `@x` variables, and retrieval; `storage.fcfg` is a passing test | nothing for `storage`; `bindop` untried (section 2) |
 | `hole` | underspecified scope: one formula of holes, labels and dominance constraints, then every legal plugging | the formula itself builds today | a plugging module (section 4) |
-| `drt` | Discourse Representation Structures with merge, translation to logic, and pronoun resolution | nothing; [flat-semantics.md](flat-semantics.md) looks at the related Parallel Meaning Bank | a second term language (section 5) |
+| `drt` | Discourse Representation Structures with merge, translation to logic, and pronoun resolution | boxes, merge, `fol()`, anaphora resolution and discourse readings; `drt.fcfg` and `drt-storage.fcfg` are passing tests (section 5) | provers and Glue, out of scope (section 6) |
 | `discourse` | consistency and informativeness of a discourse, checked by a theorem prover | the readings | an external prover (section 6) |
 | `gluesemantics` | syntax only; the meanings live in NLTK's glue lexicon and a linear-logic prover | nothing | out of scope (section 6) |
 | `sql0`, `sql1`, `sql` | an SQL string built by tuple concatenation, run on a city database | tuple `+` expressions | string values and a join (section 6) |
@@ -148,24 +148,23 @@ be harmless for a USR but wants a test.
     Det[NUM=sg,SEM=<\P Q.DRS([],[((DRS([x],[])+P(x)) implies Q(x))])>] -> 'every'
     PropN[-LOC,NUM=sg,SEM=<\P.(DRS([x],[PRO(x)])+P(x))>] -> 'he'
 
-A DRS is a box of discourse referents and conditions; `+` merges boxes,
-with alpha-conversion so referents do not clash; boxes can be negated and
-stand in an implication; `fol()` translates a box to logic; and
-`resolve_anaphora` replaces each `PRO(x)` by an equation with an
+In NLTK a DRS is a box of discourse referents and conditions; `+` merges
+boxes, with alpha-conversion so referents do not clash; boxes can be
+negated and stand in an implication; `fol()` translates a box to logic;
+and `resolve_anaphora` replaces each `PRO(x)` by an equation with an
 accessible antecedent, offering every candidate. This is what makes
 "a dog barks. it walks." work across sentences.
 
-This is the large piece. It is a second term language beside `Lambda`:
-its own sealed family, its own reduction (beta reduction that merges
-boxes), a translation to the existing logic, a printer, and the
-resolution search. De Bruijn indices fit it, since a box's referents are
-binders, but little of the existing code is reused. NLTK's `drt.py` is
-1,500 lines including a box drawer; the core would be perhaps six to nine
-hundred lines of Kotlin. The decision to make first is whether DRSs would
-replace the logical forms or sit beside them, and whether the flat,
-PMB-style meanings sketched in [flat-semantics.md](flat-semantics.md)
-are the version actually wanted, since the Parallel Meaning Bank is DRT
-underneath.
+Done in quadruplet; the design is in
+[the DRT design](superpowers/specs/2026-10-17-drt-design.md). A grammar
+that starts with a `%semantics drt` declaration reads `<...>` as DRSs.
+The boxes `Drs`, `DrsImp` and `Resolved` are nodes of the existing term
+language, so the second term language this section once planned was not
+needed. A box's referents are de Bruijn binders, so accessibility is
+scope and no alpha-conversion is needed when boxes merge. `fol()`,
+`resolveAnaphora` and the discourse readings are in
+`src/main/kotlin/com/cbrew/logic/Drt.kt`. The flat, PMB-style meanings sketched in
+[flat-semantics.md](flat-semantics.md) are a separate matter.
 
 ## 6. What to leave out
 
@@ -191,5 +190,5 @@ underneath.
 2. **The model evaluator** (section 3): unlocks `evaluate_sents` on the
    simple grammars and the chat80 queries, and doubles as a test oracle.
 3. **Hole semantics** (section 4): self-contained, medium.
-4. **DRT** (section 5): large; decide against the PMB-style alternative
-   first.
+4. **DRT** (section 5): large. Done, as classic boxes rather than the
+   PMB-style alternative.

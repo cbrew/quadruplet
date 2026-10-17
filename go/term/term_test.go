@@ -59,6 +59,18 @@ func TestSetsDeduplicate(t *testing.T) {
 	}
 }
 
+func TestPushedQuantifierCollapsesEqualElements(t *testing.T) {
+	// ∃.(p(x) ∨ ∃.p(x)): pushing ∃ into the disjunction makes both
+	// disjuncts ∃.p(x), so the result is that term, not a one-element Or
+	px := NewApp(NewConst("p"), NewQVar(1))
+	if got := CreateExistential(CreateOr(px, NewExists(px))); !Equal(got, NewExists(px)) {
+		t.Errorf("∃.(p(x) ∨ ∃.p(x)) = %v", got)
+	}
+	if got := CreateUniversal(CreateAnd(px, NewForall(px))); !Equal(got, NewForall(px)) {
+		t.Errorf("∀.(p(x) ∧ ∀.p(x)) = %v", got)
+	}
+}
+
 func TestConstructorsHashDistinctly(t *testing.T) {
 	b := NewApp(NewConst("f"), NewQVar(1))
 	seen := map[uint64]bool{}

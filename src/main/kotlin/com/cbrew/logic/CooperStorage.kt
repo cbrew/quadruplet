@@ -71,15 +71,24 @@ fun retrieveDistinct(core: Lambda, store: List<Lambda>): List<Lambda> =
 fun retrieve(category: FeatureMap): List<Lambda> {
     val core = category["core"]
     require(core is SemanticValue) { "core should be a semantic value, not $core" }
-    val elements = when (val store = category["store"]) {
+    return retrieve(core.value, semanticValues(category["store"]))
+}
+
+/**
+ * The terms in a store feature, a tuple or list of semantic values.
+ *
+ * @throws IllegalArgumentException if [store] is missing or not of that form
+ */
+internal fun semanticValues(store: Unifiable?): List<Lambda> {
+    val elements = when (store) {
         is FeatureTuple -> store.elements
         is FeatureList -> store.elements
         else -> throw IllegalArgumentException("store should be a tuple of semantic values, not $store")
     }
-    return retrieve(core.value, elements.map {
+    return elements.map {
         require(it is SemanticValue) { "store should hold semantic values, not $it" }
         it.value
-    })
+    }
 }
 
 /** Every ordering of [xs], in lexicographic order of positions. */

@@ -8,7 +8,13 @@ import java.util.*
 
 
 
-class LogicVisitor : FeatParserBaseVisitor<Tree>() {
+/**
+ * Reads the semantic terms of a grammar.
+ *
+ * @param drt whether the terms are DRT notation (`%semantics drt`); there
+ *        every `A -> B` is a box implication, see [binarize]
+ */
+class LogicVisitor(private val drt: Boolean = false) : FeatParserBaseVisitor<Tree>() {
 
     private fun makeIndividual(text: String) = Leaf(text, "I")
     private fun makePredicate(text: String) = Leaf(text, "P")
@@ -73,9 +79,64 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
     private fun flattenOr(disjuncts: Set<Lambda>): Set<Lambda> = disjuncts.flatMap(::orYield).toSet()
 
 
+    // The children of a "refs" or "conds" node.
+    private val Tree.items: List<Tree> get() = (this as Node).children
+
+    private fun Tree.isDrs(): Boolean = this is Node && label == "drs"
+
+    /**
+     * Rewrites a `"merge"` node, K1 + K2, as the `"drs"` node it stands for,
+     * after merge-normalizing both sides. When both are boxes, the result has
+     * K1's referents then K2's, and K1's conditions then K2's, so K1's
+     * referents bind in K2 and both sets bind in anything merged later. When
+     * only K1 is a box, K2 becomes its last condition. Otherwise both sides
+     * become the conditions of a box with no referents. A referent introduced
+     * twice in one merged box is an [IllegalArgumentException]. Any tree that
+     * is not a merge is unchanged.
+     */
+    private fun mergeNormal(t: Tree): Tree {
+        if (t !is Node || t.label != "merge") return t
+        val left = mergeNormal(t.children[0])
+        val right = mergeNormal(t.children[1])
+        return when {
+            left.isDrs() && right.isDrs() -> {
+                val (leftRefs, leftConds) = left.items
+                val (rightRefs, rightConds) = right.items
+                val refs = leftRefs.items + rightRefs.items
+                requireDistinct(refs.map { (it as Leaf).label }, "merged box")
+                Node("drs", listOf(Node("refs", refs), Node("conds", leftConds.items + rightConds.items)))
+            }
+            left.isDrs() -> {
+                val (refs, conds) = left.items
+                Node("drs", listOf(refs, Node("conds", conds.items + right)))
+            }
+            else -> Node("drs", listOf(Node("refs", listOf()), Node("conds", listOf(left, right))))
+        }
+    }
+
+    /** An [IllegalArgumentException] if a referent name appears twice among [names], the referents of one [box]. */
+    private fun requireDistinct(names: List<String>, box: String) {
+        names.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.firstOrNull()?.let {
+            throw IllegalArgumentException("referent $it is introduced twice in one $box")
+        }
+    }
+
     fun binarize(e: Tree): Lambda {
         // binding stack is managed explicitly
         val bindingStack = LinkedList<Pair<String, String>>()
+
+        // Pushes a "refs" node's referents as "Q" in listed order, as
+        // "exists" does, so the last-listed is QVar(1); runs body with their
+        // number, then pops them. A referent listed twice is an
+        // IllegalArgumentException.
+        fun boundBy(refs: Tree, body: (Int) -> Lambda): Lambda {
+            val names = refs.items.map { (it as Leaf).label }
+            requireDistinct(names, "box")
+            names.forEach { bindingStack.push(Pair(it, "Q")) }
+            val r = body(names.size)
+            names.forEach { _ -> bindingStack.pop() }
+            return r
+        }
         fun bin(n: Tree): Lambda {
             return when (n) {
                 is Leaf ->
@@ -133,8 +194,34 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
                         }
                         "application" -> makeApp(n.children.map { bin(it) })
 
+                        // A box's referents are bound, as by "exists", over
+                        // its own conditions.
+                        "drs" -> {
+                            val (refs, conds) = n.children
+                            boundBy(refs) { k -> createDrs(k, conds.items.map(::bin)) }
+                        }
+                        "merge" -> bin(mergeNormal(n))
+
                         "iff" -> Equiv(bin(n.children.get(0)), bin(n.children.get(1)))
-                        "implies" -> Implies(bin(n.children.get(0)), bin(n.children.get(1)))
+                        // A box on the left binds its referents over the
+                        // right side too: a box implication. In DRT
+                        // notation any other left side, such as a variable
+                        // a box will later be substituted for, is the one
+                        // condition of an antecedent with no referents, so
+                        // that createDrsImp merges the box in when it comes.
+                        "implies" -> {
+                            val left = mergeNormal(n.children[0])
+                            when {
+                                left.isDrs() -> {
+                                    val (refs, conds) = left.items
+                                    boundBy(refs) { k ->
+                                        createDrsImp(k, conds.items.map(::bin), bin(n.children[1]))
+                                    }
+                                }
+                                drt -> createDrsImp(0, listOf(bin(left)), bin(n.children[1]))
+                                else -> Implies(bin(left), bin(n.children[1]))
+                            }
+                        }
                         "negated" -> Not(bin(n.children.get(0)))
                         "equals" -> Equiv(bin(n.children.get(0)), bin(n.children.get(1)))
                         "not_equals" -> Not(Equiv(bin(n.children.get(0)), bin(n.children.get(1))))
@@ -223,6 +310,18 @@ class LogicVisitor : FeatParserBaseVisitor<Tree>() {
 
     override fun visitParenthesized(ctx: FeatParser.ParenthesizedContext?): Tree =
         visit(ctx?.parenthesizedExpression()?.expression())
+
+    /** A box: `Node("drs", [Node("refs", referents), Node("conds", conditions)])`. */
+    override fun visitDrs(ctx: FeatParser.DrsContext?): Tree {
+        val box = ctx?.drsExpression()
+        val refs = box?.larg()?.map { makeArgument(it.text) } ?: listOf()
+        val conds = box?.expression()?.map(::visit) ?: listOf()
+        return Node("drs", listOf(Node("refs", refs), Node("conds", conds)))
+    }
+
+    /** A merge, `left + right`; [binarize] resolves it into a box. */
+    override fun visitMerge(ctx: FeatParser.MergeContext?): Tree =
+        Node("merge", ctx?.expression()?.map(::visit) ?: listOf())
 
     override fun visitBox(ctx: FeatParser.BoxContext?): Tree {
         return Leaf("", type = "Box")

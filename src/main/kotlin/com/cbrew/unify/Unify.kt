@@ -147,6 +147,9 @@ private fun subterms(item: Unifiable): List<Unifiable> =
             is Lam -> listOf(item.body)
             is Exists -> listOf(item.body)
             is Forall -> listOf(item.body)
+            is Drs -> item.conds
+            is DrsImp -> item.antecedent + item.consequent
+            is Resolved -> listOf(item.pronoun) + item.antecedents
             is Constant -> listOf()
             is Var -> listOf()
             is QVar -> listOf()
@@ -462,6 +465,19 @@ private fun mapVariablesLam(lam: Lambda, onVar: (Unifiable) -> Unifiable, share:
             val mapped = cs.mapShared(::map)
             if (share && mapped === cs) lam else createAnd(mapped)
         }
+        is Drs -> {
+            val mapped = lam.conds.mapShared(::map)
+            if (share && mapped === lam.conds) lam else createDrs(lam.refs, mapped)
+        }
+        is DrsImp -> {
+            val ant = lam.antecedent.mapShared(::map); val cons = map(lam.consequent)
+            if (share && ant === lam.antecedent && cons === lam.consequent) lam
+            else createDrsImp(lam.refs, ant, cons)
+        }
+        is Resolved -> {
+            val p = map(lam.pronoun); val ants = lam.antecedents.mapShared(::map)
+            if (share && p === lam.pronoun && ants === lam.antecedents) lam else Resolved(p, ants)
+        }
     }
 }
 
@@ -523,8 +539,8 @@ private fun createQuantified(isUniversal: Boolean, body: Lambda): Lambda =
 // possibly the quantifier would not bind anything.
 // if so we omit it
         if (!quantifierBinds(body, 1)) shiftQuantifiers(body, 1)
-        else if (body is And && isUniversal) And(SmallSet.of(body.conjuncts.map(::createUniversal)))
-        else if (body is Or && !isUniversal) Or(SmallSet.of(body.disjuncts.map(::createExistential)))
+        else if (body is And && isUniversal) createAnd(body.conjuncts.map(::createUniversal))
+        else if (body is Or && !isUniversal) createOr(body.disjuncts.map(::createExistential))
         else if (isUniversal) Forall(body)
         else Exists(body)
 
@@ -558,6 +574,9 @@ internal fun quantifierBinds(input: Lambda, bvi: Int): Boolean =
             is Implies -> quantifierBinds(input.e1, bvi) || quantifierBinds(input.e2, bvi)
             is Or -> input.disjuncts.any { quantifierBinds(it, bvi) }
             is And -> input.conjuncts.any { quantifierBinds(it, bvi) }
+            is Drs -> input.conds.any { quantifierBinds(it, bvi + input.refs) }
+            is DrsImp -> (input.antecedent + input.consequent).any { quantifierBinds(it, bvi + input.refs) }
+            is Resolved -> (listOf(input.pronoun) + input.antecedents).any { quantifierBinds(it, bvi) }
         }
 
 
@@ -605,6 +624,12 @@ private fun shiftQuantifiers(input: Lambda, bvi: Int): Lambda =
             is Implies -> createImplication(shiftQuantifiers(input.e1, bvi), shiftQuantifiers(input.e2, bvi))
             is Equiv -> Equiv(shiftQuantifiers(input.e1, bvi), shiftQuantifiers(input.e2, bvi))
             is App -> createApp(shiftQuantifiers(input.e1, bvi), shiftQuantifiers(input.e2, bvi))
+            is Drs -> createDrs(input.refs, input.conds.map { shiftQuantifiers(it, bvi + input.refs) })
+            is DrsImp -> createDrsImp(input.refs,
+                    input.antecedent.map { shiftQuantifiers(it, bvi + input.refs) },
+                    shiftQuantifiers(input.consequent, bvi + input.refs))
+            is Resolved -> Resolved(shiftQuantifiers(input.pronoun, bvi),
+                    input.antecedents.map { shiftQuantifiers(it, bvi) })
             is Var -> input
             is FstructVar -> input
             is Constant -> input
@@ -645,12 +670,15 @@ fun createLam(body: Lambda): Lambda {
 
 /**
  * Make a negation, simplifying away double negation.
- * and applying DeMorgan equivalences
+ * and applying DeMorgan equivalences. A doubly negated DRS is kept, since
+ * the referents of ¬¬K are not accessible from outside it.
  * @param body
  * @return
  */
 fun createNegation(body: Lambda): Lambda =
-        if (body is Not) // two negatives make a positive, return the body's body.
+        if (body is Not && body.body is Drs)
+            Not(body)
+        else if (body is Not) // two negatives make a positive, return the body's body.
             body.body
         else if (body is And && allNegated(body.conjuncts))
             createNegation(createOr(body.conjuncts.map { (it as Not).body }))
@@ -705,6 +733,46 @@ fun createAnd(conjuncts: List<Lambda>): Lambda {
     return if (flat.size == 1)
         flat.single()
     else And(flat)
+}
+
+/**
+ * Make a DRS with [refs] referents and the conditions [conds], merging into
+ * it any box that is itself one of the conditions: its referents are added
+ * after the outer ones, so they become the innermost binders, and every
+ * other condition is shifted over them. Always returns a [Drs].
+ */
+fun createDrs(refs: Int, conds: List<Lambda>): Lambda =
+        flattenDrs(refs, conds, null).let { (k, out, _) -> Drs(k, out) }
+
+/**
+ * Make a DRS implication, merging boxes among the [antecedent]'s
+ * conditions as [createDrs] does; the [consequent] is shifted over the
+ * referents that merging adds. Returns a [DrsImp].
+ */
+fun createDrsImp(refs: Int, antecedent: List<Lambda>, consequent: Lambda): Lambda =
+        flattenDrs(refs, antecedent, consequent).let { (k, out, tail) -> DrsImp(k, out, tail!!) }
+
+// The conditions are a worklist, processed left to right. A box's own
+// conditions go to the front of the worklist with their indices unchanged,
+// and everything else in scope, already processed or not, is shifted over
+// the box's referents.
+private fun flattenDrs(refs: Int, conds: List<Lambda>, consequent: Lambda?): Triple<Int, List<Lambda>, Lambda?> {
+    if (conds.none { it is Drs }) return Triple(refs, conds, consequent)
+    val out = ArrayList<Lambda>(conds.size * 2)
+    val rest = ArrayDeque(conds)
+    var tail = consequent
+    var k = refs
+    while (rest.isNotEmpty()) {
+        val c = rest.removeFirst()
+        if (c is Drs) {
+            out.replaceAll { qshift(it, c.refs) }
+            for (i in rest.indices) rest[i] = qshift(rest[i], c.refs)
+            c.conds.asReversed().forEach(rest::addFirst)
+            tail = tail?.let { qshift(it, c.refs) }
+            k += c.refs
+        } else out.add(c)
+    }
+    return Triple(k, out, tail)
 }
 
 /**
@@ -792,6 +860,9 @@ fun Lambda.betaReducible(): Boolean =
             is Lam -> body.betaReducible()
             is Equiv -> e1.betaReducible() || e2.betaReducible()
             is Implies -> e1.betaReducible() || e2.betaReducible()
+            is Drs -> conds.any { it.betaReducible() }
+            is DrsImp -> antecedent.any { it.betaReducible() } || consequent.betaReducible()
+            is Resolved -> pronoun.betaReducible() || antecedents.any { it.betaReducible() }
         }
 
 
@@ -843,13 +914,24 @@ private fun betaReduce(ex: Lambda): Lambda =
             else
                 Equiv(ex.e1, betaReduce(ex.e2))
             is Lam -> Lam(betaReduce(ex.body))
+            is Drs -> createDrs(ex.refs, reduceFirst(ex.conds))
+            is DrsImp ->
+                if (ex.antecedent.any { it.betaReducible() })
+                    createDrsImp(ex.refs, reduceFirst(ex.antecedent), ex.consequent)
+                else
+                    createDrsImp(ex.refs, ex.antecedent, betaReduce(ex.consequent))
+            is Resolved ->
+                if (ex.pronoun.betaReducible())
+                    Resolved(betaReduce(ex.pronoun), ex.antecedents)
+                else
+                    Resolved(ex.pronoun, reduceFirst(ex.antecedents))
             else -> throw Exception("unexpected: $ex")
         }
 
 
-// One reduction step inside a conjunction or disjunction: the first
+// One reduction step inside a conjunction, disjunction or box: the first
 // reducible element is reduced and the others are kept as they are.
-private fun reduceFirst(xs: Set<Lambda>): List<Lambda> {
+private fun reduceFirst(xs: Collection<Lambda>): List<Lambda> {
     var done = false
     return xs.map { x ->
         if (!done && x.betaReducible()) {
@@ -934,10 +1016,28 @@ private class Instantiation(val arg: Lambda) {
                 hit = h
                 if (h) createOr(items) else Or(SmallSet.of(items))
             }
+            is Drs -> {
+                val (items, h) = runAll(e.conds, d, q + e.refs)
+                hit = h
+                if (h) createDrs(e.refs, items) else Drs(e.refs, items)
+            }
+            is DrsImp -> {
+                val (items, h) = runAll(e.antecedent, d, q + e.refs)
+                val c = run(e.consequent, d, q + e.refs)
+                hit = hit || h
+                if (hit) createDrsImp(e.refs, items, c) else DrsImp(e.refs, items, c)
+            }
+            is Resolved -> {
+                val p = run(e.pronoun, d, q)
+                val h = hit
+                val (items, hs) = runAll(e.antecedents, d, q)
+                hit = h || hs
+                Resolved(p, items)
+            }
         }
     }
 
-    private fun runAll(xs: Set<Lambda>, d: Int, q: Int): Pair<List<Lambda>, Boolean> {
+    private fun runAll(xs: Collection<Lambda>, d: Int, q: Int): Pair<List<Lambda>, Boolean> {
         var any = false
         val out = xs.map { x -> run(x, d, q).also { any = any || hit } }
         return Pair(out, any)
@@ -987,6 +1087,15 @@ private fun placeBoxes(e: Lambda, bvi: Int): Lambda {
             val a = p(e.e1); val b = p(e.e2)
             if (a === e.e1 && b === e.e2) e else Implies(a, b)
         }
+        is Drs -> e.conds.mapShared(::p).let { if (it === e.conds) e else Drs(e.refs, it) }
+        is DrsImp -> {
+            val a = e.antecedent.mapShared(::p); val c = p(e.consequent)
+            if (a === e.antecedent && c === e.consequent) e else DrsImp(e.refs, a, c)
+        }
+        is Resolved -> {
+            val a = p(e.pronoun); val b = e.antecedents.mapShared(::p)
+            if (a === e.pronoun && b === e.antecedents) e else Resolved(a, b)
+        }
     }
 }
 
@@ -1034,6 +1143,15 @@ private fun abstractOver(e: Lambda, v: FstructVar, d: Int): Lambda {
         is Implies -> {
             val f = a(e.e1); val b = a(e.e2)
             if (f === e.e1 && b === e.e2) e else Implies(f, b)
+        }
+        is Drs -> e.conds.mapShared(::a).let { if (it === e.conds) e else Drs(e.refs, it) }
+        is DrsImp -> {
+            val f = e.antecedent.mapShared(::a); val c = a(e.consequent)
+            if (f === e.antecedent && c === e.consequent) e else DrsImp(e.refs, f, c)
+        }
+        is Resolved -> {
+            val f = a(e.pronoun); val b = e.antecedents.mapShared(::a)
+            if (f === e.pronoun && b === e.antecedents) e else Resolved(f, b)
         }
     }
 }
@@ -1083,6 +1201,11 @@ private fun substBoxes(e: Lambda, x: Lambda, bvi: Int, qvi: Int): Lambda =
             is App -> createApp(substBoxes(e.e1, x, bvi, qvi), substBoxes(e.e2, x, bvi, qvi))
             is Equiv -> createEquiv(substBoxes(e.e1, x, bvi, qvi), substBoxes(e.e2, x, bvi, qvi))
             is Implies -> createImplication(substBoxes(e.e1, x, bvi, qvi), substBoxes(e.e2, x, bvi, qvi))
+            is Drs -> createDrs(e.refs, e.conds.map { substBoxes(it, x, bvi, qvi + e.refs) })
+            is DrsImp -> createDrsImp(e.refs, e.antecedent.map { substBoxes(it, x, bvi, qvi + e.refs) },
+                    substBoxes(e.consequent, x, bvi, qvi + e.refs))
+            is Resolved -> Resolved(substBoxes(e.pronoun, x, bvi, qvi),
+                    e.antecedents.map { substBoxes(it, x, bvi, qvi) })
         }
 
 /**
@@ -1119,6 +1242,11 @@ private fun qshift(e: Lambda, amount: Int, qvi: Int): Lambda =
             is App -> App(qshift(e.e1, amount, qvi), qshift(e.e2, amount, qvi))
             is Equiv -> createEquiv(qshift(e.e1, amount, qvi), qshift(e.e2, amount, qvi))
             is Implies -> createImplication(qshift(e.e1, amount, qvi), qshift(e.e2, amount, qvi))
+            // renumbering makes no box a condition that was not one before
+            is Drs -> Drs(e.refs, e.conds.map { qshift(it, amount, qvi + e.refs) })
+            is DrsImp -> DrsImp(e.refs, e.antecedent.map { qshift(it, amount, qvi + e.refs) },
+                    qshift(e.consequent, amount, qvi + e.refs))
+            is Resolved -> Resolved(qshift(e.pronoun, amount, qvi), e.antecedents.map { qshift(it, amount, qvi) })
         }
 
 
@@ -1161,6 +1289,9 @@ private fun shift(e: Lambda, amount: Int, bvi: Int): Lambda =
             is App -> App(shift(e.e1, amount, bvi), shift(e.e2, amount, bvi))
             is Equiv -> Equiv(shift(e.e1, amount, bvi), shift(e.e2, amount, bvi))
             is Implies -> Implies(shift(e.e1, amount, bvi), shift(e.e2, amount, bvi))
+            is Drs -> Drs(e.refs, e.conds.map { shift(it, amount, bvi) })
+            is DrsImp -> DrsImp(e.refs, e.antecedent.map { shift(it, amount, bvi) }, shift(e.consequent, amount, bvi))
+            is Resolved -> Resolved(shift(e.pronoun, amount, bvi), e.antecedents.map { shift(it, amount, bvi) })
         }
 
 fun closed(term: Lambda) = term.closed(0, 0)
@@ -1182,6 +1313,9 @@ private fun Lambda.closed(bvi: Int, qvi: Int): Boolean =
             is App -> e1.closed(bvi, qvi) && e2.closed(bvi, qvi)
             is Equiv -> e1.closed(bvi, qvi) && e2.closed(bvi, qvi)
             is Implies -> e1.closed(bvi, qvi) && e2.closed(bvi, qvi)
+            is Drs -> conds.all { it.closed(bvi, qvi + refs) }
+            is DrsImp -> (antecedent + consequent).all { it.closed(bvi, qvi + refs) }
+            is Resolved -> pronoun.closed(bvi, qvi) && antecedents.all { it.closed(bvi, qvi) }
         }
 
 
@@ -1218,4 +1352,7 @@ operator fun Lambda.get(index: Int): Lambda =
             }
             is Or -> disjuncts.toList().get(index)
             is And -> conjuncts.toList().get(index)
+            is Drs -> conds.getOrNull(index)
+            is DrsImp -> (antecedent + consequent).getOrNull(index)
+            is Resolved -> (listOf(pronoun) + antecedents).getOrNull(index)
         } ?: Empty
