@@ -1,0 +1,359 @@
+## bb2.fcfg
+##
+## The English grammar and lambda-DRT lexicon of BB2, version 2.0
+## (November 2006), the software of Patrick Blackburn and Johan Bos,
+## "Working with Discourse Representation Theory. An Advanced Course in
+## Computational Semantics", translated into quadruplet's notation.
+## BB2 is Copyright (C) 2004, 2006 Patrick Blackburn and Johan Bos and is
+## free software under the GNU General Public License, version 2 or (at
+## your option) any later version; this translation is distributed under
+## GPL-3.0-or-later, as is quadruplet. The sources are englishGrammar.pl
+## (the rules), englishLexicon.pl (the words) and semRulesDRT.pl and
+## semLexLambdaDRT.pl (the semantics), from
+## https://www.let.rug.nl/bos/comsem/download/bb2.tar.gz.
+##
+## Notation. BB2's drs([X], [C]) is ([x], [C]), merge(K1, K2) is K1 + K2,
+## imp(K1, K2) is K1 -> K2, or(K1, K2) is K1 | K2, not(K) is -K,
+## app(F, A) is F(A) and lam(X, B) is \X.B. Conditions pred(man, X),
+## rel(agent, E, X) and eq(X, Y) are man(x), agent(e, x) and x = y.
+##
+## Semantics. As in BB2, verbs introduce an event referent e with agent and
+## patient relations. A verb phrase takes its subject noun phrase N and a
+## continuation P for its event, so a sentence is a function from an event
+## continuation to a box; a text (T) applies each sentence to
+## \e.([], [event(e)]) and merges the sentences left to right. As in BB2,
+## the sentences of a text are not separated by punctuation.
+##
+## Features. BB2's DCG features become features of the same names: coord,
+## num, inf, mood, type. BB2's gap feature, [] or [np:NP], becomes
+## gap=no or gap=np. BB2 fills a gap with an empty noun phrase whose
+## meaning is unified with that of the wh-phrase; quadruplet has no empty
+## rules, so the one rule that can contain a gap, VP -> TV NP, has a
+## second form VP -> TV, whose meaning is abstracted over the missing
+## object, \G.?tv(G), and the question rule applies it to the wh-phrase.
+## The ref feature, used only by reflexive pronouns, is left out with the
+## pronouns.
+##
+## Where this differs from BB2:
+## * Left out, because semLexLambdaDRT.pl gives them no semantics (BB2's
+##   lambda-DRT finds no reading for a sentence that uses them): the
+##   determiners the, his, her and its and all plural determiners (some,
+##   several, two, three, four, five, no, all, most, the), and the
+##   pronouns he, him, himself, she, her, herself, it and itself, which
+##   BB2 treats in its pronoun and presupposition lexicons.
+## * Repaired, because BB2's own lambda-DRT finds no reading for them:
+##   - the copula, whose BB2 meaning takes the subject as an individual
+##     rather than a noun phrase and takes no event continuation;
+##   - coordination of verb phrases, since BB2's coordination meaning
+##     suits one-argument meanings (noun phrases, nouns) but not verb
+##     phrases, which take a subject and an event continuation; here verb
+##     phrases have their own coordination entries (Coord[+vp]), which
+##     apply the subject once and give each conjunct \R.R(z);
+##   - "it is not the case that S", where BB2 negates S before applying
+##     it to its event continuation;
+##   - questions, which BB2 builds as in its first-order predecessor, by
+##     applying the wh-phrase to the verb phrase, with no event
+##     continuation. Here the verb phrase applies to the wh-phrase, as in
+##     a sentence, and the question rules apply the result to
+##     \e.([], [event(e)]).
+## * Added, because BB2 has no semantics for questions: the wh-words who
+##   and what, with wh(x) marking the referent asked about, and the
+##   determiner which, which BB2's test suite uses and its lexicon lacks.
+##   A wh-phrase is otherwise an indefinite.
+## Adapted for quadruplet by Chris Brew.
+
+%semantics drt
+
+# Texts
+
+T[sem=<?s(\e.([], [event(e)]))>] -> S[coord=no, sem=<?s>]
+T[sem=<?s(\e.([], [event(e)])) + ?t>] -> S[coord=no, sem=<?s>] T[sem=<?t>]
+T[sem=<?s(\e.([], [event(e)]))>] -> S[coord=yes, sem=<?s>]
+T[sem=<?s(\e.([], [event(e)])) + ?t>] -> S[coord=yes, sem=<?s>] T[sem=<?t>]
+T[sem=<?q>] -> Q[sem=<?q>]
+
+# Sentences
+
+S[coord=no, sem=<?vp(?np)>] -> NP[num=?n, sem=<?np>] VP[inf=fin, num=?n, gap=no, sem=<?vp>]
+S[coord=yes, sem=<\E.?a(?b(E))>] -> S[coord=ant, sem=<?a>] S[coord=con, sem=<?b>]
+S[coord=yes, sem=<\E.?a(?b(E))>] -> S[coord=either, sem=<?a>] S[coord=or, sem=<?b>]
+S[coord=ant, sem=<\B.([], [?s(\e.([], [event(e)])) -> B])>] -> "if" S[coord=no, sem=<?s>]
+S[coord=either, sem=<\B.([], [?s(\e.([], [event(e)])) | B])>] -> "either" S[coord=no, sem=<?s>]
+S[coord=con, sem=<?s>] -> "then" S[coord=no, sem=<?s>]
+S[coord=con, sem=<?s>] -> S[coord=no, sem=<?s>]
+S[coord=or, sem=<?s>] -> "or" S[coord=no, sem=<?s>]
+S[coord=?c, sem=<\E.([], [-(?s(E))])>] -> "it" "is" "not" "the" "case" "that" S[coord=?c, sem=<?s>]
+
+Sinv[gap=np, sem=<\G.?av(?vp(G))(?np)>] -> AV[inf=fin, num=?n, sem=<?av>] NP[num=?n, sem=<?np>] VP[inf=inf, gap=np, sem=<?vp>]
+
+# Questions
+
+Q[sem=<?vp(?wh)(\e.([], [event(e)]))>] -> WhNP[num=?n, sem=<?wh>] VP[inf=fin, num=?n, gap=no, sem=<?vp>]
+Q[sem=<?s(?wh)(\e.([], [event(e)]))>] -> WhNP[sem=<?wh>] Sinv[gap=np, sem=<?s>]
+
+# Noun phrases
+
+NP[coord=yes, num=pl, sem=<?c(?a)(?b)>] -> NP[coord=no, num=sg, sem=<?a>] Coord[type=conj, -vp, sem=<?c>] NP[sem=<?b>]
+NP[coord=yes, num=sg, sem=<?c(?a)(?b)>] -> NP[coord=no, num=sg, sem=<?a>] Coord[type=disj, -vp, sem=<?c>] NP[num=sg, sem=<?b>]
+NP[coord=no, num=?n, sem=<?d(?nn)>] -> Det[mood=decl, num=?n, sem=<?d>] N[num=?n, sem=<?nn>]
+NP[coord=no, num=sg, sem=<?pn>] -> PN[sem=<?pn>]
+
+WhNP[num=sg, sem=<?q>] -> QNP[mood=int, sem=<?q>]
+WhNP[num=sg, sem=<?d(?nn)>] -> Det[mood=int, sem=<?d>] N[sem=<?nn>]
+
+# Nouns
+
+N[coord=yes, num=?n, sem=<?c(?a)(?b)>] -> N[coord=no, num=?n, sem=<?a>] Coord[-vp, sem=<?c>] N[num=?n, sem=<?b>]
+N[coord=?c, num=?n, sem=<?a(?nn)>] -> Adj[sem=<?a>] N[coord=?c, num=?n, sem=<?nn>]
+N[coord=no, num=?n, sem=<?nn>] -> Noun[num=?n, sem=<?nn>]
+N[coord=no, num=?n, sem=<?m(?nn)>] -> Noun[num=?n, sem=<?nn>] NMod[num=?n, sem=<?m>]
+
+NMod[sem=<?pp>] -> PP[type=n, sem=<?pp>]
+NMod[num=?n, sem=<?rc>] -> RC[num=?n, sem=<?rc>]
+NMod[num=?n, sem=<\P.?pp(?m(P))>] -> PP[type=n, sem=<?pp>] NMod[num=?n, sem=<?m>]
+
+# Verb phrases
+
+VP[coord=yes, inf=?i, num=?n, gap=no, sem=<?c(?a)(?b)>] -> VP[coord=no, inf=?i, num=?n, gap=no, sem=<?a>] Coord[+vp, sem=<?c>] VP[inf=?i, num=?n, gap=no, sem=<?b>]
+VP[coord=no, inf=?i, num=?n, gap=no, sem=<?av(?vp)>] -> AV[inf=?i, num=?n, sem=<?av>] VP[inf=inf, gap=no, sem=<?vp>]
+VP[coord=no, inf=?i, num=?n, gap=no, sem=<?cop(?np)>] -> Cop[inf=?i, num=?n, sem=<?cop>] NP[sem=<?np>]
+VP[coord=no, inf=?i, num=?n, gap=no, sem=<?iv>] -> IV[inf=?i, num=?n, sem=<?iv>]
+VP[coord=no, inf=?i, num=?n, gap=no, sem=<?adv(?iv)>] -> IV[inf=?i, num=?n, sem=<?iv>] Adv[sem=<?adv>]
+VP[coord=no, inf=?i, num=?n, gap=no, sem=<?pp(?iv)>] -> IV[inf=?i, num=?n, sem=<?iv>] PP[type=vp, sem=<?pp>]
+VP[coord=no, inf=?i, num=?n, gap=no, sem=<?tv(?np)>] -> TV[inf=?i, num=?n, sem=<?tv>] NP[sem=<?np>]
+VP[coord=no, inf=?i, num=?n, gap=np, sem=<\G.?tv(G)>] -> TV[inf=?i, num=?n, sem=<?tv>]
+
+# Prepositional phrases and relative clauses
+
+PP[type=?t, sem=<?p(?np)>] -> Prep[type=?t, sem=<?p>] NP[sem=<?np>]
+RC[num=?n, sem=<?r(?vp)>] -> Relpro[sem=<?r>] VP[inf=fin, num=?n, gap=no, sem=<?vp>]
+
+# Lexicon: closed classes
+
+Cop[inf=fin, num=sg, sem=<\K N P.N(\y.K(\x.([], [y = x])))>] -> "is"
+Cop[inf=fin, num=sg, sem=<\K N P.N(\y.([], [-(K(\x.([], [y = x])))]))>] -> "is" "not"
+Cop[inf=fin, num=pl, sem=<\K N P.N(\y.K(\x.([], [y = x])))>] -> "are"
+Cop[inf=fin, num=pl, sem=<\K N P.N(\y.([], [-(K(\x.([], [y = x])))]))>] -> "are" "not"
+
+Relpro[sem=<\P Q x.(P(\R.R(x))(\e.([], [event(e)])) + Q(x))>] -> "who"
+Relpro[sem=<\P Q x.(P(\R.R(x))(\e.([], [event(e)])) + Q(x))>] -> "that"
+
+Coord[type=conj, -vp, sem=<\X Y P.(X(P) + Y(P))>] -> "and"
+Coord[type=disj, -vp, sem=<\X Y P.([], [X(P) | Y(P)])>] -> "or"
+Coord[type=conj, +vp, sem=<\X Y N P.N(\z.(X(\R.R(z))(P) + Y(\R.R(z))(P)))>] -> "and"
+Coord[type=disj, +vp, sem=<\X Y N P.N(\z.([], [X(\R.R(z))(P) | Y(\R.R(z))(P)]))>] -> "or"
+
+AV[inf=fin, num=sg, sem=<\P N E.P(N)(E)>] -> "does"
+AV[inf=fin, num=sg, sem=<\P N E.([], [-(P(N)(E))])>] -> "does" "not"
+AV[inf=fin, num=pl, sem=<\P N E.P(N)(E)>] -> "do"
+AV[inf=fin, num=pl, sem=<\P N E.([], [-(P(N)(E))])>] -> "do" "not"
+AV[inf=fin, sem=<\P N E.P(N)(E)>] -> "did"
+AV[inf=fin, sem=<\P N E.([], [-(P(N)(E))])>] -> "did" "not"
+
+QNP[mood=int, sem=<\P.(([x], [person(x), wh(x)]) + P(x))>] -> "who"
+QNP[mood=int, sem=<\P.(([x], [thing(x), wh(x)]) + P(x))>] -> "what"
+Det[mood=int, sem=<\U V.((([x], [wh(x)]) + U(x)) + V(x))>] -> "which"
+
+# Lexicon: determiners, nouns, names, verbs, prepositions, adjectives and
+# adverbs, in the order of englishLexicon.pl
+
+Det[mood=decl, num=sg, sem=<\U V.([], [(([x], []) + U(x)) -> V(x)])>] -> "every"
+Det[mood=decl, num=sg, sem=<\U V.((([x], []) + U(x)) + V(x))>] -> "a"
+Det[mood=decl, num=sg, sem=<\U V.((([x], []) + U(x)) + V(x))>] -> "an"
+Det[mood=decl, num=sg, sem=<\U V.((([x], []) + U(x)) + V(x))>] -> "one"
+Det[mood=decl, num=sg, sem=<\U V.((([x], []) + U(x)) + V(x))>] -> "some"
+Det[mood=decl, num=sg, sem=<\U V.([], [-((([x], []) + U(x)) + V(x))])>] -> "no"
+
+Noun[num=sg, sem=<\x.([], [animal(x)])>] -> "animal"
+Noun[num=pl, sem=<\x.([], [animal(x)])>] -> "animals"
+Noun[num=sg, sem=<\x.([], [beverage(x)])>] -> "beverage"
+Noun[num=pl, sem=<\x.([], [beverage(x)])>] -> "beverages"
+Noun[num=sg, sem=<\x.([], [building(x)])>] -> "building"
+Noun[num=pl, sem=<\x.([], [building(x)])>] -> "buildings"
+Noun[num=sg, sem=<\x.([], [cup(x)])>] -> "cup"
+Noun[num=pl, sem=<\x.([], [cup(x)])>] -> "cups"
+Noun[num=sg, sem=<\x.([], [burger(x)])>] -> "burger"
+Noun[num=pl, sem=<\x.([], [burger(x)])>] -> "burgers"
+Noun[num=sg, sem=<\x.([], [boxer(x)])>] -> "boxer"
+Noun[num=pl, sem=<\x.([], [boxer(x)])>] -> "boxers"
+Noun[num=sg, sem=<\x.([], [boss(x)])>] -> "boss"
+Noun[num=pl, sem=<\x.([], [boss(x)])>] -> "bosses"
+Noun[num=sg, sem=<\x.([], [car(x)])>] -> "car"
+Noun[num=pl, sem=<\x.([], [car(x)])>] -> "cars"
+Noun[num=sg, sem=<\x.([], [chainsaw(x)])>] -> "chainsaw"
+Noun[num=pl, sem=<\x.([], [chainsaw(x)])>] -> "chainsaws"
+Noun[num=sg, sem=<\x.([], [criminal(x)])>] -> "criminal"
+Noun[num=pl, sem=<\x.([], [criminal(x)])>] -> "criminals"
+Noun[num=sg, sem=<\x.([], [customer(x)])>] -> "customer"
+Noun[num=pl, sem=<\x.([], [customer(x)])>] -> "customers"
+Noun[num=sg, sem=<\x.([], [drug(x)])>] -> "drug"
+Noun[num=pl, sem=<\x.([], [drug(x)])>] -> "drugs"
+Noun[num=sg, sem=<\x.([], [episode(x)])>] -> "episode"
+Noun[num=pl, sem=<\x.([], [episode(x)])>] -> "episodes"
+Noun[num=sg, sem=<\x.([], [fdshake(x)])>] -> "five" "dollar" "shake"
+Noun[num=pl, sem=<\x.([], [fdshake(x)])>] -> "five" "dollar" "shakes"
+Noun[num=sg, sem=<\x.([], [footmassage(x)])>] -> "foot" "massage"
+Noun[num=pl, sem=<\x.([], [footmassage(x)])>] -> "foot" "massages"
+Noun[num=sg, sem=<\x.([], [gimp(x)])>] -> "gimp"
+Noun[num=pl, sem=<\x.([], [gimp(x)])>] -> "gimps"
+Noun[num=sg, sem=<\x.([], [glass(x)])>] -> "glass"
+Noun[num=pl, sem=<\x.([], [glass(x)])>] -> "glasses"
+Noun[num=sg, sem=<\x.([], [gun(x)])>] -> "gun"
+Noun[num=pl, sem=<\x.([], [gun(x)])>] -> "guns"
+Noun[num=sg, sem=<\x.([], [hammer(x)])>] -> "hammer"
+Noun[num=pl, sem=<\x.([], [hammer(x)])>] -> "hammers"
+Noun[num=sg, sem=<\x.([], [hashbar(x)])>] -> "hash" "bar"
+Noun[num=pl, sem=<\x.([], [hashbar(x)])>] -> "hash" "bars"
+Noun[num=sg, sem=<\x.([], [person(x)])>] -> "person"
+Noun[num=pl, sem=<\x.([], [person(x)])>] -> "persons"
+Noun[num=sg, sem=<\x.([], [husband(x)])>] -> "husband"
+Noun[num=pl, sem=<\x.([], [husband(x)])>] -> "husbands"
+Noun[num=sg, sem=<\x.([], [joke(x)])>] -> "joke"
+Noun[num=pl, sem=<\x.([], [joke(x)])>] -> "jokes"
+Noun[num=sg, sem=<\x.([], [man(x)])>] -> "man"
+Noun[num=pl, sem=<\x.([], [man(x)])>] -> "men"
+Noun[num=sg, sem=<\x.([], [needle(x)])>] -> "needle"
+Noun[num=pl, sem=<\x.([], [needle(x)])>] -> "needles"
+Noun[num=sg, sem=<\x.([], [owner(x)])>] -> "owner"
+Noun[num=pl, sem=<\x.([], [owner(x)])>] -> "owners"
+Noun[num=sg, sem=<\x.([], [piercing(x)])>] -> "piercing"
+Noun[num=pl, sem=<\x.([], [piercing(x)])>] -> "piercings"
+Noun[num=sg, sem=<\x.([], [plant(x)])>] -> "plant"
+Noun[num=pl, sem=<\x.([], [plant(x)])>] -> "plants"
+Noun[num=sg, sem=<\x.([], [qpwc(x)])>] -> "quarter" "pounder" "with" "cheese"
+Noun[num=pl, sem=<\x.([], [qpwc(x)])>] -> "quarter" "pounders" "with" "cheese"
+Noun[num=sg, sem=<\x.([], [radio(x)])>] -> "radio"
+Noun[num=pl, sem=<\x.([], [radio(x)])>] -> "radioes"
+Noun[num=sg, sem=<\x.([], [restaurant(x)])>] -> "restaurant"
+Noun[num=pl, sem=<\x.([], [restaurant(x)])>] -> "restaurants"
+Noun[num=sg, sem=<\x.([], [robber(x)])>] -> "robber"
+Noun[num=pl, sem=<\x.([], [robber(x)])>] -> "robbers"
+Noun[num=sg, sem=<\x.([], [suitcase(x)])>] -> "suitcase"
+Noun[num=pl, sem=<\x.([], [suitcase(x)])>] -> "suitcases"
+Noun[num=sg, sem=<\x.([], [shotgun(x)])>] -> "shotgun"
+Noun[num=pl, sem=<\x.([], [shotgun(x)])>] -> "shotguns"
+Noun[num=sg, sem=<\x.([], [sword(x)])>] -> "sword"
+Noun[num=pl, sem=<\x.([], [sword(x)])>] -> "swords"
+Noun[num=sg, sem=<\x.([], [vehicle(x)])>] -> "vehicle"
+Noun[num=pl, sem=<\x.([], [vehicle(x)])>] -> "vehicles"
+Noun[num=sg, sem=<\x.([], [weapon(x)])>] -> "weapon"
+Noun[num=pl, sem=<\x.([], [weapon(x)])>] -> "weapons"
+Noun[num=sg, sem=<\x.([], [wife(x)])>] -> "wife"
+Noun[num=pl, sem=<\x.([], [wife(x)])>] -> "wifes"
+Noun[num=sg, sem=<\x.([], [woman(x)])>] -> "woman"
+Noun[num=pl, sem=<\x.([], [woman(x)])>] -> "women"
+
+PN[sem=<\P.(([x], [butch(x)]) + P(x))>] -> "butch"
+PN[sem=<\P.(([x], [esmarelda(x)]) + P(x))>] -> "esmarelda"
+PN[sem=<\P.(([x], [honey_bunny(x)]) + P(x))>] -> "honey" "bunny"
+PN[sem=<\P.(([x], [jimmy(x)]) + P(x))>] -> "jimmy"
+PN[sem=<\P.(([x], [jody(x)]) + P(x))>] -> "jody"
+PN[sem=<\P.(([x], [jules(x)]) + P(x))>] -> "jules"
+PN[sem=<\P.(([x], [lance(x)]) + P(x))>] -> "lance"
+PN[sem=<\P.(([x], [marsellus(x)]) + P(x))>] -> "marsellus"
+PN[sem=<\P.(([x], [marsellus(x)]) + P(x))>] -> "marsellus" "wallace"
+PN[sem=<\P.(([x], [marvin(x)]) + P(x))>] -> "marvin"
+PN[sem=<\P.(([x], [mia(x)]) + P(x))>] -> "mia"
+PN[sem=<\P.(([x], [mia(x)]) + P(x))>] -> "mia" "wallace"
+PN[sem=<\P.(([x], [pumpkin(x)]) + P(x))>] -> "pumpkin"
+PN[sem=<\P.(([x], [thewolf(x)]) + P(x))>] -> "the" "wolf"
+PN[sem=<\P.(([x], [vincent(x)]) + P(x))>] -> "vincent"
+PN[sem=<\P.(([x], [vincent(x)]) + P(x))>] -> "vincent" "vega"
+PN[sem=<\P.(([x], [yolanda(x)]) + P(x))>] -> "yolanda"
+
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [collapse(e), agent(e, x)]) + P(e)))>] -> "collapse"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [collapse(e), agent(e, x)]) + P(e)))>] -> "collapses"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [collapse(e), agent(e, x)]) + P(e)))>] -> "collapse"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [dance(e), agent(e, x)]) + P(e)))>] -> "dance"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [dance(e), agent(e, x)]) + P(e)))>] -> "dances"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [dance(e), agent(e, x)]) + P(e)))>] -> "dance"
+IV[inf=inf, sem=<\N P.N(\x.(([e], [die(e), agent(e, x)]) + P(e)))>] -> "die"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [die(e), agent(e, x)]) + P(e)))>] -> "dies"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [die(e), agent(e, x)]) + P(e)))>] -> "die"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [growl(e), agent(e, x)]) + P(e)))>] -> "growl"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [growl(e), agent(e, x)]) + P(e)))>] -> "growls"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [growl(e), agent(e, x)]) + P(e)))>] -> "growl"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [playairguitar(e), agent(e, x)]) + P(e)))>] -> "play" "air" "guitar"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [playairguitar(e), agent(e, x)]) + P(e)))>] -> "plays" "air" "guitar"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [playairguitar(e), agent(e, x)]) + P(e)))>] -> "play" "air" "guitar"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [smoke(e), agent(e, x)]) + P(e)))>] -> "smoke"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [smoke(e), agent(e, x)]) + P(e)))>] -> "smokes"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [smoke(e), agent(e, x)]) + P(e)))>] -> "smoke"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [snort(e), agent(e, x)]) + P(e)))>] -> "snort"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [snort(e), agent(e, x)]) + P(e)))>] -> "snorts"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [snort(e), agent(e, x)]) + P(e)))>] -> "snort"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [shriek(e), agent(e, x)]) + P(e)))>] -> "shriek"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [shriek(e), agent(e, x)]) + P(e)))>] -> "shrieks"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [shriek(e), agent(e, x)]) + P(e)))>] -> "shriek"
+IV[inf=inf, num=sg, sem=<\N P.N(\x.(([e], [walk(e), agent(e, x)]) + P(e)))>] -> "walk"
+IV[inf=fin, num=sg, sem=<\N P.N(\x.(([e], [walk(e), agent(e, x)]) + P(e)))>] -> "walks"
+IV[inf=fin, num=pl, sem=<\N P.N(\x.(([e], [walk(e), agent(e, x)]) + P(e)))>] -> "walk"
+
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [clean(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "clean"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [clean(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "cleans"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [clean(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "clean"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [drink(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "drink"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [drink(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "drinks"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [drink(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "drink"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [date(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "date"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [date(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "dates"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [date(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "date"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [discard(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "discard"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [discard(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "discards"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [discard(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "discard"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [eat(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "eat"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [eat(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "eats"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [eat(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "eat"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [enjoy(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "enjoy"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [enjoy(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "enjoys"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [enjoy(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "enjoy"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [hate(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "hate"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [hate(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "hates"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [hate(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "hate"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [have(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "have"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [have(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "has"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [have(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "have"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [kill(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "kill"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [kill(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "kills"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [kill(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "kill"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [know(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "know"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [know(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "knows"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [know(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "know"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [like(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "like"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [like(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "likes"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [like(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "like"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [love(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "love"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [love(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "loves"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [love(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "love"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [pickup(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "pick" "up"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [pickup(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "picks" "up"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [pickup(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "pick" "up"
+TV[inf=inf, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [shoot(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "shot"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [shoot(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "shot"
+TV[inf=fin, num=sg, sem=<\M N P.N(\x.M(\y.(([e], [shoot(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "shoots"
+TV[inf=fin, num=pl, sem=<\M N P.N(\x.M(\y.(([e], [shoot(e), agent(e, x), patient(e, y)]) + P(e))))>] -> "shoot"
+
+Prep[type=n, sem=<\K P y.(K(\x.([], [about(y, x)])) + P(y))>] -> "about"
+Prep[type=vp, sem=<\K V N E.V(N)(\x.(K(\y.([], [about(x, y)])) + E(x)))>] -> "about"
+Prep[type=n, sem=<\K P y.(K(\x.([], [in(y, x)])) + P(y))>] -> "in"
+Prep[type=vp, sem=<\K V N E.V(N)(\x.(K(\y.([], [in(x, y)])) + E(x)))>] -> "in"
+Prep[type=n, sem=<\K P y.(K(\x.([], [of(y, x)])) + P(y))>] -> "of"
+Prep[type=vp, sem=<\K V N E.V(N)(\x.(K(\y.([], [of(x, y)])) + E(x)))>] -> "of"
+Prep[type=n, sem=<\K P y.(K(\x.([], [with(y, x)])) + P(y))>] -> "with"
+Prep[type=vp, sem=<\K V N E.V(N)(\x.(K(\y.([], [with(x, y)])) + E(x)))>] -> "with"
+
+Adj[sem=<\P x.(([], [big(x)]) + P(x))>] -> "big"
+Adj[sem=<\P x.(([], [blue(x)]) + P(x))>] -> "blue"
+Adj[sem=<\P x.(([], [female(x)]) + P(x))>] -> "female"
+Adj[sem=<\P x.(([], [happy(x)]) + P(x))>] -> "happy"
+Adj[sem=<\P x.(([], [kahuna(x)]) + P(x))>] -> "kahuna"
+Adj[sem=<\P x.(([], [male(x)]) + P(x))>] -> "male"
+Adj[sem=<\P x.(([], [married(x)]) + P(x))>] -> "married"
+Adj[sem=<\P x.(([], [red(x)]) + P(x))>] -> "red"
+Adj[sem=<\P x.(([], [sad(x)]) + P(x))>] -> "sad"
+Adj[sem=<\P x.(([], [small(x)]) + P(x))>] -> "small"
+Adj[sem=<\P x.(([], [tall(x)]) + P(x))>] -> "tall"
+
+Adv[sem=<\V N E.V(N)(\x.(([], [quick(x)]) + E(x)))>] -> "quickly"
+Adv[sem=<\V N E.V(N)(\x.(([], [slow(x)]) + E(x)))>] -> "slowly"
+
